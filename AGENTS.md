@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-10-24: scoped landing-page work for the open umbrella issue (upstream #21 / fork #26)
+
+- Corrected the landing Findings caption so it describes the pins as simulated classifications under permit rules, rather than asserting the mine is breaking its lease. Replaced landing-page color literals with theme colors and `color-mix(...)`, and added coverage for the caption and design tokens.
+- Stabilized the full verification run: the synthetic compliance inspection setup now has a 30-second hook budget for its two 257 × 257 surveys, and the Findings-page selection check now targets the page's actual `li.frow` rows.
+- Verification after these changes: `npm run verify` passes (137 unit tests in 18 files); `npm run test:e2e` passes all 69 checks. Responsive browser review at 1440, 1100, 800 and 390 px found no document-level horizontal scrolling; at 390 × 844 the hero stage and primary action are in the first screen.
+- This is scoped progress only. Leave upstream #21 and fork #26 open, with their remaining checklist items intact; rerun the umbrella review after the other open issues are completed.
+
 ### 2026-10-23: fork synced to the parent (fast-forward to `41c450b`)
 
 - `git merge --ff-only upstream/main`, then pushed: 30 commits, no conflict resolution, no rewritten history. This brings in the parent's `improvements` PR #43 and PR #12 (this fork's branch, merged upstream), which closed 26 of the tracker's 28 items: home-page rework, Overview/Findings/Rules/Uncertainty redesigns, legal pages, new icons, rail sidebar, map timeline and touch hints, 1.6 m/px aerial image.
