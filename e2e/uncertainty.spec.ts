@@ -53,10 +53,12 @@ test('a preset and a slider move the figures and the wording together', async ({
 test('no page claims a real permit was broken', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toContainText('See where a simulated mine')
-  // The findings view's caption describes the engine's classification of a simulated scenario.
-  await expect(page.locator('.hero-controls')).toContainText(
-    'ground the engine classifies as breaking the lease in this simulated scenario',
+  // Pins cover findings from all three rules, including warnings, rather than lease breaches alone.
+  const findingsCaption = page.locator('.hero-controls')
+  await expect(findingsCaption).toContainText(
+    'Each pin marks a simulated finding under one of the permit rules',
   )
+  await expect(findingsCaption).not.toContainText('breaking the lease')
 
   await page.goto('/#/findings')
   const findings = page.locator('main')
