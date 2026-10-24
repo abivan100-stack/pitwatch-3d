@@ -66,7 +66,7 @@ test('Show on map restores the current terrain, finding layer, and selected evid
   await expect(page).toHaveURL(/#\/monitor$/)
   await expect(page.locator('#details-tabpanel li.finding[data-selected]')).toContainText('R1-3')
   await nav.getByRole('link', { name: 'Findings' }).click()
-  await expect(page.locator('li.finding[data-selected]')).toContainText('R1-3')
+  await expect(page.locator('li.frow[data-selected]')).toContainText('R1-3')
 })
 
 test('the phone map clears the drawer after selection and keeps the finding on reopen', async ({
