@@ -64,7 +64,7 @@ const VIEWS = [
     sub: 'vs the permit',
     t: 1,
     title: 'Held against the permit',
-    text: 'Each pin is ground the engine classifies as breaking the lease in this simulated scenario. Red cells are violations, purple the most severe ones, amber cells warnings.',
+    text: 'Each pin marks a simulated finding under one of the permit rules. Red marks violations, purple marks the most severe findings, and amber marks warnings.',
   },
 ] as const
 
