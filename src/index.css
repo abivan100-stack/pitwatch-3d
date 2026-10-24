@@ -1661,7 +1661,7 @@ body {
       to bottom,
       var(--color-oxide) 0 2px,
       var(--color-ochre) 2px 3px,
-      #77736b 3px 5px
+      color-mix(in srgb, var(--color-ink) 65%, var(--color-bg) 35%) 3px 5px
     );
   }
   .landing-brand {
@@ -1730,7 +1730,7 @@ body {
     border-radius: 14px;
     border: 1px solid var(--color-line-strong);
     background: var(--color-bg-2);
-    box-shadow: 0 24px 60px -34px rgb(40 32 20 / 0.5);
+    box-shadow: 0 24px 60px -34px color-mix(in srgb, var(--color-ink) 50%, transparent);
   }
   @media (width >= 64rem) {
     .hero-stage {
@@ -2030,7 +2030,7 @@ body {
       to bottom,
       var(--color-oxide) 0 2px,
       var(--color-ochre) 2px 3px,
-      #77736b 3px 5px
+      color-mix(in srgb, var(--color-ink) 65%, var(--color-bg) 35%) 3px 5px
     );
   }
   .landing-close :focus-visible {
@@ -2058,7 +2058,7 @@ body {
   .chip-dark {
     padding: 2px 8px;
     border-radius: 2px;
-    border: 1px solid rgb(255 255 255 / 0.28);
+    border: 1px solid color-mix(in srgb, var(--color-side-ink) 28%, transparent);
     font-family: var(--font-mono);
     font-size: 11px;
     font-style: italic;
