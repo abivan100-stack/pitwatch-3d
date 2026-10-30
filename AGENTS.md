@@ -2,7 +2,7 @@
 
 3D mine monitoring and regulatory compliance demo. Frontend only, no backend. Every value is synthetic and labelled so.
 
-Work is committed and pushed to `origin/main`. This checkout's `origin` is `abivan100-stack/pitwatch-3d`; verify the remote and current branch before any push. Historical log entries retain the repository and issue references that were accurate when those changes were made.
+Work is committed and pushed to `origin/main`. This checkout is the fork `Raghav2012Code/pitwatch`; the parent `abivan100-stack/pitwatch-3d` is fetched through the `upstream` remote, and its own copy of this file calls the parent the main repo, so the header here states the fork's view. Verify the remote and current branch before any push. Historical log entries retain the repository and issue references that were accurate when those changes were made.
 
 ## Working rules
 
@@ -50,6 +50,50 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-10-30: header chip polish
+
+- The dashboard header's right cluster read as two unrelated islands: the status chip and the SIMULATED DATA stamp had different heights, paddings, borders and a loud diagonal-hatch fill on the stamp. The stamp loses the hatch; it is now a flat chip like the status chip (warn tint at 5% background, 38% border, same padding and line-height), and the status chip gains the same 3% ink background so the two read as one row of matched chips. Both still say exactly what they said.
+- At 768 px the map subtitle truncated mid-word ("…switch survey and ins…"). The subtitle is now hidden below `lg` instead of `sm`, so tablet shows the title alone rather than a cheap ellipsis; 1440 px still shows it.
+- Visual check at 1440 and 768 px on Overview and the 3D map: chips same height, no truncation. No markup, store or engine change; `src/ui/shell/Header.tsx` changes one Tailwind class, `src/index.css` the two chip rules.
+- Checks: `npm run verify` (174 unit tests in 22 files) and `npm run test:e2e` (75 checks) pass.
+
+### 2026-10-29: the palette rule is lint, not habit (ticket #32, closes #46's last step)
+
+- `eslint.config.js` now rejects a colour written in code: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, and static `rgb(`/`rgba(`/`hsl(`/`hsla(` strings. The message names `src/scene/palette.ts` and the `@theme` tokens, and says to add the value to the palette and import it.
+- Scope is wider than the #46 plan's `.tsx`-only step, because the two inks that had actually been hiding sat in the PDF report's `.ts` module: one shared selector pair now applies to `src/**/*.tsx` (beside the existing whole-store rule) and to `src/**/*.ts`. Flat config replaces a rule's settings rather than merging them, so the store rule and the colour rule share one array instead of two blocks that would silently drop one another.
+- `src/scene/palette.ts` is the allowed home and `src/**/*.test.ts` may assert on values; both are excluded. The one legitimate computed colour — the elevation key's swatch, built at runtime from `rampAt()` — is a template literal, so it is not a literal and never matched.
+- Proof, with throwaway probe files deleted afterwards: `#ff0000` and `#abc` in a `.tsx` failed, `rgb(0 0 0)`, `rgba(0 0 0 / 0.5)` and `hsl(20 40% 50%)` in a `.ts` failed, while `'#/monitor'`, `'#content'`, `'#sidebar'` and `'#ab'` passed; a file calling `useTerrain()` and writing a hex produced both messages, which proves the existing store rule survived the merge. `npm run lint` on the real tree is clean, so the rule added no exceptions.
+- `README.md` says the colour rule is enforced, and `docs/plan-issue-46-scene-colours.md` records that its step 4 landed here, wider than planned.
+- Named ceiling: the selectors match a whole string literal, so a colour embedded in a longer CSS fragment (`'0 0 0 2px #fff'`) would pass. Nothing in the tree writes colours that way — they come from `palette.ts`, and the palette was excluded for a reason — so the rule stays exact rather than fuzzy; if such a string appears, add a boundary-anchored selector rather than loosening these.
+
+### 2026-10-29: six follow-up tickets opened (#32–#37), all `ready-for-agent`
+
+- `/to-tickets` over what the sync and the bug check left open: **#32** the lint guard that makes "colours live in the palette" a rule rather than a habit (the half of #46 upstream skipped), **#33** the PDF drawing real symbols through a subset font instead of spelling `± m² (2σ)` out, **#34** a long finding continuing onto the next page (blocked by #33, set as a native GitHub dependency and repeated in the body), **#35** the Map card folding away at 800 px, **#36** the first-visit tour, and **#37** horizontal survey error on a point reading. Each carries the behaviour it makes work, acceptance criteria, and its blockers; nothing is assigned.
+- Two of them were first created on the **parent's** tracker by mistake: `gh` resolves the repo from the remotes, and this clone has both, so it picked `upstream`. My permissions there do not include deleting an issue, so both were closed with a comment saying where the ticket really lives and the six were recreated in the fork. `gh repo set-default Raghav2012Code/pitwatch` now pins the clone to the fork, and `docs/agents/issue-tracker.md` says to check that before creating anything.
+- README and STATUS stopped claiming no issues are open, and the three limits they list now name the ticket that would remove them (#35, #36, #37).
+- No code, test or fixture changed; the checks quoted in STATUS are the ones the bug check ran on 2026-10-29.
+
+### 2026-10-29: full bug check of the whole repo (five defects found and fixed)
+
+- **The new PDF printed mangled text, and that was not cosmetic.** jsPDF's built-in Helvetica only draws Latin-1, and jsPDF mangles an _entire_ string when one character is outside it. Every explanation contains `± … (2σ)`, so each finding's paragraph came out with replacement glyphs — the one thing the upstream entry said could not be checked because there was no PDF renderer on that machine. Checked here by opening the downloaded file in this machine's Chromium PDF viewer, which is possible and should have been done: page 1 of a 2-page report had a nearly empty page 2, and R1-1 and R1-2 printed their ids on top of each other (they sit about 30 m apart on a 100 mm plan).
+- Fixes in `src/ui/reportPdf.ts` and `src/compliance/report.ts`: `pdfSafeText` (pure, tested) spells the symbols out for the PDF only — `±` → `+/-`, `m²` → `m2`, `σ` → `sigma` with the digit spaced — while the screen and the CSV keep the real characters. `placeLabels` (pure, tested) steps a colliding id up by a line instead of overprinting. The block-height estimate now matches what a block draws (13.4 + lines × 4.6 mm, was 18 + …), so all five findings and the plan fit page 1 instead of one finding sitting alone on page 2. The two ink colours the report had hardcoded now come from `PRINT_INK` in `src/scene/palette.ts`, closing the same rule #46 had just fixed. The button disables itself while the report is built and says so if building fails, so it is never a dead control.
+- Guards: `report.test.ts` (+2) and a new `src/ui/reportPdf.test.ts` (+2) cover the text mapping and the label stepping; the existing PDF browser check now inflates the document's streams and fails if any drawn string is outside ASCII or if `(2 sigma)` is missing, so a regression cannot pass on the file header alone.
+- Sweep of all ten routes at 1440, 1100, 800 and 390 px against the production build (40 combinations): no horizontal overflow, no console error, no page error, no failed request, and no critical or serious axe violation at 1440 or 390 px. A separate DOM audit of every route found no duplicate id, no unnamed button or link, no dead `href="#"`, no unknown route link and no image without `alt`.
+- Worker check: home → map → overview → map → home creates 2 workers (one per survey) and terminates 0, which is the documented page-lifetime provider, not a leak. The only console warnings are three.js's own `THREE.Clock` deprecation and software-GL driver notes; neither is our code.
+- Also checked, no action: both trackers have 0 open issues, which is what README and STATUS claim; `npm audit` is clean; no skipped or `.only` test, no `@ts-ignore`, no `as any`, no `console.log`, no `dangerouslySetInnerHTML`, no `target="_blank"`; every `src` module is reachable from an entry point; every `Math.min/max(...spread)` is on a polygon or a capped profile, never the 513² grid.
+- Left alone deliberately: the PDF cannot split a single finding's paragraph across pages, and its text is ASCII because jsPDF ships no Unicode font, so a mine name with accents would print `?`. Both are named as ceilings, not fixed, since the fixture has neither.
+- Checks: `npm run verify` (174 unit tests in 22 files) and `npm run test:e2e` (75 checks) pass. `.openchamber/` (this tool's screenshots) is now gitignored so `git status` stays honest.
+
+### 2026-10-29: fork synced to the parent (merge of `af552c9`)
+
+- `git merge upstream/main`: 2 commits, one conflict, in this file only. Upstream got to #46 first, so the fork's plan for it is marked delivered rather than built twice.
+- **#46, scene colours** (`d3be126`): the seven hex literals are gone from `TerrainScene.tsx` and `HomeScene.tsx`; `src/scene/palette.ts` gains `LIGHT` (sky, ground, sun), `BACKDROP_FALLBACK` and the already-present `OVERLAY.lease` now covers the home lease line. Upstream's names differ from the fork's plan (`SCENE` and a `backdropColour()` helper), and it did not take the plan's step 4, so `npm run lint` still does not stop a new literal in a `.tsx`; the "no literal remains" claim rests on the one-off `git grep` in its log. `docs/plan-issue-46-scene-colours.md` carries both facts and is kept as the record of how the work was scoped.
+- **Findings PDF** (`af552c9`): **Download PDF** beside Download CSV and Print report. `src/ui/reportPdf.ts` builds an A4 report with jsPDF (new dependency, imported on demand so the first screen does not pay for it): title and survey dates, a "SIMULATED DATA, not a legal determination" line, a vector plan of the lease with every finding marked by id, then one block per shown finding, and a simulated-data footer on every page. The plan is drawn from the permit polygons, not a screenshot, since the 3D canvas is not mounted on that page. The status and rule filters apply, as for the CSV.
+- Playwright now runs 3 workers locally (was one per core), because software-WebGL browsers starve under more parallelism; CI keeps one.
+- Conflict resolution: both sides had added entries at the top of this log. Both are kept, newest first, the parent's unchanged; the header keeps the fork's view of the remotes. No source, test or fixture conflict anywhere else, so the compliance snapshot and all 170 unit tests are as they were.
+- Docs touched by this merge: README and STATUS name the PDF export; the #46 plan doc gains its delivered status.
+- Checks: `npm run verify` passes (170 unit tests in 21 files). `npm run test:e2e` passes all 75 checks in one run, including the new PDF download check.
+
 ### 2026-10-27: findings PDF export
 
 - The Findings page gains **Download PDF** next to Download CSV and Print report. `src/ui/reportPdf.ts` builds an A4 report with jsPDF (new dependency, loaded on demand so the first screen does not pay for it): title and survey dates, a "SIMULATED DATA, not a legal determination" line, a vector plan of the lease (lease solid, pit zones dashed, dump zones dotted, each finding marked by id), then one block per shown finding (rule, status, severity, area, volume, max excess, centre, explanation). Every page footer says the data is simulated. The filters apply, as for the CSV.
@@ -61,6 +105,21 @@ Newest first.
 - Audit result: `npm run verify` and `npm audit --omit=dev` clean; one rule violation found. Seven hex literals in `TerrainScene.tsx` and `HomeScene.tsx` broke "never hardcode a colour in a component". Scene lighting (`LIGHT`), the backdrop fallback (`BACKDROP_FALLBACK`) and the lease line (`OVERLAY.lease`) now come from `src/scene/palette.ts`; no hex or rgb literal remains in `src/**/*.tsx` apart from the data-driven swatch in `MapHud`.
 - Playwright now runs 3 workers locally (was one per core). On a loaded machine software-WebGL browsers starved and three checks (`home` at 800, `hud` at 768, `mobile-layers`) timed out in the full run; each passed alone.
 - Verification: `npm run verify` (170 unit tests) and `npm run test:e2e` (74 checks) pass in one run. An earlier run on a busy PC timed out two `terrain.test.ts` tests, also on a clean tree; they passed once the load dropped.
+
+### 2026-10-27: fork synced to the parent (merge of `8b64608`)
+
+- `git merge upstream/main`: 6 commits. The parent did its own #44 site-plan work on 2026-10-26, independently of this fork's #30, so the two competed for the same files.
+- Resolution: the parent's version wins on the figure, because it also brings #45's bigger site that the figure is drawn on. `src/ui/panels/SitePlan.tsx`, the site-plan block of `src/index.css` (the fork's whole CSS delta lived there), `e2e/site-plan.spec.ts` (its four extra checks are covered by the parent's `site-plan-redesign.spec.ts`) and `AGENTS.md` took the parent's side; the fork's `src/geo/plan.ts`, `src/geo/plan.test.ts` and `docs/plan-issue-44-site-plan.md` were deleted, since nothing calls them once the parent's `src/geo/sitePlan.ts` figure is in place. The fork's log entry for #30 is kept above, marked superseded, and the fork's 2026-10-24 sync entry is restored after the parent's newest entries.
+- The header keeps the fork's view of the remotes (the parent's own copy correctly calls itself `origin`), with the parent's added "verify the remote and current branch" line.
+- What came in beyond the site plan: #45's larger site (two pits, two dumps, a pond, a road network, outline zones), the vector site plan with SVG pins and a title block, CSV/print export on Findings (`src/compliance/report.ts`), `#/monitor?finding=R2-1` shared links with **Copy link**, two parallel survey workers, instant rail labels, and the landing loading bar. The compliance snapshot moved with the new site: same five findings, same rules and statuses, areas and volumes within 3%.
+- Checks: `npm run verify` passes (170 unit tests in 21 files). `npm run test:e2e -- --workers=2` passes all 74 checks. Browser review at 1440, 1100 and 800 px of the landing page, the Overview (site plan figure, pins, key), the Findings page (CSV/print, Copy link) and the 3D map: no overflow, no console errors, the model renders both pits and all five pins.
+
+### 2026-10-27: the docs match what shipped (no code change)
+
+- The three user-facing docs said work was still proposed after the improvement list had shipped. README now says the competition plan is delivered and that no issues are open, and describes the two parallel survey workers rather than one shared worker; it also drops the "proposed" label from icon-rail labels and landing-model dragging, which shipped, and keeps only the first-visit tour as a stated absence.
+- `STATUS.md` is dated 2026-10-27, records that the fork's last four working copies were closed against the parent's merged work, and states the checks by number (170 unit tests in 21 files, 74 browser checks) plus the forty-combination width sweep.
+- `docs/competition-ui-ux-improvement-plan.md` and `docs/plan-open-issues.md` gain a delivered status line; both are kept as the record of how the work was scoped.
+- No application code, test or fixture changed, so no new measurement was needed: the numbers quoted are the ones the 2026-10-27 merge ran.
 
 ### 2026-10-26: full visual audit, landing loading bar
 
@@ -89,6 +148,23 @@ Newest first.
 - Camera: the Pit preset moved back to [560, 900, 1120] so the larger pit frames with more than one wall profile; Oblique and Top need no change.
 - Measured, not guessed: survey build to findings on the Overview was 11.1 s in headless Chromium (about 10 s before). A frame-time A/B in the same software-GL browser, orbiting at the Pit preset, gave a median of 867 ms per frame before and 1,117 ms after (+29%). Software rendering makes both absolute figures meaningless; the geometry is the same vertex count, so the extra cost is fragment area from the larger view. A real GPU was not available to confirm 60 fps.
 - Tests: `data.test.ts` and `orthophoto.test.ts` follow the new positions; the pit-layout test now expects two approved workings. Verification: `npm run verify` (164 unit tests) and a full browser run are recorded with the commit that closes #45.
+
+### 2026-10-25: the Overview site plan is redrawn from the data (fork #30 / parent #44) — superseded
+
+- Superseded on 2026-10-26 by the parent's own #44 work above: its `src/geo/sitePlan.ts` and SVG-pin `SitePlan.tsx` replaced this entry's `src/geo/plan.ts` and HTML-pin figure, which were deleted in the 2026-10-27 sync. The entry is kept as history.
+- What was wrong: the change layer was a 2.4 M pixel canvas data-URL at 92% opacity, so the figure was a rust silhouette with ragged edges and no ground under it; the ground was one flat fill; the zones were unlabelled rectangles; pins were sized in metres (about 13 px at 390 px wide); and the scale bar and north arrow sat on the drawing.
+- `src/geo/plan.ts` (new, pure) held the two shapes the figure needs: `maskRings` traced a 0/1 mask along the cell edges (exact area) and `contourLines` was marching squares with interpolated crossings. On the 513² grid contours at 25 m took 37 ms, both change layers 11 ms and all five finding outlines 1 ms.
+- The figure drew 25 m contours over the change fill, the change as `<path>` fills in the `OVERLAY.cut` / `OVERLAY.fill` tokens, each finding's cells as a dashed tone outline, and a margin band under the map holding the 500 m scale bar and north. Markers moved out of the metre-scaled SVG into an absolutely positioned HTML layer of real `<button>`s at a 44 px target.
+- Tests: `src/geo/plan.test.ts` (9) and four extra checks in `e2e/site-plan.spec.ts`. 146 unit tests in 20 files, 73 browser checks.
+- Not done: no hillshade, and the pit and dump zones were still the fixture rectangles, which was #45's job.
+
+### 2026-10-24: fork synced to the parent (merge of `246c2af`)
+
+- `git merge upstream/main`: 18 commits, one conflict, in this file only. The parent's own log commit for #36 and its provider simplification are in; nothing else needed adjusting.
+- What came in: the survey grid is now 513 × 513 at 4 m over the same 0–2048 m (was 257 × 257 at 8 m), so `#36`'s resolution work is here; `WorkerTerrainProvider` lost its reference counter and deferred-teardown timer for one lazy page-lifetime provider; the unused `isDashboard` route predicate is gone; the compliance snapshot, resolution copy, geometry tests and the Findings/landing-terrain e2e fixes came with them.
+- Conflict resolution: the parent rewrote the header to say its `origin` is the parent, which is the parent's view, so the fork's header above is kept. Both log entries are kept, newest first, and the parent's are unchanged as it wrote them.
+- Issues: the fork copy of the closed parent #36 is #27, now closed with the reason. The parent's two new open issues already have fork copies from 2026-10-23: #44 → fork #30, #45 → fork #31. Nothing else moved; the parent's tracker #42 and its copy #29 are still unchecked lists.
+- Checks: `npm run verify` passes (137 unit tests in 19 files). `npm run test:e2e` passes all 69 checks with `--workers=2`; at the default parallelism the same run had 13 timeouts, all 30 s test timeouts on pages waiting for the 4 m grid to finish generating on six cores, and every one of them passes once the suite is not oversubscribed.
 
 ### 2026-10-24: simplified abstractions found in the repository audit
 

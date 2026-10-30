@@ -13,7 +13,7 @@ PitWatch supports risk-based inspection planning. It does not replace a site vis
 - **Landing page** (`#/`): the live 3D model (drag to turn it), with four buttons (Baseline, Current, Change, Findings) that switch what it shows: the baseline survey, the current survey, the measured change coloured on the terrain (rust cut, blue fill) and the findings with the lease line and a pin for each. No scrolling story; a short section on the three permit rules follows.
 - **Dashboard** with a sidebar (a slim icon rail on the 3D map, a drawer on phones):
   - **Overview** (`#/overview`): the verdict, four headline figures, the result for each permit rule, the findings to look at first, and the survey, surface and lease facts. An interactive site plan draws the lease, permitted zones, changed cells and finding pins from the same data as the 3D map; select a pin with a pointer, touch, Enter or Space to open its finding on the map.
-  - **Findings** (`#/findings`): every finding as a ruled row with its figures, filters by status and rule, the explanation on demand, Show on map, **Copy link**, **Download CSV** (every row marked simulated) and a clean **Print report** view.
+  - **Findings** (`#/findings`): every finding as a ruled row with its figures, filters by status and rule, the explanation on demand, Show on map, **Copy link**, **Download CSV** (every row marked simulated), **Download PDF** (a plan of the lease with each finding, every page marked simulated) and a clean **Print report** view.
   - **Permit rules** (`#/rules`), **Uncertainty** (`#/uncertainty`: combined survey σ, the noise band and the threshold the rules report beyond, plus the resolution comparison) and **About the data** (`#/about`, with the keyboard shortcuts).
 - **3D map** (`#/monitor`):
   - 3D terrain of the current survey with a simulated aerial image draped over it. The block sides show a soil profile.
@@ -29,7 +29,7 @@ PitWatch supports risk-based inspection planning. It does not replace a site vis
   - On phones the details drawer opens on the findings, with the layer switches and vertical exaggeration under a Map layers disclosure below them. On larger screens, the Map card holds these controls; its key can be folded to leave more room.
 - **Compliance engine** (`src/compliance/`): change detection, rules R1–R3, clustering into findings, severity and plain-English explanations. All of it is pure TypeScript and unit-tested.
 
-The original M1–M8 milestones are complete. Further interface improvements are tracked separately in the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md); only its first P0, finding selection that reveals its evidence, is implemented.
+The original M1–M8 milestones are complete, and so is every item on the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md): it is kept as the record of how that work was planned, not as a list of open work. The palette lint guard (#32) shipped on 2026-10-29. Five follow-up tickets remain open in this repo, each `ready-for-agent`: #33 the report's real symbols, #34 its page splitting (blocked by #33), #35 the map card at 800 px, #36 a first-visit tour, #37 horizontal survey error on a point reading. The parent it tracks has none.
 
 ## Try the inspection workflow
 
@@ -102,7 +102,7 @@ npm run dev          # http://localhost:5173
 | `npm run preview`                 | Serve the production build                     |
 | `npm run format` / `format:check` | Prettier                                       |
 
-The terrain (two 513 × 513 surveys at 4 m spacing plus their aerial images) is generated in a shared Web Worker when the page opens. Generation time depends on the device. If loading fails, **Try again** retries in place.
+The terrain (two 513 × 513 surveys at 4 m spacing plus their aerial images) is generated in Web Workers when the page opens: one worker per survey, running in parallel, so the wait is the slower survey rather than the sum. Generation time depends on the device. If loading fails, **Try again** retries in place.
 
 The browser checks run against the production build, so run `npx playwright install chromium` once before the first `npm run test:e2e`. CI (GitHub Actions) runs `npm run verify`, the build and the Playwright suite on every push to `main` and every pull request, and uploads the report when a run fails.
 
@@ -148,7 +148,7 @@ flowchart LR
   A --> UI
 ```
 
-- `src/domain`, `src/data`, `src/geo` and `src/compliance` are pure TypeScript. ESLint blocks React, three.js and Zustand imports there, so the geometry and rules are testable on their own.
+- `src/domain`, `src/data`, `src/geo` and `src/compliance` are pure TypeScript. ESLint blocks React, three.js and Zustand imports there, so the geometry and rules are testable on their own. The same lint pass rejects a hardcoded colour anywhere in `src` other than the palette, so the colour rule is enforced rather than remembered.
 - `TerrainProvider` (`getMine`, `listSurveys`, `getSurvey`, `getLimits`) is the seam for real data. A GeoTIFF DEM or surveyed-surface provider can replace the synthetic one without touching rendering or rules.
 - Coordinates are a local metric grid (X east, Y north, RL in metres). The fictional origin lat/lon is for display only; a real system would use a projected CRS such as UTM.
 
@@ -184,8 +184,8 @@ Vite, React 19, TypeScript (strict), three.js with @react-three/fiber and drei, 
 ## Limits and follow-up work
 
 - This is a frontend demonstration using a fictional permit and synthetic surveys. There is no backend, real survey ingestion or regulatory certification.
-- Vertical survey uncertainty is modelled; horizontal position error is not. A coordinate outside the survey grid can still be inspected for position and lease status, but has no elevation or change reading.
-- Below 1280 px the details panel starts closed so the model keeps the room; the header's Details button or `]` brings it back, and `[` toggles the Map card. At 800 px the Map card still covers part of the model.
-- First-visit map guidance, visible icon-rail tooltips and desktop dragging of the landing model remain proposed improvements.
+- Vertical survey uncertainty is modelled; horizontal position error is not (ticket #37). A coordinate outside the survey grid can still be inspected for position and lease status, but has no elevation or change reading.
+- Below 1280 px the details panel starts closed so the model keeps the room; the header's Details button or `]` brings it back, and `[` toggles the Map card. At 800 px the Map card still covers part of the model (ticket #35).
+- There is no first-visit tour (ticket #36). The map explains itself with contextual hints (click or tap to read a point, then A and B to measure), the icon rail labels each icon on hover and keyboard focus, and the landing model carries a "Drag to turn" label.
 
-See the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md) for proposed work, [STATUS.md](STATUS.md) for the redesign handoff, and [AGENTS.md](AGENTS.md) for the detailed update log and contributor workflow.
+See the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md) for how the interface work was planned (all of it delivered), [STATUS.md](STATUS.md) for the current handoff, and [AGENTS.md](AGENTS.md) for the detailed update log and contributor workflow.
