@@ -23,7 +23,7 @@ interface AppState {
   sidebar: SidebarMode
   /** Phones: the navigation drawer. */
   menuOpen: boolean
-  /** Desktop only: panels collapsed to give the map more room. */
+  /** Side panels folded to give the map more room, by the width rule or the visitor's choice. */
   layersHidden: boolean
   detailsHidden: boolean
   /** True once the map card's visibility was decided on purpose, so the width rule stops. */

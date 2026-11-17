@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 // Both floating panels used to be open on arrival, which left the model a narrow stage between
-// them: 372 px at 1100 px. Below 1280 px the findings panel now starts closed, and the visible
-// header button brings it back.
+// them: 372 px at 1100 px. Below 1280 px the findings panel now starts closed, and below 1024 px
+// the map card too; the visible header buttons bring them back. Until the visitor chooses, the
+// panels follow the window across those widths.
 
 test.use({ reducedMotion: 'reduce' })
 
@@ -62,11 +63,44 @@ test('the map card folds away at 800 px and comes back on request', async ({ pag
   await expect(card).toBeHidden()
   await expect.poll(stageWidth).toBeGreaterThan(folded - 1)
 
-  // The visitor's choice wins: reopening the card and resizing does not fold it again.
+  // The visitor's choice wins: reopen the card, then cross `lg` both ways; it stays open.
   await toggle.click()
   await expect(card).toBeVisible()
-  await page.setViewportSize({ width: 1000, height: 900 })
+  await page.setViewportSize({ width: 1440, height: 900 })
   await expect(card).toBeVisible()
+  await page.setViewportSize({ width: 800, height: 900 })
+  await expect(card).toBeVisible()
+})
+
+test('until the visitor chooses, the map card follows the window across lg', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 })
+  await page.goto('/#/monitor')
+  await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
+  const card = page.getByRole('navigation', { name: 'Map' })
+
+  // Loaded on a tablet and widened to a desktop: the card comes back on its own.
+  await expect(card).toBeHidden()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(card).toBeVisible()
+  // And narrowing again folds it, since nobody chose otherwise.
+  await page.setViewportSize({ width: 800, height: 900 })
+  await expect(card).toBeHidden()
+})
+
+test('a card folded on purpose on a desktop stays folded across a resize', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/#/monitor')
+  await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
+  const card = page.getByRole('navigation', { name: 'Map' })
+  const toggle = page.getByRole('button', { name: 'Map panel' })
+
+  await expect(card).toBeVisible()
+  await toggle.click()
+  await expect(card).toBeHidden()
+  await page.setViewportSize({ width: 800, height: 900 })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(card).toBeHidden()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('the findings panel is open on a wide screen', async ({ page }) => {
