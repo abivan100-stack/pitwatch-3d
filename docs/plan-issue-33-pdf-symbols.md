@@ -4,6 +4,12 @@
 rather than Archivo, because Archivo's character map has no Greek sigma (checked with `fontTools`)
 and the report must draw `(2σ)`. Everything else below is the plan as built.
 
+**Later changes (2026-11-18, PR #51 review):** `pdfCharset.ts` and its test moved to `src/ui/`,
+and the module now imports `charset.txt?raw` itself instead of repeating the string, so the
+agreement test in step 3 is gone. The `13.4 + lines × 4.6` estimate in decision 6 and step 5 was
+replaced by line-aware pagination for #34. The cache step 4 calls `fontsReady` is the cached
+font promise, `fontData`, in `src/ui/pdfFont.ts`.
+
 Fork issue `Raghav2012Code/pitwatch#33`. Today `src/compliance/report.ts` spells the engine's
 symbols out before they reach jsPDF (`±` → `+/-`, `m²` → `m2`, `σ` → `sigma`) because jsPDF's
 built-in Helvetica cannot draw them; the comment there records why: _jsPDF mangles a whole string
