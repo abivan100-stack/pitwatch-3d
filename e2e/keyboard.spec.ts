@@ -85,6 +85,14 @@ test('typed coordinates set measure A and B and produce a distance', async ({ pa
   await expect(
     page.locator('#details-tabpanel dd').filter({ hasText: '200.0 m ± 0.14 m' }),
   ).toBeVisible()
+  // The grade quotes its own propagated error, as the footer says.
+  await expect(
+    page
+      .locator('#details-tabpanel div')
+      .filter({ has: page.locator('dt', { hasText: 'Average grade' }) })
+      .locator('dd')
+      .first(),
+  ).toContainText('±')
 })
 
 test('a point reading quotes horizontal error and refuses an unconfirmable side', async ({

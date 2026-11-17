@@ -10,7 +10,7 @@ import {
   volumeOf,
 } from './grid'
 import { latLonToLocal, localToLatLon } from './latlon'
-import { measure, measureOnSurface } from './measure'
+import { gradeSigma, measure, measureOnSurface, slopeDistanceSigma } from './measure'
 import { distanceToBoundary, insetSegments, pointInPolygon, polygonArea } from './polygon'
 
 const square: Polygon = [
@@ -137,6 +137,26 @@ describe('measure', () => {
     expect(m.dz).toBe(12)
     expect(m.slopeDistance).toBe(13)
     expect(m.provenance).toBe('derived')
+  })
+})
+
+describe('measurement uncertainty', () => {
+  it('weights each error by its share of the slope distance', () => {
+    const flat = measure({ x: 0, y: 0, z: 5 }, { x: 200, y: 0, z: 5 })
+    expect(slopeDistanceSigma(flat, 0.14, 0.07)).toBeCloseTo(0.14, 12)
+    const vertical = measure({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 10 })
+    expect(slopeDistanceSigma(vertical, 0.14, 0.07)).toBeCloseTo(0.07, 12)
+    const triangle = measure({ x: 0, y: 0, z: 0 }, { x: 3, y: 0, z: 4 })
+    expect(slopeDistanceSigma(triangle, 0.1, 0.2)).toBeCloseTo(Math.hypot(0.06, 0.16), 12)
+    const point = measure({ x: 1, y: 1, z: 1 }, { x: 1, y: 1, z: 1 })
+    expect(slopeDistanceSigma(point, 0.1, 0.2)).toBe(0.2)
+  })
+
+  it('propagates both errors into the grade, and has none for a vertical line', () => {
+    const line = measure({ x: 0, y: 0, z: 0 }, { x: 100, y: 0, z: 10 })
+    expect(gradeSigma(line, 0.1, 0.07)).toBeCloseTo(Math.hypot(0.0007, 0.0001), 12)
+    const vertical = measure({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 10 })
+    expect(gradeSigma(vertical, 0.1, 0.07)).toBeNull()
   })
 })
 

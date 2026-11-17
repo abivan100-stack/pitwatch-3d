@@ -4,7 +4,7 @@ import { changeThreshold } from '../../compliance/change'
 import { readPoint } from '../../compliance/inspect'
 import { governingPitZone } from '../../compliance/zone'
 import { localToLatLon } from '../../geo/latlon'
-import { measureOnSurface } from '../../geo/measure'
+import { gradeSigma, measureOnSurface, slopeDistanceSigma } from '../../geo/measure'
 import { pointInPolygon } from '../../geo/polygon'
 import { profileAlong } from '../../geo/profile'
 import { useAppStore } from '../../state/store'
@@ -199,7 +199,6 @@ function Measurement() {
   const horizontal = current.horizontalUncertainty
   const dzSigma = Math.SQRT2 * sigma // two independent point readings
   const distanceSigma = Math.SQRT2 * horizontal
-  const slopeSigma = Math.hypot(distanceSigma, dzSigma)
 
   return (
     <Section title="Measurement" provenance="derived">
@@ -219,14 +218,16 @@ function Measurement() {
             />
             <Row
               label="Slope distance"
-              value={`${n(m.slopeDistance, 1)} m ± ${n(slopeSigma, 2)} m`}
+              value={`${n(m.slopeDistance, 1)} m ± ${n(slopeDistanceSigma(m, distanceSigma, dzSigma), 2)} m`}
               mono
             />
             <Row label="Elevation change" value={`${signed(m.dz)} ± ${n(dzSigma, 2)} m`} mono />
             <Row
               label="Average grade"
               value={
-                m.horizontalDistance > 0 ? `${signed((100 * m.dz) / m.horizontalDistance)} %` : '—'
+                m.horizontalDistance > 0
+                  ? `${signed((100 * m.dz) / m.horizontalDistance)} % ± ${n(100 * gradeSigma(m, distanceSigma, dzSigma)!, 2)} %`
+                  : '—'
               }
               mono
             />
@@ -249,7 +250,9 @@ function Measurement() {
       )}
       <p className="mt-2 text-[11.5px] leading-4 text-ink-faint">
         Measured on the current survey. Distances carry the horizontal ±{n(horizontal, 2)} m per
-        endpoint; elevation change carries the vertical ±{n(sigma, 2)} m. The grade combines both.
+        endpoint, treated as independent errors: a conservative bound, since points from one survey
+        usually err together. Elevation change carries the vertical ±{n(sigma, 2)} m. Slope distance
+        and grade combine both.
       </p>
       <button
         type="button"
