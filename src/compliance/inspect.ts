@@ -59,6 +59,8 @@ export interface PointReading {
   horizontalBand: number
   /** Inside the lease but within the safety buffer. */
   inBuffer: boolean
+  /** Inside the lease and within k·σ of the safety-buffer edge, so that side is not claimed. */
+  bufferUnconfirmed: boolean
   /** Inside a pit zone: its approved floor and how far the surface sits above it (m). */
   pit: { floor: number; above: number | null } | null
   /** Findings whose cells include the cell under the point. */
@@ -133,6 +135,8 @@ export function readPoint(
     horizontalSigma,
     horizontalBand: cfg.k * horizontalSigma,
     inBuffer: insideLease && leaseDistance < limits.safetyBufferMetres,
+    bufferUnconfirmed:
+      insideLease && Math.abs(leaseDistance - limits.safetyBufferMetres) <= cfg.k * horizontalSigma,
     pit: zone
       ? {
           floor: zone.approvedFloorElevation,

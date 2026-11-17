@@ -72,6 +72,24 @@ describe('point reading', () => {
   })
 })
 
+describe('safety-buffer edge', () => {
+  it('does not claim a side of the buffer edge inside the 2σ band', () => {
+    const lease: Polygon = [
+      { x: 100, y: 100 },
+      { x: 1900, y: 100 },
+      { x: 1900, y: 1900 },
+      { x: 100, y: 1900 },
+    ]
+    const custom: PermittedLimits = { ...limits, leaseBoundary: lease, safetyBufferMetres: 20 }
+    const onEdge = readPoint({ x: 120, y: 1000 }, baseline, current, custom, [])
+    expect(onEdge.bufferUnconfirmed).toBe(true)
+    const beyond = readPoint({ x: 125, y: 1000 }, baseline, current, custom, [])
+    expect([beyond.bufferUnconfirmed, beyond.inBuffer]).toEqual([false, false])
+    const within = readPoint({ x: 115, y: 1000 }, baseline, current, custom, [])
+    expect([within.bufferUnconfirmed, within.inBuffer]).toEqual([false, true])
+  })
+})
+
 describe('lease verdict', () => {
   const square: Polygon = [
     { x: 0, y: 0 },

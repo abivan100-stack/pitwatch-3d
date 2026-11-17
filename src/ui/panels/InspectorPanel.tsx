@@ -101,8 +101,10 @@ function Point() {
       </p>
       <p className="mt-1 text-[12px] leading-5 text-ink-faint">
         Position is the survey&apos;s plan coordinate ±{n(r.horizontalSigma, 2)} m (1σ, simulated
-        survey); the lease side and distance depend on it. Elevation, change and slope carry the
-        vertical ±.
+        survey). The lease side and the buffer edge are read with a {cfg.k}σ band. The compliance
+        engine classifies whole {n(current!.grid.cellSize)} m cells by their centre and does not use
+        this band, so a finding can cover a point whose side is unconfirmed. Elevation, change and
+        slope carry the vertical ±.
       </p>
       <dl className="mt-2 border-t border-line pt-2">
         <Row
@@ -110,7 +112,7 @@ function Point() {
           value={
             r.leaseSide === 'unconfirmed'
               ? `Side cannot be confirmed: ${n(r.leaseDistance)} m from the boundary, within the ${n(r.horizontalBand, 2)} m (${cfg.k}σ) horizontal error band`
-              : `${r.leaseSide === 'inside' ? 'Inside' : 'Outside'}, ${n(r.leaseDistance)} m from the boundary ±${n(r.horizontalSigma, 2)} m${r.inBuffer ? ', in the safety buffer' : ''}`
+              : `${r.leaseSide === 'inside' ? 'Inside' : 'Outside'}, ${n(r.leaseDistance)} m from the boundary ±${n(r.horizontalSigma, 2)} m${r.bufferUnconfirmed ? ', at the safety-buffer edge (side of it cannot be confirmed)' : r.inBuffer ? ', in the safety buffer' : ''}`
           }
         />
         {r.pit && (
