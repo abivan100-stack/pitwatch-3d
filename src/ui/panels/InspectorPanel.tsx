@@ -109,7 +109,7 @@ function Point() {
           label="Lease"
           value={
             r.leaseSide === 'unconfirmed'
-              ? `Side cannot be confirmed: ${n(r.leaseDistance)} m from the boundary, inside the ±${n(r.horizontalSigma, 2)} m horizontal error`
+              ? `Side cannot be confirmed: ${n(r.leaseDistance)} m from the boundary, within the ${n(r.horizontalBand, 2)} m (${cfg.k}σ) horizontal error band`
               : `${r.leaseSide === 'inside' ? 'Inside' : 'Outside'}, ${n(r.leaseDistance)} m from the boundary ±${n(r.horizontalSigma, 2)} m${r.inBuffer ? ', in the safety buffer' : ''}`
           }
         />

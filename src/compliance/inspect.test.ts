@@ -63,6 +63,7 @@ describe('point reading', () => {
     const edge = limits.leaseBoundary[0]!
     const onEdge = readPoint(edge, baseline, current, limits, [])
     expect(onEdge.horizontalSigma).toBe(current.horizontalUncertainty)
+    expect(onEdge.horizontalBand).toBeCloseTo(2 * current.horizontalUncertainty, 12)
     expect(onEdge.leaseSide).toBe('unconfirmed')
     const clearlyInside = readPoint({ x: 400, y: 400 }, baseline, current, limits, [])
     expect(clearlyInside.leaseSide).toBe('inside')
@@ -88,6 +89,17 @@ describe('lease verdict', () => {
     expect(leaseVerdict({ x: 100.05, y: 50 }, square, 0.1)).toBe('unconfirmed')
     expect(leaseVerdict({ x: 99.95, y: 50 }, square, 0.1)).toBe('unconfirmed')
     expect(leaseVerdict({ x: 100, y: 50 }, square, 0.1)).toBe('unconfirmed')
+  })
+
+  it('uses the 2σ band, not 1σ, like every other significance test', () => {
+    // Beyond 1σ (0.1 m) but inside 2σ (0.2 m): still no side can be claimed.
+    expect(leaseVerdict({ x: 100.15, y: 50 }, square, 0.1)).toBe('unconfirmed')
+    expect(leaseVerdict({ x: 99.85, y: 50 }, square, 0.1)).toBe('unconfirmed')
+    // Beyond 2σ the side is claimed.
+    expect(leaseVerdict({ x: 100.25, y: 50 }, square, 0.1)).toBe('outside')
+    expect(leaseVerdict({ x: 99.75, y: 50 }, square, 0.1)).toBe('inside')
+    // The coverage factor is a parameter, so k = 1 gives the narrower band.
+    expect(leaseVerdict({ x: 100.15, y: 50 }, square, 0.1, 1)).toBe('outside')
   })
 })
 

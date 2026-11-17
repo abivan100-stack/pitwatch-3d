@@ -9,7 +9,7 @@ import { cellAt, indexOf, sampleBilinear } from '../geo/grid'
 import { distanceToBoundary, pointInPolygon } from '../geo/polygon'
 import { changeThreshold } from './change'
 import { COMPLIANCE_CONFIG, type ComplianceConfig } from './config'
-import { combinedSigma } from './uncertainty'
+import { combinedSigma, K } from './uncertainty'
 import { governingPitZone } from './zone'
 
 /**
@@ -55,6 +55,8 @@ export interface PointReading {
   leaseDistance: number
   /** 1σ horizontal position uncertainty of the current survey, metres. */
   horizontalSigma: number
+  /** Half-width of the band in which a side cannot be claimed: k·σ, metres. */
+  horizontalBand: number
   /** Inside the lease but within the safety buffer. */
   inBuffer: boolean
   /** Inside a pit zone: its approved floor and how far the surface sits above it (m). */
@@ -67,12 +69,18 @@ export type LeaseVerdict = 'inside' | 'outside' | 'unconfirmed'
 
 /**
  * The lease side a point reading can honestly claim. A survey places the point within its
- * horizontal uncertainty, so when that band reaches the boundary the point may be on either
- * side and the verdict is `unconfirmed` rather than whichever side the coordinate happens to
- * fall on. Pure so the three cases are testable without a survey.
+ * horizontal uncertainty, so when the k·σ band (2σ by default, the same coverage factor the
+ * change rule uses) reaches the boundary the point may be on either side, and the verdict is
+ * `unconfirmed` rather than whichever side the coordinate happens to fall on. Pure so the three
+ * cases are testable without a survey.
  */
-export function leaseVerdict(p: Vec2, boundary: Polygon, horizontalSigma: number): LeaseVerdict {
-  if (distanceToBoundary(p, boundary) <= horizontalSigma) return 'unconfirmed'
+export function leaseVerdict(
+  p: Vec2,
+  boundary: Polygon,
+  horizontalSigma: number,
+  k: number = K,
+): LeaseVerdict {
+  if (distanceToBoundary(p, boundary) <= k * horizontalSigma) return 'unconfirmed'
   return pointInPolygon(p, boundary) ? 'inside' : 'outside'
 }
 
@@ -119,10 +127,11 @@ export function readPoint(
     dhSigma,
     change: dh === null ? 'none' : dh < -limit ? 'excavated' : dh > limit ? 'filled' : 'none',
     slopeDeg,
-    leaseSide: leaseVerdict(p, limits.leaseBoundary, horizontalSigma),
+    leaseSide: leaseVerdict(p, limits.leaseBoundary, horizontalSigma, cfg.k),
     insideLease,
     leaseDistance,
     horizontalSigma,
+    horizontalBand: cfg.k * horizontalSigma,
     inBuffer: insideLease && leaseDistance < limits.safetyBufferMetres,
     pit: zone
       ? {
