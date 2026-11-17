@@ -1,5 +1,17 @@
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import type { ComplianceFinding, GridSpec, Polygon, Vec2 } from '../../domain/types'
+import type { ComplianceFinding } from '../../domain/types'
+import {
+  LEASE_LABEL_TEXT,
+  leaseLabelPoint,
+  OBSERVED_EXCAVATION_LABEL,
+  OBSERVED_FILL_LABEL,
+  PIN_LABEL_GAP_PX,
+  PIN_LABEL_HEIGHT_PX,
+  PIN_RADIUS_PX,
+  placePins,
+  placeZoneLabels,
+  svgPolygonPath,
+} from '../../geo/planLayout'
 import {
   cellIndicesToSvgPath,
   cellMaskToSvgPath,
@@ -14,358 +26,6 @@ import { navigate, ROUTE_HREF } from '../route'
 
 const SCALE_BAR_M = 500
 const CONTOUR_INTERVAL_M = 15
-const PIN_RADIUS_PX = 22.25
-const PIN_LABEL_HEIGHT_PX = 18
-const PIN_LABEL_GAP_PX = 5
-const PIN_LABEL_CHAR_PX = 6.5
-const PIN_CLEARANCE_PX = 4
-const OBSERVED_LABEL_CHAR_PX = 6.5
-const OBSERVED_LABEL_HEIGHT_PX = 24
-const OBSERVED_EXCAVATION_LABEL = 'Pit excavation'
-const OBSERVED_FILL_LABEL = 'In-zone waste fill'
-const LEASE_LABEL_TEXT = 'Lease boundary'
-const LABEL_SEARCH_STEP_PX = 4
-
-interface PlannedPin {
-  finding: ComplianceFinding
-  x: number
-  y: number
-  dx: number
-  dy: number
-  labelOnLeft: boolean
-  labelWidth: number
-}
-
-interface Box {
-  left: number
-  right: number
-  top: number
-  bottom: number
-}
-
-const labelWidth = (finding: ComplianceFinding) => finding.id.length * PIN_LABEL_CHAR_PX + 10
-
-function boundsForPin(x: number, y: number, width: number, labelOnLeft: boolean): Box {
-  const labelLeft = labelOnLeft
-    ? x - PIN_RADIUS_PX - PIN_LABEL_GAP_PX - width
-    : x + PIN_RADIUS_PX + PIN_LABEL_GAP_PX
-  const labelRight = labelOnLeft
-    ? x - PIN_RADIUS_PX - PIN_LABEL_GAP_PX
-    : x + PIN_RADIUS_PX + PIN_LABEL_GAP_PX + width
-  return {
-    left: Math.min(x - PIN_RADIUS_PX, labelLeft),
-    right: Math.max(x + PIN_RADIUS_PX, labelRight),
-    top: Math.min(y - PIN_RADIUS_PX, y - PIN_LABEL_HEIGHT_PX / 2),
-    bottom: Math.max(y + PIN_RADIUS_PX, y + PIN_LABEL_HEIGHT_PX / 2),
-  }
-}
-
-function intersects(a: Box, b: Box): boolean {
-  return (
-    a.left < b.right + PIN_CLEARANCE_PX &&
-    a.right + PIN_CLEARANCE_PX > b.left &&
-    a.top < b.bottom + PIN_CLEARANCE_PX &&
-    a.bottom + PIN_CLEARANCE_PX > b.top
-  )
-}
-
-/** Place pin labels and 44 px hit circles in CSS-pixel space, independent of the map scale. */
-function placePins(
-  findings: readonly ComplianceFinding[],
-  grid: { cols: number; rows: number; cellSize: number; originXY: Vec2 },
-  widthPx: number,
-): PlannedPin[] {
-  if (widthPx <= 0) return []
-  const mapWidth = grid.cols * grid.cellSize
-  const mapHeight = grid.rows * grid.cellSize
-  const x0 = grid.originXY.x - grid.cellSize / 2
-  const top = grid.originXY.y + (grid.rows - 1) * grid.cellSize + grid.cellSize / 2
-  const unitsPerPixel = mapWidth / widthPx
-  const offsets = [
-    [0, 0],
-    [0, -34],
-    [0, 34],
-    [38, -18],
-    [-38, -18],
-    [38, 18],
-    [-38, 18],
-    [0, -70],
-    [0, 70],
-    [78, 0],
-    [-78, 0],
-    [78, -52],
-    [-78, -52],
-    [78, 52],
-    [-78, 52],
-    [0, -108],
-    [0, 108],
-  ] as const
-  const occupied: Box[] = []
-  const placed: PlannedPin[] = []
-
-  for (const finding of findings) {
-    const anchorX = (finding.centroid.x - x0) / unitsPerPixel
-    const anchorY = (top - finding.centroid.y) / unitsPerPixel
-    const width = labelWidth(finding)
-    const preferredLeft = anchorX > widthPx * 0.72
-    const choices = offsets.flatMap(([dx, dy]) => [
-      { dx, dy, labelOnLeft: preferredLeft },
-      { dx, dy, labelOnLeft: !preferredLeft },
-    ])
-    const choice = choices.find(({ dx, dy, labelOnLeft }) => {
-      const x = anchorX + dx
-      const y = anchorY + dy
-      const box = boundsForPin(x, y, width, labelOnLeft)
-      return (
-        box.left >= 2 &&
-        box.right <= widthPx - 2 &&
-        box.top >= 2 &&
-        box.bottom <= mapHeight / unitsPerPixel - 2 &&
-        occupied.every((other) => !intersects(box, other))
-      )
-    }) ?? { dx: 0, dy: 0, labelOnLeft: preferredLeft }
-
-    const x = anchorX + choice.dx
-    const y = anchorY + choice.dy
-    occupied.push(boundsForPin(x, y, width, choice.labelOnLeft))
-    placed.push({
-      finding,
-      x: x0 + x * unitsPerPixel,
-      // y is already measured from the plan's top edge, so it needs no second flip here:
-      // the caller draws it in SVG space, where y increases downwards.
-      y: y * unitsPerPixel,
-      dx: choice.dx * unitsPerPixel,
-      dy: choice.dy * unitsPerPixel,
-      labelOnLeft: choice.labelOnLeft,
-      labelWidth: width * unitsPerPixel,
-    })
-  }
-
-  return placed
-}
-
-function polygonLabelPoint(polygon: Polygon): Vec2 {
-  let twiceArea = 0
-  let x = 0
-  let y = 0
-  for (let i = 0; i < polygon.length; i++) {
-    const a = polygon[i]!
-    const b = polygon[(i + 1) % polygon.length]!
-    const cross = a.x * b.y - b.x * a.y
-    twiceArea += cross
-    x += (a.x + b.x) * cross
-    y += (a.y + b.y) * cross
-  }
-  if (Math.abs(twiceArea) < 1e-6) {
-    return polygon.reduce(
-      (sum, p) => ({ x: sum.x + p.x / polygon.length, y: sum.y + p.y / polygon.length }),
-      { x: 0, y: 0 },
-    )
-  }
-  return { x: x / (3 * twiceArea), y: y / (3 * twiceArea) }
-}
-
-function leaseLabelPoint(polygon: Polygon): Vec2 {
-  const center = polygonLabelPoint(polygon)
-  let longest = { a: polygon[0]!, b: polygon[1]!, length: -1 }
-  for (let i = 0; i < polygon.length; i++) {
-    const a = polygon[i]!
-    const b = polygon[(i + 1) % polygon.length]!
-    const length = Math.hypot(b.x - a.x, b.y - a.y)
-    if (length > longest.length) longest = { a, b, length }
-  }
-  const middle = { x: (longest.a.x + longest.b.x) / 2, y: (longest.a.y + longest.b.y) / 2 }
-  const dx = center.x - middle.x
-  const dy = center.y - middle.y
-  const distance = Math.hypot(dx, dy) || 1
-  return { x: middle.x + (dx / distance) * 18, y: middle.y + (dy / distance) * 18 }
-}
-
-function svgPolygonPath(polygon: Polygon, top: number): string {
-  return polygon.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${top - p.y}`).join('') + 'Z'
-}
-
-function containsPoint(polygon: Polygon, point: Vec2): boolean {
-  let inside = false
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i]!
-    const b = polygon[j]!
-    if (
-      a.y > point.y !== b.y > point.y &&
-      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
-    ) {
-      inside = !inside
-    }
-  }
-  return inside
-}
-
-interface ObservedLabel {
-  id: string
-  point: Vec2
-  labelPoint: Vec2
-}
-
-/** A label rectangle in local metres, centred on its point. */
-interface WorldBox {
-  cx: number
-  cy: number
-  width: number
-  height: number
-}
-
-function matchingCellsIn(grid: GridSpec, mask: Uint8Array, polygon: Polygon): Vec2[] {
-  const cells: Vec2[] = []
-  for (let row = 0; row < grid.rows; row++) {
-    for (let col = 0; col < grid.cols; col++) {
-      if (!mask[row * grid.cols + col]) continue
-      const point = {
-        x: grid.originXY.x + col * grid.cellSize,
-        y: grid.originXY.y + row * grid.cellSize,
-      }
-      if (containsPoint(polygon, point)) cells.push(point)
-    }
-  }
-  return cells
-}
-
-function nearestToCentroid(cells: readonly Vec2[]): Vec2 {
-  const centroid = cells.reduce(
-    (sum, point) => ({ x: sum.x + point.x / cells.length, y: sum.y + point.y / cells.length }),
-    { x: 0, y: 0 },
-  )
-  return cells.reduce((nearest, point) =>
-    Math.hypot(point.x - centroid.x, point.y - centroid.y) <
-    Math.hypot(nearest.x - centroid.x, nearest.y - centroid.y)
-      ? point
-      : nearest,
-  )
-}
-
-function observedLabelPoints(
-  grid: GridSpec,
-  mask: Uint8Array,
-  polygons: readonly { id: string; polygon: Polygon }[],
-  avoid?: {
-    pins: readonly PlannedPin[]
-    svgWidth: number
-    text: string
-    /** Labels already placed by the caller, which this pass must not cover. */
-    keepClear?: readonly WorldBox[]
-  },
-): ObservedLabel[] {
-  if (!avoid || avoid.svgWidth <= 0) {
-    return polygons.flatMap(({ id, polygon }) => {
-      const cells = matchingCellsIn(grid, mask, polygon)
-      if (!cells.length) return []
-      const anchor = nearestToCentroid(cells)
-      return [{ id, point: anchor, labelPoint: anchor }]
-    })
-  }
-
-  const mapWidth = grid.cols * grid.cellSize
-  const unitsPerPixel = mapWidth / avoid.svgWidth
-  const x0 = grid.originXY.x - grid.cellSize / 2
-  const top = grid.originXY.y + (grid.rows - 1) * grid.cellSize + grid.cellSize / 2
-  const labelWidthPx = avoid.text.length * OBSERVED_LABEL_CHAR_PX
-  const toPixelBox = ({ cx, cy, width, height }: WorldBox): Box => {
-    const px = (cx - x0) / unitsPerPixel
-    const py = (top - cy) / unitsPerPixel
-    return {
-      left: px - width / (2 * unitsPerPixel),
-      right: px + width / (2 * unitsPerPixel),
-      top: py - height / (2 * unitsPerPixel),
-      bottom: py + height / (2 * unitsPerPixel),
-    }
-  }
-  const obstacles: Box[] = [
-    ...avoid.pins.map((pin) => {
-      const px = (pin.x - x0) / unitsPerPixel
-      const py = pin.y / unitsPerPixel
-      return boundsForPin(px, py, pin.labelWidth / unitsPerPixel, pin.labelOnLeft)
-    }),
-    ...(avoid.keepClear ?? []).map(toPixelBox),
-  ]
-  const placed: Box[] = []
-  const results: ObservedLabel[] = []
-
-  for (const { id, polygon } of polygons) {
-    const matching = matchingCellsIn(grid, mask, polygon)
-    if (!matching.length) continue
-
-    const anchor = nearestToCentroid(matching)
-    const anchorPx = (anchor.x - x0) / unitsPerPixel
-    const anchorPy = (top - anchor.y) / unitsPerPixel
-    // A label over its own zone is preferred; a small zone can be too crowded by a finding
-    // badge or another label to hold the text, and then the nearest clean spot still points
-    // at the zone with its leader rather than being drawn over what it must not cover.
-    let insideBest: { point: Vec2; distance: number } | null = null
-    let clearBest: { point: Vec2; distance: number } | null = null
-    const mapHeightPx = mapWidth / unitsPerPixel
-    const blocked = [...obstacles, ...placed]
-    for (
-      let py = 2 + OBSERVED_LABEL_HEIGHT_PX / 2;
-      py < mapHeightPx - OBSERVED_LABEL_HEIGHT_PX / 2;
-      py += LABEL_SEARCH_STEP_PX
-    ) {
-      for (
-        let px = 2 + labelWidthPx / 2;
-        px < avoid.svgWidth - 2 - labelWidthPx / 2;
-        px += LABEL_SEARCH_STEP_PX
-      ) {
-        const labelBox = {
-          left: px - labelWidthPx / 2,
-          right: px + labelWidthPx / 2,
-          top: py - OBSERVED_LABEL_HEIGHT_PX / 2,
-          bottom: py + OBSERVED_LABEL_HEIGHT_PX / 2,
-        }
-        if (
-          labelBox.left < 2 ||
-          labelBox.right > avoid.svgWidth - 2 ||
-          labelBox.top < 2 ||
-          labelBox.bottom > mapHeightPx - 2
-        ) {
-          continue
-        }
-        const clearance = blocked.reduce((minimum, obstacle) => {
-          const overlapX =
-            Math.min(labelBox.right, obstacle.right) - Math.max(labelBox.left, obstacle.left)
-          const overlapY =
-            Math.min(labelBox.bottom, obstacle.bottom) - Math.max(labelBox.top, obstacle.top)
-          const separation =
-            overlapX >= 0 && overlapY >= 0
-              ? -Math.min(overlapX, overlapY)
-              : Math.hypot(Math.max(0, -overlapX), Math.max(0, -overlapY))
-          return Math.min(minimum, separation)
-        }, Number.POSITIVE_INFINITY)
-        if (clearance < PIN_CLEARANCE_PX) continue
-        const distance = Math.hypot(px - anchorPx, py - anchorPy)
-        const candidate = {
-          point: { x: x0 + px * unitsPerPixel, y: top - py * unitsPerPixel },
-          distance,
-        }
-        const inside = containsPoint(polygon, candidate.point)
-        const best = inside ? insideBest : clearBest
-        if (!best || distance < best.distance) {
-          if (inside) insideBest = candidate
-          else clearBest = candidate
-        }
-      }
-    }
-    const labelPoint = insideBest?.point ?? clearBest?.point ?? anchor
-    const labelPx = (labelPoint.x - x0) / unitsPerPixel
-    const labelPy = (top - labelPoint.y) / unitsPerPixel
-    placed.push({
-      left: labelPx - labelWidthPx / 2,
-      right: labelPx + labelWidthPx / 2,
-      top: labelPy - OBSERVED_LABEL_HEIGHT_PX / 2,
-      bottom: labelPy + OBSERVED_LABEL_HEIGHT_PX / 2,
-    })
-    results.push({ id, point: anchor, labelPoint })
-  }
-
-  return results
-}
 
 /**
  * The mine plan is built from the same survey, change mask, permit limits and findings as the
@@ -421,47 +81,22 @@ export function SitePlan() {
     () => (limits ? leaseLabelPoint(limits.leaseBoundary) : null),
     [limits],
   )
-  const observedLabels = useMemo(() => {
-    if (!grid || !limits) return { cut: [] as ObservedLabel[], fill: [] as ObservedLabel[] }
-    const unitsPerPixel = svgWidth ? (grid.cols * grid.cellSize) / svgWidth : 1
-    const toWorldBox = (labelPoint: Vec2, text: string): WorldBox => ({
-      cx: labelPoint.x,
-      cy: labelPoint.y,
-      width: text.length * OBSERVED_LABEL_CHAR_PX * unitsPerPixel,
-      height: OBSERVED_LABEL_HEIGHT_PX * unitsPerPixel,
-    })
-    const leaseWidth = leaseLabel
-      ? LEASE_LABEL_TEXT.length * OBSERVED_LABEL_CHAR_PX * unitsPerPixel
-      : 0
-    const keepClear: WorldBox[] =
-      leaseLabel === null
-        ? []
-        : [
-            {
-              // The lease label is start-anchored, so its box begins at the anchor point.
-              cx: leaseLabel.x + leaseWidth / 2,
-              cy: leaseLabel.y,
-              width: leaseWidth,
-              height: OBSERVED_LABEL_HEIGHT_PX * unitsPerPixel,
-            },
-          ]
-    const cut = observedLabelPoints(grid, change?.excavated ?? new Uint8Array(), limits.pitZones, {
-      pins,
-      svgWidth,
-      text: OBSERVED_EXCAVATION_LABEL,
-      keepClear,
-    })
-    const fill = observedLabelPoints(grid, change?.filled ?? new Uint8Array(), limits.dumpZones, {
-      pins,
-      svgWidth,
-      text: OBSERVED_FILL_LABEL,
-      keepClear: [
-        ...keepClear,
-        ...cut.map(({ labelPoint }) => toWorldBox(labelPoint, OBSERVED_EXCAVATION_LABEL)),
-      ],
-    })
-    return { cut, fill }
-  }, [change, grid, leaseLabel, limits, pins, svgWidth])
+  const observedLabels = useMemo(
+    () =>
+      grid && limits
+        ? placeZoneLabels({
+            grid,
+            excavated: change?.excavated ?? new Uint8Array(),
+            filled: change?.filled ?? new Uint8Array(),
+            pitZones: limits.pitZones,
+            dumpZones: limits.dumpZones,
+            pins,
+            svgWidth,
+            leaseLabel,
+          })
+        : { cut: [], fill: [] },
+    [change, grid, leaseLabel, limits, pins, svgWidth],
+  )
   const contours = useMemo(
     () =>
       current
@@ -632,85 +267,89 @@ export function SitePlan() {
             </text>
           )}
 
-          {pins.map(({ finding, x, y, dx, dy, labelOnLeft, labelWidth: chipWidth }) => {
-            const tone = toneOf(finding)
-            const Glyph = GLYPH[tone]
-            const anchorX = finding.centroid.x
-            const anchorY = svgY(finding.centroid.y)
-            const labelX = labelOnLeft
-              ? x -
-                PIN_RADIUS_PX * unitsPerCssPixel -
-                PIN_LABEL_GAP_PX * unitsPerCssPixel -
-                chipWidth
-              : x + PIN_RADIUS_PX * unitsPerCssPixel + PIN_LABEL_GAP_PX * unitsPerCssPixel
-            return (
-              <g key={finding.id}>
-                {(dx !== 0 || dy !== 0) && (
-                  <line
-                    x1={anchorX}
-                    y1={anchorY}
-                    x2={x}
-                    y2={y}
-                    className={`plan-leader tone-${tone}`}
-                  />
-                )}
-                <circle
-                  cx={anchorX}
-                  cy={anchorY}
-                  r={2.5 * unitsPerCssPixel}
-                  className={`plan-finding-origin tone-${tone}`}
-                />
-                <g
-                  role="button"
-                  tabIndex={0}
-                  className={`plan-pin tone-${tone}`}
-                  aria-pressed={selectedFinding === finding.id}
-                  aria-label={`${finding.id}, ${RULE_NAMES[finding.ruleId]}, ${finding.status}, ${finding.severity} severity. Show on the map`}
-                  onClick={() => open(finding)}
-                  onKeyDown={(event) => onKey(event, finding)}
-                >
-                  <title>{`${finding.id}: ${RULE_NAMES[finding.ruleId]}`}</title>
+          {pins.map(
+            ({ finding, worldX, worldY, displaced, labelOnLeft, labelWidth: chipWidth }) => {
+              const x = worldX
+              const y = svgY(worldY)
+              const tone = toneOf(finding)
+              const Glyph = GLYPH[tone]
+              const anchorX = finding.centroid.x
+              const anchorY = svgY(finding.centroid.y)
+              const labelX = labelOnLeft
+                ? x -
+                  PIN_RADIUS_PX * unitsPerCssPixel -
+                  PIN_LABEL_GAP_PX * unitsPerCssPixel -
+                  chipWidth
+                : x + PIN_RADIUS_PX * unitsPerCssPixel + PIN_LABEL_GAP_PX * unitsPerCssPixel
+              return (
+                <g key={finding.id}>
+                  {displaced && (
+                    <line
+                      x1={anchorX}
+                      y1={anchorY}
+                      x2={x}
+                      y2={y}
+                      className={`plan-leader tone-${tone}`}
+                    />
+                  )}
                   <circle
-                    cx={x}
-                    cy={y}
-                    r={PIN_RADIUS_PX * unitsPerCssPixel}
-                    className="plan-pin-hit"
+                    cx={anchorX}
+                    cy={anchorY}
+                    r={2.5 * unitsPerCssPixel}
+                    className={`plan-finding-origin tone-${tone}`}
                   />
-                  <circle cx={x} cy={y} r={10 * unitsPerCssPixel} className="plan-pin-disc" />
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={PIN_RADIUS_PX * unitsPerCssPixel}
-                    className="plan-pin-ring"
-                  />
-                  <Glyph
-                    x={x - 7 * unitsPerCssPixel}
-                    y={y - 7 * unitsPerCssPixel}
-                    width={14 * unitsPerCssPixel}
-                    height={14 * unitsPerCssPixel}
-                    className="plan-pin-glyph"
-                  />
-                  <rect
-                    x={labelX}
-                    y={y - (PIN_LABEL_HEIGHT_PX / 2) * unitsPerCssPixel}
-                    width={chipWidth}
-                    height={PIN_LABEL_HEIGHT_PX * unitsPerCssPixel}
-                    rx={2 * unitsPerCssPixel}
-                    className="plan-pin-label-bg"
-                  />
-                  <text
-                    x={labelX + chipWidth / 2}
-                    y={y + 3 * unitsPerCssPixel}
-                    fontSize={10 * unitsPerCssPixel}
-                    className="plan-pin-label"
-                    textAnchor="middle"
+                  <g
+                    role="button"
+                    tabIndex={0}
+                    className={`plan-pin tone-${tone}`}
+                    aria-pressed={selectedFinding === finding.id}
+                    aria-label={`${finding.id}, ${RULE_NAMES[finding.ruleId]}, ${finding.status}, ${finding.severity} severity. Show on the map`}
+                    onClick={() => open(finding)}
+                    onKeyDown={(event) => onKey(event, finding)}
                   >
-                    {finding.id}
-                  </text>
+                    <title>{`${finding.id}: ${RULE_NAMES[finding.ruleId]}`}</title>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={PIN_RADIUS_PX * unitsPerCssPixel}
+                      className="plan-pin-hit"
+                    />
+                    <circle cx={x} cy={y} r={10 * unitsPerCssPixel} className="plan-pin-disc" />
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={PIN_RADIUS_PX * unitsPerCssPixel}
+                      className="plan-pin-ring"
+                    />
+                    <Glyph
+                      x={x - 7 * unitsPerCssPixel}
+                      y={y - 7 * unitsPerCssPixel}
+                      width={14 * unitsPerCssPixel}
+                      height={14 * unitsPerCssPixel}
+                      className="plan-pin-glyph"
+                    />
+                    <rect
+                      x={labelX}
+                      y={y - (PIN_LABEL_HEIGHT_PX / 2) * unitsPerCssPixel}
+                      width={chipWidth}
+                      height={PIN_LABEL_HEIGHT_PX * unitsPerCssPixel}
+                      rx={2 * unitsPerCssPixel}
+                      className="plan-pin-label-bg"
+                    />
+                    <text
+                      x={labelX + chipWidth / 2}
+                      y={y + 3 * unitsPerCssPixel}
+                      fontSize={10 * unitsPerCssPixel}
+                      className="plan-pin-label"
+                      textAnchor="middle"
+                    >
+                      {finding.id}
+                    </text>
+                  </g>
                 </g>
-              </g>
-            )
-          })}
+              )
+            },
+          )}
         </svg>
 
         <div className="plan-caption">
