@@ -1,16 +1,33 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '../../state/store'
 import { useTerrain } from '../../state/terrain'
+import { LG, XL } from '../breakpoints'
 import { toggleFullscreen } from '../fullscreen'
 import { LayerPanel } from '../LayerPanel'
 import { SidePanel } from '../SidePanel'
 import { findingFromHash, ROUTE_HREF } from '../route'
 import { Viewport } from '../Viewport'
 
+/**
+ * Folds a side panel while the window is narrower than `query`, and unfolds it when the window
+ * grows past it, until the visitor has chosen; after that their choice wins and nothing moves.
+ */
+function useFoldBelow(query: string, userSet: boolean, setHidden: (hidden: boolean) => void) {
+  useEffect(() => {
+    if (userSet) return
+    const wide = window.matchMedia(query)
+    const apply = () => setHidden(!wide.matches)
+    apply()
+    wide.addEventListener('change', apply)
+    return () => wide.removeEventListener('change', apply)
+  }, [query, userSet, setHidden])
+}
+
 /** Full-bleed 3D map with the layer card and the details panel floating above it. */
 export function MapPage() {
   const layersHidden = useAppStore((s) => s.layersHidden)
   const detailsHidden = useAppStore((s) => s.detailsHidden)
+  const layersUserSet = useAppStore((s) => s.layersUserSet)
   const detailsUserSet = useAppStore((s) => s.detailsUserSet)
   const selectedFinding = useAppStore((s) => s.selectedFinding)
   const ready = useTerrain((s) => s.status === 'ready')
@@ -39,14 +56,13 @@ export function MapPage() {
   }, [selectedFinding, ready])
 
   // On a laptop-width screen the model is the point of the map, and the two floating panels
-  // leave it a narrow stage: at 1100 px the stage would be 372 px wide. Below 1280 px the
-  // findings panel therefore starts closed, and the visible header button opens it. Once the
-  // visitor has chosen, their choice sticks.
-  useEffect(() => {
-    if (!detailsUserSet && window.innerWidth < 1280) {
-      useAppStore.getState().setDetailsHidden(true)
-    }
-  }, [detailsUserSet])
+  // leave it a narrow stage: at 1100 px the stage would be 372 px wide. Below `xl` the findings
+  // panel is therefore folded, and the visible header button opens it. Below `lg` the map card
+  // folds as well (at 800 px it floats over the western part of the block); the header's Map
+  // panel button, or `[`, brings it back. Both follow the window across the breakpoint until the
+  // visitor chooses, and then their choice sticks.
+  useFoldBelow(XL, detailsUserSet, useAppStore.getState().setDetailsHidden)
+  useFoldBelow(LG, layersUserSet, useAppStore.getState().setLayersHidden)
 
   // [ and ] collapse the side panels, F toggles full screen, R resets the view.
   // Ignored while typing.
