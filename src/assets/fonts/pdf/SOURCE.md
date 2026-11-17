@@ -34,5 +34,5 @@ python -m fontTools.subset NotoSans-Bold.ttf    --text-file=charset.txt --layout
 ```
 
 `charset.txt` holds basic Latin, Latin-1 Supplement, Latin Extended-A and the symbols the app can
-produce (`± ² ³ σ Σ Δ ° µ · × – — ‘ ’ “ ” …`). `src/compliance/pdfCharset.ts` repeats that string for
-the runtime guard, and a unit test fails if the two drift apart.
+produce (`± ² ³ σ Σ Δ ° µ · × – — ‘ ’ “ ” …`). `src/ui/pdfCharset.ts` imports this file directly for
+the runtime guard, so the font and the guard cannot drift apart.

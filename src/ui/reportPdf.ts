@@ -1,7 +1,7 @@
 import type { ComplianceFinding, Mine, PermittedLimits, Polygon } from '../domain/types'
-import { pdfText } from '../compliance/pdfCharset'
 import { OVERLAY, PRINT_INK, TONE_COLOR } from '../scene/palette'
 import { RULE_NAMES, toneOf } from './findings'
+import { pdfText } from './pdfCharset'
 import { registerPdfFonts } from './pdfFont'
 
 /** What the PDF describes: the findings on screen and the permit they were checked against. */
@@ -21,58 +21,56 @@ const LINE_HEIGHT = 4.6
 const BODY_OFFSET = 11
 /** Space kept under the last line of a finding before the next heading may start. */
 const BLOCK_TAIL = 2.4
+/** On a continuation page: from the "(continued)" heading's baseline to the first body line. */
+const CONTINUED_OFFSET = 6
+/** A heading is never left at the foot of a page with fewer body lines than this under it. */
+const MIN_LINES_WITH_HEADING = 2
 
 export interface BlockPagination {
-  /** The current page has no room even for the heading, so the block starts on a fresh one. */
+  /** The current page cannot hold the heading with its first lines, so the block starts afresh. */
   startNewPage: boolean
-  /** Body lines drawn on each page in order; the heading and figures go with the first entry. */
+  /**
+   * Body lines drawn on each page in order. The heading and figures go with the first entry;
+   * every later entry is a continuation page that opens with a "(continued)" heading.
+   */
   pages: number[]
 }
 
 /**
  * Decide where a finding's block breaks. Line-aware rather than all-or-nothing: a block that
- * cannot fit keeps its heading and figures with as many lines as the page holds, and the rest
- * continues on later pages. Pure so the break rules are tested without building a PDF.
+ * cannot fit keeps its heading and figures with as many lines as the page holds (at least two,
+ * so a heading is never stranded with one line), and the rest continues on later pages under a
+ * "(continued)" heading. Pure so the break rules are tested without building a PDF.
  */
 export function paginateBlock(options: {
   /** Baseline of the heading on the current page, mm from the top. */
   y: number
   lines: number
-  /** First baseline on a continuation page, mm from the top. */
+  /** Baseline of the first heading on a fresh page, mm from the top. */
   pageTop: number
   /** Text must not be drawn below this baseline. */
   pageBottom: number
-  bodyOffset?: number
-  lineHeight?: number
-  /** Room the heading, figures and trailing space need, before body lines. */
-  blockOverhead?: number
 }): BlockPagination {
-  const {
-    y,
-    lines,
-    pageTop,
-    pageBottom,
-    bodyOffset = BODY_OFFSET,
-    lineHeight = LINE_HEIGHT,
-    blockOverhead = BODY_OFFSET + BLOCK_TAIL,
-  } = options
+  const { y, lines, pageTop, pageBottom } = options
   if (!Number.isInteger(lines) || lines < 0)
     throw new RangeError('Line count must be a whole number')
-  const capacityFrom = (start: number) => Math.floor((pageBottom - start - bodyOffset) / lineHeight)
-  const capacityOnFreshPage = capacityFrom(pageTop)
+  const capacityFrom = (start: number, offset: number) =>
+    Math.floor((pageBottom - start - offset) / LINE_HEIGHT)
+  const capacityOnFreshPage = capacityFrom(pageTop, BODY_OFFSET)
+  const capacityOnContinuation = capacityFrom(pageTop, CONTINUED_OFFSET)
   if (capacityOnFreshPage < 1) throw new RangeError('Page is too short for one line of text')
 
-  if (y + blockOverhead + lines * lineHeight <= pageBottom) {
+  if (y + BODY_OFFSET + BLOCK_TAIL + lines * LINE_HEIGHT <= pageBottom) {
     return { startNewPage: false, pages: [lines] }
   }
 
-  const capacityHere = capacityFrom(y)
-  const startNewPage = capacityHere < 1
+  const capacityHere = capacityFrom(y, BODY_OFFSET)
+  const startNewPage = capacityHere < Math.max(1, Math.min(MIN_LINES_WITH_HEADING, lines))
   const firstCapacity = startNewPage ? capacityOnFreshPage : capacityHere
   const pages: number[] = [Math.min(lines, firstCapacity)]
   let remaining = lines - pages[0]!
   while (remaining > 0) {
-    const count = Math.min(remaining, capacityOnFreshPage)
+    const count = Math.min(remaining, capacityOnContinuation)
     pages.push(count)
     remaining -= count
   }
@@ -143,8 +141,12 @@ export async function savePdfReport(input: PdfReportInput): Promise<void> {
     let bodyY = y + BODY_OFFSET
     for (const [pageIndex, count] of pagination.pages.entries()) {
       if (pageIndex > 0) {
+        // A continuation page says whose text it is carrying on with.
         doc.addPage()
-        bodyY = pageTop
+        doc.setFont('NotoSans', 'bold').setFontSize(10).setTextColor(INK)
+        doc.text(pdfText(`${f.id}  ${RULE_NAMES[f.ruleId]} (continued)`), PAGE.margin, pageTop)
+        doc.setFont('NotoSans', 'normal').setFontSize(10)
+        bodyY = pageTop + CONTINUED_OFFSET
       }
       for (let line = 0; line < count; line++) {
         doc.text(body[drawn + line]!, PAGE.margin, bodyY + line * LINE_HEIGHT)

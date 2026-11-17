@@ -157,6 +157,9 @@ test('the findings can be downloaded as a PDF that says it is simulated', async 
 
   // The report now embeds Noto Sans with Identity-H encoding, so the drawn strings are glyph ids.
   // Read them back through the document's own /ToUnicode CMaps, the way a PDF reader does.
+  // Ceiling: this reader handles only what jsPDF 4.2 writes, `<hex> Tj` strings and `bfchar`
+  // maps. A jsPDF upgrade that emits `TJ` arrays or `bfrange` maps needs it extended; until
+  // then such a file fails the length checks below rather than passing silently.
   const zlib = await import('node:zlib')
   const raw = bytes.toString('latin1')
   const streams: string[] = []

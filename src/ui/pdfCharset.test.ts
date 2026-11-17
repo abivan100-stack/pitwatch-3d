@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import subsetRaw from '../assets/fonts/pdf/charset.txt?raw'
 import { SyntheticTerrainProvider } from '../data/SyntheticTerrainProvider'
-import { evaluate } from './engine'
+import { evaluate } from '../compliance/engine'
 import { PDF_CHARSET, pdfText } from './pdfCharset'
-
-const subset = subsetRaw
 
 describe('pdfText', () => {
   it('keeps the symbols the engine writes, now that the font can draw them', () => {
@@ -13,8 +10,10 @@ describe('pdfText', () => {
     expect(pdfText(engine)).toBe(engine)
   })
 
-  it('matches the charset the font subset was built from', () => {
-    expect(PDF_CHARSET).toBe(subset)
+  it('reads the charset the font subset was built from, with no line break in it', () => {
+    expect(PDF_CHARSET).not.toMatch(/[\r\n]/)
+    expect([...PDF_CHARSET]).toHaveLength(329)
+    expect(pdfText(PDF_CHARSET)).toBe(PDF_CHARSET)
   })
 
   it('turns anything outside the subset into a visible placeholder', () => {

@@ -30,7 +30,10 @@ describe('placeLabels', () => {
 describe('paginateBlock', () => {
   const pageTop = 20
   const pageBottom = 281
+  // A fresh page under a full heading holds 54 lines; a continuation page, whose
+  // "(continued)" heading needs less room, holds 55.
   const linesPerFreshPage = Math.floor((pageBottom - pageTop - 11) / 4.6) // 54
+  const linesPerContinuation = Math.floor((pageBottom - pageTop - 6) / 4.6) // 55
 
   it('keeps a block that fits whole on one page', () => {
     expect(paginateBlock({ y: 100, lines: 5, pageTop, pageBottom })).toEqual({
@@ -50,15 +53,27 @@ describe('paginateBlock', () => {
     const y = 240 // room for exactly 6 body lines under the heading
     const plan = paginateBlock({ y, lines: 100, pageTop, pageBottom })
     expect(plan.startNewPage).toBe(false)
-    expect(plan.pages).toEqual([6, linesPerFreshPage, 100 - 6 - linesPerFreshPage])
+    expect([linesPerFreshPage, linesPerContinuation]).toEqual([54, 55])
+    expect(plan.pages).toEqual([6, 55, 39])
     expect(plan.pages.reduce((sum, n) => sum + n, 0)).toBe(100)
   })
 
   it('spreads a block taller than a page across as many pages as it needs', () => {
     const plan = paginateBlock({ y: pageTop, lines: 200, pageTop, pageBottom })
-    expect(plan.pages).toEqual([54, 54, 54, 38])
+    expect(plan.pages).toEqual([54, 55, 55, 36])
     expect(plan.pages.every((n) => n > 0)).toBe(true)
     expect(plan.pages.reduce((sum, n) => sum + n, 0)).toBe(200)
+  })
+
+  it('never strands a heading at the foot of a page with a single line', () => {
+    // At y = 263 the page holds one body line under the heading: too few, so the block moves.
+    expect(paginateBlock({ y: 263, lines: 5, pageTop, pageBottom })).toEqual({
+      startNewPage: true,
+      pages: [5],
+    })
+    // Two lines of room is enough to start there and continue overleaf.
+    const plan = paginateBlock({ y: 258, lines: 60, pageTop, pageBottom })
+    expect(plan).toEqual({ startNewPage: false, pages: [2, 55, 3] })
   })
 
   it('rejects impossible geometry instead of silently overlapping text', () => {
