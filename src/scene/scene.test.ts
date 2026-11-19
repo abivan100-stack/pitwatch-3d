@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { GridSpec } from '../domain/types'
 import { hexToRgb, RAMP, rampAt, rampGradient, srgbToLinear } from './palette'
-import { focusPose, headingOf, metresPerPixel, northUp, presetPose, scaleBar } from './presets'
+import {
+  focusPose,
+  headingOf,
+  metresPerPixel,
+  northUp,
+  presetPose,
+  rescalePose,
+  scaleBar,
+  type Pose,
+  type V3,
+} from './presets'
 import {
   BASE_RL,
   buildSkirtArrays,
@@ -136,5 +146,39 @@ describe('focus view', () => {
     expect(position[1]).toBeGreaterThan(20)
     expect(position[2]).toBeGreaterThan(30)
     expect(headingOf(position, target)).toBeGreaterThan(270) // looking north-west
+  })
+})
+
+describe('rescalePose', () => {
+  const pit = { x: 880, y: -1020 }
+  const close = (a: Pose, b: Pose) => {
+    for (const k of ['position', 'target'] as const)
+      a[k].forEach((v, i) => expect(v).toBeCloseTo(b[k][i], 9))
+  }
+
+  it('turns a preset at one exaggeration into the same preset at another', () => {
+    const floorRL = 240 // approved floor; BASE_RL is the zero of scene y
+    for (const kind of ['oblique', 'top', 'pit', 'intro'] as const) {
+      const at = (ex: number) => presetPose(kind, pit, (floorRL - BASE_RL) * ex)
+      close(rescalePose(at(1.5), 3 / 1.5), at(3))
+      close(rescalePose(at(3), 1 / 3), at(1))
+    }
+  })
+
+  it('does the same for a focus on a ground point', () => {
+    const at = (ex: number) => focusPose([300, (310 - BASE_RL) * ex, -900])
+    close(rescalePose(at(1.5), 2), at(3))
+  })
+
+  it('rescales every point of a flight when it rescales both ends', () => {
+    const from = presetPose('oblique', pit, -240)
+    const to = presetPose('pit', pit, -240)
+    const mid = (a: Pose, b: Pose, e: number): Pose => {
+      const m = (u: V3, v: V3): V3 => [0, 1, 2].map((i) => u[i] + (v[i] - u[i]) * e) as V3
+      return { position: m(a.position, b.position), target: m(a.target, b.target) }
+    }
+    for (const e of [0, 0.3, 0.5, 1]) {
+      close(rescalePose(mid(from, to, e), 2), mid(rescalePose(from, 2), rescalePose(to, 2), e))
+    }
   })
 })

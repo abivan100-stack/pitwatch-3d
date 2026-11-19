@@ -50,6 +50,18 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: a camera flight ends at the new depth when exaggeration changes mid-flight (ticket #60)
+
+- **Cause.** A flight's start and end poses were taken at the old exaggeration. The rescale effect moved the current aim point, then the next flight frame interpolated between the old poses and put it back, so the camera settled on the old floor depth.
+- **Fix.** New pure `rescalePose` in `src/scene/presets.ts` scales the aim point's height and keeps the camera's height above it. `CameraRig` applies it to the current pose and, when a flight is running, to the flight's start and end poses. It is linear, so rescaling both ends rescales every frame between them and the flight ends exactly at the target at the new scale. This holds for the presets, the intro, North and focus flights.
+- **Effect order.** The rescale effect now sits before the intro, view and focus effects. React runs one component's effects in declaration order, and when a view request and a scale change commit in one render (the scene has its own React root, and under a slow renderer both updates can land together), the camera is rescaled first and the new flight is built at the new scale throughout. An earlier draft kept the old order and scaled such a flight twice; a browser check now guards it.
+- Tests: three `rescalePose` unit tests (every preset and the intro at 1.5×→3× and 3×→1×; a focus pose; rescaling both ends equals rescaling any point between them). New `e2e/flight-exaggeration.spec.ts` compares the settled frame against the Pit preset requested at 3× (under 1% of pixels may differ):
+  - the scale changes while the Pit flight is under way. The test slows `performance.now` to 1/20 so the 1.3 s flight takes about 26 s, and waits for the model to move before changing the slider. Software WebGL draws about one frame a second, so at full speed the flight ends before a test can act.
+  - a Pit request and a scale change handled in one task.
+  - a change with no flight.
+- Proof: with the `CameraRig.tsx` change reverted, the under-way check fails (34% of pixels differ); with it, all three pass. The one-task check failed (38%) against the draft that kept the old effect order.
+- Checks: `npm run verify` passes (205 unit tests in 25 files). Full `npm run test:e2e`: 81 of 82 passed; `map-width` "follows the window across lg" failed under three workers, as on 2026-11-19 for #55, and passed with `--workers=1` along with the new spec. 3D map at 1440, 1100 and 800 px after a Pit flight: no horizontal overflow, no console errors. A separate Opus 5.5 high-effort review found no bug; its two test risks (a settle check shorter than one software frame, and a flight-start poll that could fire on the button's pressed style) are fixed: the canvas must stay unchanged for 2.5 s, and the poll watches only the middle of the stage.
+
 ### 2026-11-19: Inspector verdict uses the same cell as its findings (#53)
 
 - The Inspector reads the engine's change classification and finding IDs from the same cell. The point change still shows the interpolated elevation difference and its propagated vertical uncertainty. The verdict names the cell centre and its threshold. A point outside the sampled grid shows no cell verdict or finding links.

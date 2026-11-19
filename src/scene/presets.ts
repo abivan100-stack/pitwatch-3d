@@ -31,6 +31,19 @@ export function presetPose(kind: ViewPreset | 'intro', pit: Vec2, floorY: number
   return { position: [t[0] + o[0], t[1] + o[1], t[2] + o[2]], target: t }
 }
 
+/**
+ * The same pose after the vertical scale is multiplied by `k`: the aim point stays on the same
+ * ground feature (its height scales) and the camera keeps its height above the aim point. Linear
+ * in the pose, so rescaling both ends of a flight also rescales every point between them.
+ */
+export function rescalePose(p: Pose, k: number): Pose {
+  const ty = p.target[1] * k
+  return {
+    position: [p.position[0], p.position[1] + ty - p.target[1], p.position[2]],
+    target: [p.target[0], ty, p.target[2]],
+  }
+}
+
 /** Close oblique view of a ground point (scene units), looking from the south-east. */
 export function focusPose(ground: V3, distance = 560): Pose {
   const o: V3 = [0.4, 0.58, 0.71]
