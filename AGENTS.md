@@ -50,6 +50,26 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: Findings page shows the evidence behind each finding (issue #73)
+
+- Each row's "Why it was flagged" is now a **Details** button (`aria-expanded`, closed by default, the body animates open through a grid-row transition and is `inert` while closed, so it adds no focus stop). It opens on the explanation, then Measurements (cells on the 4 m grid, mean, lowest and highest change with ± labelled 1σ, baseline and current level at the peak cell, largest exceedance and where), Why this rating (the measures that reached the critical or medium line, with the configured values from `COMPLIANCE_CONFIG`), Where (centre; distance to the lease boundary to the centimetre, with a side only when the centroid is clear of the 2σ horizontal band, as `leaseVerdict` decides for the Inspector; pit zone and approved floor) and a vector plan of the lease with the finding's cells outlined (`cellIndicesToSvgPath`, `svgPolygonPath`). Every value carries a provenance tag.
+- The row gains **Cells** and **Mean change** (± 1σ), and every row figure now carries its `derived` tag. Below 40 rem the figures stack in two columns. A strip above the list totals the shown findings and follows the filters: area flagged, cut and below-floor volume (R1 removed plus R2 below the approved floor), fill volume (R3), and flagged area ÷ lease area. Its note says the flagged area includes ground outside the lease.
+- New pure `src/compliance/findingDetail.ts` (`findingDetail`, `findingTotals`); the finding record and the compliance snapshot are untouched. The map panel's `<details className="frow-more">` and `SeverityLegend` are unchanged. Print no longer toggles `<details>`; the print stylesheet forces the Details bodies open.
+- Tests: 11 unit tests (all three critical measures for an R1-1-like finding, a single measure, a warning and a violation with no measure at the line, the medium line, two overlapping pit zones, peak cell per rule, totals). New `e2e/finding-details.spec.ts` (closed by default and keyboard open, R1-1 lists the three critical lines, totals match the rows and the CSV and follow the rule filter, no overflow and no serious axe violation with every Details open at 1440 and 390 px). `e2e/dashboard.spec.ts` selector for the PDF explanation moved from `details p` to `.fd-body p`.
+- Revert proof: with the severity comparison broken, 3 of the 11 unit tests fail (R1-1, single measure, medium line); with `FindingsPage.tsx` restored to `origin/main`, all 4 new browser tests fail (no Details button, no totals strip).
+- Checks: `npm run verify` passes (227 unit tests in 26 files). Browser, `--workers=1` on port 4401: finding-details, dashboard, a11y, finding-evidence and share-link, 36 of 36 pass; the full suite was not run. Visual check at 1440, 1100, 800 and 390 px: no horizontal overflow, no console errors, Details works by mouse and keyboard. The first screenshot showed the Mean change column under "Show on map" at 1440 px; fixed (auto-width figure column) and re-checked.
+- Deviation: the CSV and PDF are unchanged. Their area and volume columns are what the strip sums (checked by the browser test), and Cells and Mean change are not exported. The issue's "excavated volume" and "share of the lease affected" are labelled "Cut and below-floor volume" and "Flagged area ÷ lease area", because the first adds R2's below-floor volume to R1's removed volume and the second divides by the lease while about 7,700 m² of the flagged area (R1-1) lies outside it.
+- Review follow-up (independent Opus review: merge with nits, no bugs). Every figure matched an independent recompute from the engine. Changes since then:
+  - The ± values are labelled 1σ, beside the explanation's 2σ figures.
+  - The strip labels above were made honest.
+  - Cells reads "481 cells, 4 m grid".
+  - The lease side goes through `leaseVerdict`, which says "not confirmed" within the 0.20 m band; no shipped finding is that close.
+  - The rating takes its decision from the engine's `severityOf`, so it cannot drift from the finding's severity.
+  - The R2 test now separates the lowest ground from the deepest cut; it failed the reviewer's sign mutation before.
+  - Two unit tests were added: one for the band, one for the separated peak.
+  - The rerun after these changes: `npm run verify` 228 unit tests; finding-details, dashboard and a11y pass (25 checks), with no overflow at 1440, 1100, 800 and 390 px.
+  - The report prints six A4 pages, one finding per page with its Details; accepted.
+
 ### 2026-11-19: Show on map lands on the finding, faster (#80)
 
 - **Measured first.** The issue suspected the plain-mean centroid. It does not cause the off-centre view: all five centroids lie inside their own cells, and the nearest finding cell is 0 to 1.88 m away (R2-1 0 m, R1-3 1.40, R1-1 1.56, R1-2 1.59, R3-1 1.88). The real cause was the aim point. The camera looked at the ground under the centroid, and the pin's badge stands 90 m above it. At 1440 px the R1-1 badge landed at 27% of the stage height, outside the central 40%.
