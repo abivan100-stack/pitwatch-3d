@@ -25,6 +25,10 @@ describe('lease direction', () => {
     expect(leaseDirection({ x: 900, y: 100 }, LEASE)).toBe('south-east')
     expect(leaseDirection({ x: 510, y: 495 }, LEASE)).toBe('centre')
   })
+
+  it('says centre, not undefined, when there is no lease outline', () => {
+    expect(leaseDirection({ x: 950, y: 500 }, [])).toBe('centre')
+  })
 })
 
 describe('answer line', () => {

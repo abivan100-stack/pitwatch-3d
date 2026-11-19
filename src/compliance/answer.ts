@@ -15,6 +15,7 @@ const POINTS = [
 
 /** Which part of the lease a finding sits in, as an eight-point compass word, or `centre`. */
 export function leaseDirection(centroid: { x: number; y: number }, lease: Polygon): string {
+  if (lease.length === 0) return 'centre' // no lease to place it in
   const xs = lease.map((p) => p.x)
   const ys = lease.map((p) => p.y)
   const dx = centroid.x - (Math.min(...xs) + Math.max(...xs)) / 2

@@ -67,7 +67,7 @@ Flagged cells are grouped into findings with 8-connected components. Each findin
 
 Each finding also gets an explanation such as:
 
-> Excavated 7,696 m² outside the lease boundary; deepest cut 52.5 m ± 0.14 m (2σ). About 175,300 m³ removed.
+> Excavated 7,696 m² outside the lease boundary; deepest cut 52.5 m ± 0.14 m (2σ). 175,297 m³ removed.
 
 Every threshold (k, `minChangeM`, severity limits) lives in [`src/compliance/config.ts`](src/compliance/config.ts).
 

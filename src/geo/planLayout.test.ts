@@ -139,6 +139,43 @@ describe('zone labels', () => {
     }
   })
 
+  it('moves a label past changed ground that rings its zone outside every zone', () => {
+    // Changed cells in a 120 m band round a lone zone: the spots nearest the zone are all changed,
+    // and only the changed-cell test (not the zone test) can push the label beyond the band.
+    const zone = { id: 'lone', text: 'North dump', polygon: square(900, 1500, 160) }
+    const ring = new Uint8Array(grid.cols * grid.rows)
+    for (let row = 0; row < grid.rows; row++) {
+      for (let col = 0; col < grid.cols; col++) {
+        const x = grid.originXY.x + col * grid.cellSize
+        const y = grid.originXY.y + row * grid.cellSize
+        const inBand = x > 780 && x < 1180 && y > 1380 && y < 1780
+        if (inBand && !pointInPolygon({ x, y }, zone.polygon)) ring[row * grid.cols + col] = 1
+      }
+    }
+    const [label] = placeZoneLabels({
+      grid,
+      changed: ring,
+      zones: [zone],
+      pins: [],
+      svgWidth: WIDTH_PX,
+      leaseLabel: null,
+    })
+    expect(label).toBeDefined()
+    const box = boxOf(label!.text, label!.labelPoint)
+    for (const [px, py] of [
+      [box.left, box.top],
+      [box.right, box.top],
+      [box.left, box.bottom],
+      [box.right, box.bottom],
+      [(box.left + box.right) / 2, (box.top + box.bottom) / 2],
+    ] as const) {
+      const w = plan.pxToWorld({ x: px, y: py })
+      const col = Math.floor((w.x - (grid.originXY.x - 2)) / grid.cellSize)
+      const row = Math.floor((w.y - (grid.originXY.y - 2)) / grid.cellSize)
+      expect(ring[row * grid.cols + col], 'the label covers a changed cell').toBe(0)
+    }
+  })
+
   it('keeps labels clear of each other, the badge and the lease caption', () => {
     const boxes = labels.map((l) => boxOf(l.text, l.labelPoint))
     for (let i = 0; i < boxes.length; i++) {
