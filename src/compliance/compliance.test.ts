@@ -231,8 +231,8 @@ describe('synthetic scenario', async () => {
     expect(fnv(raw(baseline.elevations))).toBe('c81d61ee')
     expect(fnv(raw(current.elevations))).toBe('d61b3b0e')
     expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('ef3f65e5')
-    // What did change: the aerial image is drawn at 2048 px over the 2048 m grid.
-    expect(current.orthophoto?.width).toBe(2048)
+    // What did change: the aerial image (this was its hash before the pit was repainted).
+    expect(fnv(current.orthophoto!.rgba)).not.toBe('8d9f4a92')
   })
 
   it('explains every finding with its numbers', () => {

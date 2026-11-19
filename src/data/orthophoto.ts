@@ -78,8 +78,12 @@ export const SURFACE_KEY: readonly { label: string; rgb: RGB }[] = [
   { label: 'Haul road', rgb: SURFACE.road },
 ]
 
-/** Image size the provider draws: 2048 px over the 2048 m grid, about 1.0 m per pixel. */
-export const ORTHOPHOTO_SIZE = 2048
+/**
+ * Image size the provider draws: 1280 px over the 2048 m grid, about 1.6 m per pixel. Close range
+ * is the shader's detail tile (src/scene/rockDetail.ts): 2048 px cost about a quarter more time to
+ * the first engine result, and half as much again to the landing model.
+ */
+export const ORTHOPHOTO_SIZE = 1280
 
 /** The photo's sun, from the north-west like the tree shadows (plan unit vector, east and north). */
 const SUN = { x: -Math.SQRT1_2, y: Math.SQRT1_2 }
@@ -153,7 +157,7 @@ function distanceToRoads(x: number, y: number): number {
 /**
  * @param elevations the survey surface (its slopes and hollows drive the shading)
  * @param natural    original ground level per cell (see `naturalField`)
- * @param size       image width and height in pixels (2048 ≈ 1.0 m per pixel)
+ * @param size       image width and height in pixels (1280 ≈ 1.6 m per pixel)
  */
 export function buildOrthophoto(
   g: GridSpec,

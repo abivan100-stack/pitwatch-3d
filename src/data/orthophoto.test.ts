@@ -14,7 +14,7 @@ import {
 
 const natural = naturalField(GRID, SEED)
 const elevations = buildSurface(GRID, 'current', SEED, 0.05, natural)
-// The image the provider draws, at its real size: the pit detail is a metre or two across.
+// The image the provider draws, at its real size: the pit marks are a pixel or two across.
 const photo = buildOrthophoto(GRID, elevations, natural, 'current', SEED)
 const SIZE = photo.width
 const SPAN = (GRID.cols - 1) * GRID.cellSize
@@ -83,10 +83,12 @@ const walls = (() => {
 })()
 
 describe('simulated orthophoto', () => {
-  it('draws 2048 px over the 2048 m grid, about 1.0 m per pixel, marked simulated', () => {
-    expect(ORTHOPHOTO_SIZE).toBe(2048)
+  it('draws 1280 px over the 2048 m grid, about 1.6 m per pixel, marked simulated', () => {
+    // Close range is the shader's detail tile (src/scene/rockDetail.ts), not a bigger image: 2048 px
+    // made the first engine result about a quarter slower and the landing model half as slow.
+    expect(ORTHOPHOTO_SIZE).toBe(1280)
     expect(SIZE).toBe(ORTHOPHOTO_SIZE)
-    expect(SPAN / (SIZE - 1)).toBeCloseTo(1.0, 2)
+    expect(SPAN / (SIZE - 1)).toBeCloseTo(1.6, 2)
     expect(photo.rgba.length).toBe(SIZE * SIZE * 4)
     expect(photo.rgba[3]).toBe(255)
     expect(photo.provenance).toBe('simulated')
@@ -97,7 +99,7 @@ describe('simulated orthophoto', () => {
     const a = buildOrthophoto(GRID, elevations, natural, 'current', SEED, small)
     const b = buildOrthophoto(GRID, elevations, natural, 'current', SEED, small)
     expect(b.rgba).toEqual(a.rgba)
-  }, 120_000)
+  }, 30_000)
 
   it('shows the pit as bare ground, redder than it is green', () => {
     const [r, g] = pixel(1130, 1030)

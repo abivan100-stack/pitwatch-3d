@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { hash2 } from '../data/rng'
 
 /*
- * Close-range detail for the terrain surface. The aerial image is about 1 m per pixel, so near the
+ * Close-range detail for the terrain surface. The aerial image is about 1.6 m per pixel, so near the
  * camera it blurs and the scene has nothing to replace it. This tile carries rock jointing (R),
  * a field the shader turns into gullies (G), fine grain for flat ground (B) and broad patches (A)
  * that decide where the walls are gullied and where they are sound. The surface shader samples it
@@ -104,8 +104,10 @@ function buildDetailTile(): DetailTile {
   // R, jointing: faceted blocks about 4 m and 2 m across, split by a network of darker fractures.
   const big = tileNoise(n, 8, 8, seed, false)
   const small = tileNoise(n, 4, 4, seed + 1, false)
-  const crack = tileNoise(n, 16, 16, seed + 2)
-  const crack2 = tileNoise(n, 8, 8, seed + 3)
+  // Faceted (plain bilinear) fields, so their mid-value lines run straight and kink like joint sets
+  // instead of curling like smooth noise.
+  const crack = tileNoise(n, 16, 16, seed + 2, false)
+  const crack2 = tileNoise(n, 8, 8, seed + 3, false)
   const joint = new Float32Array(n * n)
   for (let i = 0; i < joint.length; i++) {
     const lines = Math.max(
