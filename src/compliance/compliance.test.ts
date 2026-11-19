@@ -230,7 +230,9 @@ describe('synthetic scenario', async () => {
     const raw = (a: Float32Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
     expect(fnv(raw(baseline.elevations))).toBe('c81d61ee')
     expect(fnv(raw(current.elevations))).toBe('d61b3b0e')
-    expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('ef3f65e5')
+    // Re-pinned for #74, which changed only the explanation wording (whole-m³ volumes, no "About";
+    // R2's ± beside its depth). With explanations blanked the findings match the #79 pin's source.
+    expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('e85c4dde')
     // What did change: the aerial image (this was its hash before the pit was repainted).
     expect(fnv(current.orthophoto!.rgba)).not.toBe('8d9f4a92')
   })
