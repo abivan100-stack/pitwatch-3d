@@ -58,6 +58,12 @@ Newest first.
 - Known edge, not fixed: a press up to 4 px outside a badge that is released inside it does nothing (the terrain yields, and R3F gives the badge only clicks that started on it). This produces no wrong reading. The badge's transparent corners also count as the badge.
 - Checks: `npm run verify` passes (201 unit tests in 25 files). The full `npm run test:e2e` run passed 79 of 81 checks. `map-width` "follows the window across lg" and `terrain-resolution` timed out waiting for the page under three workers; both passed on a rerun with `--workers=1`, along with the new spec. The 3D map at 1440, 1100 and 800 px showed no horizontal overflow and no console errors. Reviewed by a separate Opus 5.5 session at high effort: no correctness finding; its suggested wall-under-the-badge guard is in the test.
 
+### 2026-11-19: Inspector verdict uses the same cell as its findings (#53)
+
+- The Inspector reads the engine's change classification and finding IDs from the same cell. The point change still shows the interpolated elevation difference and its propagated vertical uncertainty. The verdict names the cell centre and its threshold. A point outside the sampled grid shows no cell verdict or finding links.
+- Small-grid regressions cover the unchanged cell centre, a point 4 m off-centre with a −0.60 m interpolated change in an excavated cell, and a point half a cell outside a flagged edge. Both tests failed before the fix. The engine and survey fixtures are unchanged.
+- Verification passed with 202 unit tests, the existing snapshot of all five findings, and all 79 Playwright tests. On the dev server at 1440, 1100 and 800 px, an off-centre point in a flagged cell showed its finding and excavation verdict, and an off-grid point showed neither. No browser page errors were reported.
+
 ### 2026-11-19: read-only bug check of the whole repo, spec #52 and tickets #53–#62
 
 - `docs/bug-check-2026-11-19.md` records twelve findings and labels the evidence for each. Three were traced in code only: clicks on badges drawn through pit walls, exaggeration changes during camera flights, and terrain texture disposal. A probe reproduced the Inspector showing a finding alongside "No significant change."
