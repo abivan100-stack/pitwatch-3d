@@ -10,6 +10,8 @@ import { useTerrain } from '../state/terrain'
 import { buildMarks, toneOf } from './marks'
 import { leaseLine } from './overlayGeometry'
 import { BACKDROP_FALLBACK, LIGHT, OVERLAY, TONE_COLOR } from './palette'
+import { SHADOW_HALF, SUN_POSITION } from './sun'
+import { SurveyEdge } from './SurveyEdge'
 import { Terrain } from './Terrain'
 import { BASE_RL, toScene } from './terrainGeometry'
 
@@ -159,15 +161,15 @@ export default function HomeScene({ step, active }: { step: number; active: bool
       <fog attach="fog" args={[fog, 5200, 12000]} />
       <hemisphereLight args={[LIGHT.sky, LIGHT.ground, 0.95]} />
       <directionalLight
-        position={[-1700, 1400, -1100]}
+        position={[...SUN_POSITION]}
         color={LIGHT.sun}
         intensity={2.4}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-1500}
-        shadow-camera-right={1500}
-        shadow-camera-top={1500}
-        shadow-camera-bottom={-1500}
+        shadow-camera-left={-SHADOW_HALF}
+        shadow-camera-right={SHADOW_HALF}
+        shadow-camera-top={SHADOW_HALF}
+        shadow-camera-bottom={-SHADOW_HALF}
         shadow-camera-near={500}
         shadow-camera-far={6000}
         shadow-bias={-0.0004}
@@ -181,6 +183,7 @@ export default function HomeScene({ step, active }: { step: number; active: bool
         overlay={overlay}
         visible
       />
+      <SurveyEdge survey={current} ex={ex} />
       {step >= 4 && lease && <Line points={lease} color={OVERLAY.lease} lineWidth={2.5} />}
       {step >= 4 && findings.map((f) => <Pin key={f.id} f={f} survey={current} ex={ex} />)}
       <Orbit target={target} />

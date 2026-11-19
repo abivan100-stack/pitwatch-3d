@@ -1,6 +1,7 @@
+import type { ApronGrid } from '../data/apron'
 import type { GridSpec, Vec2 } from '../domain/types'
 import { extent } from '../geo/grid'
-import { rampAt, srgbToLinear } from './palette'
+import { APRON, hexToRgb, rampAt, srgbToLinear } from './palette'
 
 /*
  * Pure array builders for the terrain mesh, so they can be unit-tested without WebGL.
@@ -180,4 +181,38 @@ export function buildSkirtArrays(g: GridSpec, elevations: Float32Array) {
     }
   }
   return { positions, tops, index: Uint32Array.from(index) }
+}
+
+/**
+ * The ground around the block: the apron lattice as an upward-facing mesh with the block's cells
+ * left out, tinted from dry scrub in the low ground to paler soil on the rises. No uvs: the
+ * aerial image covers the surveyed block only. Same axes as the block, so the two share an edge.
+ */
+export function buildApronArrays(a: ApronGrid, heights: Float32Array) {
+  const g = a.grid
+  const { c0, c1, r0, r1 } = a.hole
+  const c = gridCentre(g)
+  const [low, high] = [hexToRgb(APRON.low), hexToRgb(APRON.high)]
+  const positions = new Float32Array(g.cols * g.rows * 3)
+  const colors = new Float32Array(g.cols * g.rows * 3)
+  for (let row = 0; row < g.rows; row++) {
+    for (let col = 0; col < g.cols; col++) {
+      const i = row * g.cols + col
+      const rl = heights[i]
+      positions[i * 3] = g.originXY.x + col * g.cellSize - c.x
+      positions[i * 3 + 1] = rl - BASE_RL
+      positions[i * 3 + 2] = -(g.originXY.y + row * g.cellSize - c.y)
+      const t = Math.min(1, Math.max(0, (rl - 410) / 50))
+      for (let k = 0; k < 3; k++) colors[i * 3 + k] = srgbToLinear(low[k] + (high[k] - low[k]) * t)
+    }
+  }
+  const index: number[] = []
+  for (let row = 0; row < g.rows - 1; row++) {
+    for (let col = 0; col < g.cols - 1; col++) {
+      if (col >= c0 && col < c1 && row >= r0 && row < r1) continue // the surveyed block
+      const v = row * g.cols + col
+      index.push(v, v + 1, v + g.cols, v + 1, v + g.cols + 1, v + g.cols)
+    }
+  }
+  return { positions, colors, index: Uint32Array.from(index) }
 }

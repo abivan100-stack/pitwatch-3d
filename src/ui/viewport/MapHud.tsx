@@ -141,7 +141,20 @@ function overlayRows(
   limits: NonNullable<ReturnType<typeof useTerrain.getState>['limits']>,
   onCurrent: boolean,
 ): KeyRow[] {
-  const rows: KeyRow[] = []
+  // The hairline round the surveyed grid is always drawn: it is where the real (simulated) survey
+  // ends and the decorative ground around it begins.
+  const rows: KeyRow[] = [
+    {
+      key: 'survey-edge',
+      swatch: (
+        <span
+          className="w-5"
+          style={{ height: 0, borderTop: `1.5px solid ${OVERLAY.surveyEdge}` }}
+        />
+      ),
+      label: 'Surveyed area (simulated)',
+    },
+  ]
   // White map lines sit on a dark chip so they stay visible on the pale panel.
   const swatch = (inner: React.CSSProperties) => (
     <span
