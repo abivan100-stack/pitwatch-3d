@@ -82,7 +82,7 @@ export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 
         <button
           type="button"
           className="shrink-0 self-start text-[12px] font-semibold text-accent underline underline-offset-2"
-          onClick={() => selectFinding(f.id, f.centroid)}
+          onClick={() => selectFinding(f.id)}
         >
           Show on map
         </button>

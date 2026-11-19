@@ -58,7 +58,7 @@ export function MapPage() {
       if (nextId === selectedFinding && (!finding || focus)) return
       applyingHash = true
       try {
-        selectFinding(nextId, finding?.centroid)
+        selectFinding(nextId)
       } finally {
         applyingHash = false
       }

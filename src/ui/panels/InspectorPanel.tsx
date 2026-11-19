@@ -135,19 +135,16 @@ function Point() {
           <dd className="flex min-w-0 flex-1 flex-wrap gap-1.5 text-[13px] text-ink">
             {r.findingIds.length === 0
               ? 'None here'
-              : r.findingIds.map((id) => {
-                  const f = findings.find((x) => x.id === id)!
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className="font-mono text-[12px] text-accent underline underline-offset-2"
-                      onClick={() => selectFinding(id, f.centroid)}
-                    >
-                      {id}
-                    </button>
-                  )
-                })}
+              : r.findingIds.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="font-mono text-[12px] text-accent underline underline-offset-2"
+                    onClick={() => selectFinding(id)}
+                  >
+                    {id}
+                  </button>
+                ))}
           </dd>
         </div>
       </dl>

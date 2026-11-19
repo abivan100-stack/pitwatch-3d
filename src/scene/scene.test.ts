@@ -1,9 +1,25 @@
 import * as THREE from 'three'
-import { describe, expect, it } from 'vitest'
-import type { GridSpec } from '../domain/types'
-import { drawnOnTop } from './overlayGeometry'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { evaluate } from '../compliance/engine'
+import { largestPitZone } from '../compliance/zone'
+import { SyntheticTerrainProvider } from '../data/SyntheticTerrainProvider'
+import type { ComplianceFinding, GridSpec, TerrainSurvey } from '../domain/types'
+import { cellAt, centerOfIndex, sampleBilinear } from '../geo/grid'
+import { centroidOf } from '../geo/polygon'
+import {
+  drawnOnTop,
+  FINDING_AIM_LIFT,
+  findingAnchor,
+  findingView,
+  PIN_HEIGHT,
+} from './overlayGeometry'
 import { hexToRgb, RAMP, rampAt, rampGradient, srgbToLinear } from './palette'
 import {
+  easeInOutCubic,
+  easeOutCubic,
+  FLIGHT_MAX_MS,
+  FLIGHT_MIN_MS,
+  flightMs,
   focusPose,
   headingOf,
   metresPerPixel,
@@ -196,5 +212,137 @@ describe('rescalePose', () => {
     for (const e of [0, 0.3, 0.5, 1]) {
       close(rescalePose(mid(from, to, e), 2), mid(rescalePose(from, 2), rescalePose(to, 2), e))
     }
+  })
+})
+
+describe('rescalePose with a lifted aim', () => {
+  it('keeps a finding view aimed half way up the pin at any exaggeration', () => {
+    const at = (ex: number) => focusPose([300, (310 - BASE_RL) * ex + FINDING_AIM_LIFT, -900])
+    const close = (a: Pose, b: Pose) => {
+      for (const k of ['position', 'target'] as const)
+        a[k].forEach((v, i) => expect(v).toBeCloseTo(b[k][i], 9))
+    }
+    close(rescalePose(at(1.5), 2, FINDING_AIM_LIFT), at(3))
+    close(rescalePose(at(3), 1 / 3, FINDING_AIM_LIFT), at(1))
+  })
+})
+
+describe('finding flights', () => {
+  let current: TerrainSurvey
+  let findings: ComplianceFinding[]
+  let pit: { x: number; y: number }
+  let floorRL: number
+
+  beforeAll(async () => {
+    const p = new SyntheticTerrainProvider()
+    const [baseline, cur, limits] = await Promise.all([
+      p.getSurvey('baseline'),
+      p.getSurvey('current'),
+      p.getLimits(),
+    ])
+    current = cur
+    findings = evaluate(baseline, current, limits).findings
+    const zone = largestPitZone(limits.pitZones)!
+    const [x, , z] = toScene(current.grid, centroidOf(zone.polygon), zone.approvedFloorElevation)
+    pit = { x, y: z }
+    floorRL = zone.approvedFloorElevation
+  }, 60_000)
+
+  const cellOf = (p: { x: number; y: number }) => {
+    const rc = cellAt(current.grid, p)!
+    return rc.row * current.grid.cols + rc.col
+  }
+
+  it('aims each of the five findings at one of its own cells, nearest its centroid', () => {
+    const anchors = Object.fromEntries(
+      findings.map((f) => [f.id, findingAnchor(current.grid, f)] as const),
+    )
+    // Measured: every centroid lies in its own finding, and its anchor is under 2 m from it.
+    expect(anchors).toEqual({
+      'R1-1': { x: 1404, y: 1032 },
+      'R2-1': { x: 880, y: 1020 },
+      'R1-2': { x: 1372, y: 1028 },
+      'R3-1': { x: 1520, y: 480 },
+      'R1-3': { x: 956, y: 1504 },
+    })
+    for (const f of findings) {
+      const a = anchors[f.id]
+      expect(f.cells).toContain(cellOf(a))
+      const d = (p: { x: number; y: number }) => Math.hypot(p.x - f.centroid.x, p.y - f.centroid.y)
+      for (const i of f.cells) expect(d(a)).toBeLessThanOrEqual(d(centerOfIndex(current.grid, i)))
+      // The reported figures are not moved by the anchor: the centroid is still the plain mean.
+      const mean = f.cells.reduce(
+        (m, i) => {
+          const c = centerOfIndex(current.grid, i)
+          return { x: m.x + c.x / f.cells.length, y: m.y + c.y / f.cells.length }
+        },
+        { x: 0, y: 0 },
+      )
+      expect(f.centroid.x).toBeCloseTo(mean.x, 6)
+      expect(f.centroid.y).toBeCloseTo(mean.y, 6)
+      expect(f.areaM2).toBe(f.cells.length * current.grid.cellSize ** 2)
+    }
+  })
+
+  it('picks a cell of the finding when its mean falls outside it', () => {
+    // The four corners of a 3 × 3 grid: their mean is the centre cell, which is not one of them.
+    const grid: GridSpec = { cols: 3, rows: 3, cellSize: 4, originXY: { x: 0, y: 0 } }
+    const ring = { cells: [0, 2, 6, 8], centroid: { x: 4, y: 4 } }
+    const a = findingAnchor(grid, ring)
+    const rc = cellAt(grid, a)!
+    expect(ring.cells).toContain(rc.row * grid.cols + rc.col)
+    expect(ring.cells).not.toContain(4) // the centre cell, where the mean is
+  })
+
+  it('aims half way up the pin above the anchor, from the usual 560 m', () => {
+    for (const ex of [1, 1.5, 3]) {
+      for (const f of findings) {
+        const a = findingAnchor(current.grid, f)
+        const z = sampleBilinear(current.grid, current.elevations, a)!
+        const [x, , sz] = toScene(current.grid, a, z)
+        const view = findingView(current, f, ex)
+        expect(view.target[0]).toBeCloseTo(x, 9)
+        expect(view.target[2]).toBeCloseTo(sz, 9)
+        expect(view.target[1]).toBeCloseTo((z - BASE_RL) * ex + PIN_HEIGHT / 2, 9)
+        expect(view).toEqual(focusPose(view.target))
+      }
+    }
+  })
+
+  it('lands within 900 ms from anywhere, and within 700 ms between neighbouring findings', () => {
+    const ex = 1.5
+    const floorY = (floorRL - BASE_RL) * ex
+    const views = findings.map((f) => findingView(current, f, ex))
+    const starts = [
+      ...views,
+      ...(['oblique', 'top', 'pit', 'intro'] as const).map((k) => presetPose(k, pit, floorY)),
+    ]
+    for (const to of views) {
+      for (const from of starts) {
+        const ms = flightMs(from, to)
+        expect(ms).toBeGreaterThanOrEqual(FLIGHT_MIN_MS)
+        expect(ms).toBeLessThanOrEqual(FLIGHT_MAX_MS)
+      }
+    }
+    expect(FLIGHT_MAX_MS).toBeLessThan(1000)
+    const byId = (id: string) => views[findings.findIndex((f) => f.id === id)]
+    // R1-1 and R1-2 are the same pushback, 34 m apart.
+    expect(flightMs(byId('R1-1'), byId('R1-2'))).toBeLessThanOrEqual(700)
+    expect(flightMs(byId('R1-2'), byId('R1-1'))).toBeLessThanOrEqual(700)
+    // A longer move takes longer, up to the cap.
+    expect(flightMs(byId('R1-3'), byId('R3-1'))).toBeGreaterThan(
+      flightMs(byId('R1-1'), byId('R1-2')),
+    )
+    expect(flightMs(presetPose('intro', pit, floorY), byId('R3-1'))).toBe(FLIGHT_MAX_MS)
+  })
+
+  it('covers at least 15% of the way in the first 100 ms of any finding flight', () => {
+    for (let ms = FLIGHT_MIN_MS; ms <= FLIGHT_MAX_MS; ms += 10) {
+      expect(easeOutCubic(100 / ms)).toBeGreaterThanOrEqual(0.15)
+    }
+    // The old flight: 1.3 s of ease-in-out moved the camera 0.2% of the way in its first 100 ms.
+    expect(easeInOutCubic(100 / 1300)).toBeLessThan(0.01)
+    expect(easeOutCubic(0)).toBe(0)
+    expect(easeOutCubic(1)).toBe(1)
   })
 })
