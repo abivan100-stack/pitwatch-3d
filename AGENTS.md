@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: stale coordinate announcements clear when the selection changes (#57)
+
+- The coordinate form resets its fields and live status together when a terrain pick, tool switch, or Clear supersedes its current selection. Successful typed submissions still announce their coordinates, including off-grid readings.
+- The browser regression failed before the fix because a real terrain click changed the fields but left the off-grid announcement. It also covers switching tools in both directions and clearing the point.
+- Local verification passed 202 unit tests and the 81-case browser suite before #56 merged. The existing terrain retry test passed on retry. After updating to the merged main branch, all nine keyboard tests passed. The Inspector was checked at 1440, 1100 and 800 px.
+
 ### 2026-11-19: only what is drawn can be clicked on the 3D map (ticket #55)
 
 - **Hidden terrain.** `Terrain` passes no `onClick` while it is not shown. R3F keeps an object in its click list only while it has a handler, and neither R3F nor three skips invisible objects, so the hidden mesh used to read and measure ground that was not drawn and also blocked clicks to the badges. Switching Terrain back on restores the handler.

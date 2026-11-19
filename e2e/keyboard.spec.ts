@@ -1,10 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import type { TerrainSurvey } from '../src/domain/types.js'
 
-// Choosing a point used to need a mouse: the 3D canvas only emits a pick on a pointer click.
-// These tests drive the new Inspector coordinate form with the keyboard only. `locator.focus()`
-// is a programmatic focus and `page.keyboard` dispatches key events, so neither is a pointer
-// event; the flow a keyboard user sees is exactly what is exercised here.
+// Most cases drive the Inspector coordinate form with the keyboard. The announcement regression
+// also clicks the terrain to verify that a pointer pick supersedes the form's last submission.
 
 test.use({ reducedMotion: 'reduce' })
 
@@ -179,6 +177,57 @@ test('a coordinate outside the grid is applied and reported honestly', async ({ 
   await expect(
     page.getByText('No reading here: the point is outside the survey grid.'),
   ).toBeVisible()
+})
+
+test('coordinate announcements clear on a terrain pick, tool switch, and Clear', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openMonitor(page)
+  await openInspector(page)
+  const status = page.locator('form').getByRole('status')
+  const east = page.getByLabel('East', { exact: true })
+  const north = page.getByLabel('North', { exact: true })
+  const measure = page.getByRole('button', { name: 'Measure', exact: true })
+
+  const readOutside = async () => {
+    await enterCoordinate(page, '5000', '5000')
+    await expect(status).toContainText('E 5,000 m, N 5,000 m is outside the survey grid')
+  }
+
+  await readOutside()
+  await page.getByRole('switch', { name: 'Findings', exact: true }).click()
+  await page.getByRole('button', { name: 'Top', exact: true }).click()
+  const stage = await page.locator('.stage').boundingBox()
+  if (!stage) throw new Error('The map stage is missing')
+  const x = stage.x + stage.width * 0.45
+  const y = stage.y + stage.height * 0.38
+  await page.mouse.move(x, y)
+  await page.mouse.click(x, y)
+  await expect(east).not.toHaveValue('5000')
+  await expect(north).not.toHaveValue('5000')
+  await expect(
+    page.getByText('No reading here: the point is outside the survey grid.'),
+  ).toHaveCount(0)
+  await expect(status).toBeEmpty()
+
+  await readOutside()
+  await measure.focus()
+  await page.keyboard.press('m')
+  await expect(measure).toHaveAttribute('aria-pressed', 'true')
+  await expect(east).toHaveValue('')
+  await expect(north).toHaveValue('')
+  await expect(status).toBeEmpty()
+
+  await page.keyboard.press('m')
+  await expect(measure).toHaveAttribute('aria-pressed', 'false')
+  await expect(east).toHaveValue('5000')
+  await expect(status).toBeEmpty()
+  await readOutside()
+  await page.getByRole('button', { name: 'Clear point', exact: true }).click()
+  await expect(east).toHaveValue('')
+  await expect(north).toHaveValue('')
+  await expect(status).toBeEmpty()
 })
 
 test('a very long typed measurement is refused instead of profiled', async ({ page }) => {

@@ -38,12 +38,12 @@ export function CoordinateEntry() {
 
   const [draft, setDraft] = useState<Draft>(() => draftOf(pick))
   const [status, setStatus] = useState('')
-  // Keep the fields in step with a new pick (map click, measure step, clear). The previous pick
-  // is state, so the adjustment happens once per change and no subscription effect is needed.
-  const [seen, setSeen] = useState<Vec2 | null>(pick)
-  if (seen !== pick) {
-    setSeen(pick)
+  // A pick or tool change outside this form supersedes both the draft and its announcement.
+  const [seen, setSeen] = useState({ pick, tool })
+  if (seen.pick !== pick || seen.tool !== tool) {
+    setSeen({ pick, tool })
     setDraft(draftOf(pick))
+    setStatus('')
   }
 
   const eastId = useId()
@@ -59,8 +59,11 @@ export function CoordinateEntry() {
       return
     }
 
-    // Same action a map click calls, so the tab, tool and measure cycling are not reimplemented.
-    pickPoint({ x, y })
+    const point = { x, y }
+    // Recognize the exact object stored by pickPoint so this submission keeps its announcement.
+    setSeen({ pick: point, tool })
+    setDraft(draftOf(point))
+    pickPoint(point)
 
     if (!grid) {
       setStatus(`Read E ${coord(x)} m, N ${coord(y)} m.`)
