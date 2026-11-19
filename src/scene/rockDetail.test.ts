@@ -24,14 +24,11 @@ describe('close-range rock detail', () => {
 
   it('maps the tile to the same world size in every lookup the shader makes', () => {
     const source = ROCK_DETAIL_PARS + ROCK_DETAIL_COLOR
-    const lookups = source.match(/texture(?:2D|Grad)\(uDetail,[^;]+;/g) ?? []
-    // One lookup on the vertical wall plane (called for two directions), one from above.
-    expect(lookups).toHaveLength(2)
-    const scale = `/ ${DETAIL_TILE_M.toFixed(1)}`
-    // The wall lookup scales its coordinate and both gradients; the one from above its coordinate.
-    const [wall = '', above = ''] = lookups
-    expect(wall.split(scale)).toHaveLength(4)
-    expect(above.split(scale)).toHaveLength(2)
+    const reads = source.match(/texture\w*\(uDetail,[^;]+;/g) ?? []
+    // Two reads in all: from above on flat ground or along the even wall direction on a face, and
+    // along the odd wall direction. Both take metres and divide by the tile's size, nothing else.
+    expect(reads).toHaveLength(2)
+    for (const read of reads) expect(read.endsWith(`/ ${DETAIL_TILE_M.toFixed(1)});`)).toBe(true)
   })
 
   it('does not repeat within 200 m: the tile has no period shorter than itself', () => {

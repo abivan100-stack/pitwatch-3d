@@ -143,12 +143,16 @@ let cached: DetailTile | null = null
 /** The detail tile, shared by every terrain on the page. */
 export const detailTile = (): DetailTile => (cached ??= buildDetailTile())
 
-/** GPU texture for the tile: repeats, mipmapped (so detail fades out with distance), linear data. */
+/**
+ * GPU texture for the tile: repeats, mipmapped (so detail fades out with distance), linear data.
+ * One mip level per sample, not a blend of two: half the texel reads, and a step between levels
+ * of noise does not show.
+ */
 export function detailTexture(): THREE.DataTexture {
   const tile = detailTile()
   const t = new THREE.DataTexture(tile.data, tile.size, tile.size, THREE.RGBAFormat)
   t.wrapS = t.wrapT = THREE.RepeatWrapping
-  t.minFilter = THREE.LinearMipmapLinearFilter
+  t.minFilter = THREE.LinearMipmapNearestFilter
   t.magFilter = THREE.LinearFilter
   t.generateMipmaps = true
   t.needsUpdate = true
@@ -157,7 +161,7 @@ export function detailTexture(): THREE.DataTexture {
 
 const TILE = DETAIL_TILE_M.toFixed(1)
 
-/** Fragment-shader declarations for the detail: uniforms, varyings and the wall sampler. */
+/** Fragment-shader declarations for the detail: uniforms, varyings and the wall directions. */
 export const ROCK_DETAIL_PARS = `
 uniform sampler2D uDetail;
 uniform float uGullyMean;
@@ -165,15 +169,10 @@ uniform vec3 uStain;
 // Plan metres east and north, and height above the scene base, unexaggerated.
 varying vec3 vRockP;
 varying vec3 vSlopeN;
-// The tile on a vertical plane along one of six fixed wall directions (30° apart); k wraps, so
-// direction 6 is direction 0. u runs along the wall, v up it.
-vec4 rockWallSample(vec3 p, vec3 dpx, vec3 dpy, float k) {
+// Unit vector along one of six fixed wall directions, 30° apart; k wraps, so direction 6 is 0.
+vec2 rockAxis(float k) {
   float a = mod(k, 6.0) * (PI / 6.0);
-  vec2 e = vec2(cos(a), sin(a));
-  // Explicit gradients: the direction switches between neighbouring pixels, and implicit
-  // derivatives across that switch would pick a blurred mip level and draw a seam.
-  return textureGrad(uDetail, vec2(dot(p.xy, e), p.z) / ${TILE},
-    vec2(dot(dpx.xy, e), dpx.z) / ${TILE}, vec2(dot(dpy.xy, e), dpy.z) / ${TILE});
+  return vec2(cos(a), sin(a));
 }
 `
 
@@ -182,6 +181,11 @@ vec4 rockWallSample(vec3 p, vec3 dpx, vec3 dpy, float k) {
  * and gullies on steep faces, grain on flat ground. Colour changes keep their mean, so the
  * overall tone does not shift as the camera zooms. Leaves `rockHeight` (metres, zero mean) for
  * the normal perturbation.
+ *
+ * Two texture reads in all, and no branches: a software renderer runs both sides of a branch, so
+ * the number of reads in the code is what a frame pays for. Both are plain reads with screen
+ * derivatives; explicit gradients (textureGrad) cost the software renderer about a fifth of the
+ * whole frame at the Pit preset, plain reads about a twentieth.
  */
 export const ROCK_DETAIL_COLOR = `
   vec3 rockN = normalize(vSlopeN);
@@ -189,30 +193,46 @@ export const ROCK_DETAIL_COLOR = `
   float rockWall = 1.0 - smoothstep(0.76, 0.9, rockN.y);
   vec3 rockDpx = dFdx(vRockP);
   vec3 rockDpy = dFdy(vRockP);
-  vec4 rock = texture2D(uDetail, vRockP.xy / ${TILE});
-  // The wall runs across its downslope direction; blend the two nearest fixed directions.
-  vec2 rockAlong = vec2(-rockN.z, -rockN.x);
-  float rockAlongLen = length(rockAlong);
-  rockAlong = rockAlongLen > 1e-4 ? rockAlong / rockAlongLen : vec2(1.0, 0.0);
-  float rockA = mod(atan(rockAlong.y, rockAlong.x), PI) / (PI / 6.0);
-  float rockK = floor(rockA);
-  float rockT = rockA - rockK;
-  vec2 rockRG = mix(rockWallSample(vRockP, rockDpx, rockDpy, rockK).rg,
-    rockWallSample(vRockP, rockDpx, rockDpy, rockK + 1.0).rg, rockT);
-  // Blending two samples lowers their contrast; restore it so the detail does not fade between directions.
-  rockRG = 0.5 + (rockRG - 0.5) * inversesqrt(rockT * rockT + (1.0 - rockT) * (1.0 - rockT));
-  // Texels per pixel on the wall: once a gully is narrower than that it cannot be drawn, so it
-  // fades to its average.
+  // Texels per pixel. Gullies narrower than a few texels cannot be drawn, so they fade to their
+  // average; beyond 6 (3 m a pixel) the tile's mip levels are flat noise, so the detail fades out.
   float rockFoot = max(length(rockDpx), length(rockDpy)) * ${(DETAIL_SIZE / DETAIL_TILE_M).toFixed(4)};
-  float rockGullyC = (1.0 - smoothstep(0.0, ${GULLY_WIDTH.toFixed(4)}, abs(rockRG.g - 0.5)) - uGullyMean)
-    * (1.0 - smoothstep(1.5, 4.0, rockFoot)) * rockWall * smoothstep(0.3, 0.75, rock.a);
-  float rockJoint = mix(rock.r, rockRG.r, rockWall);
+  float rockNear = 1.0 - smoothstep(3.0, 6.0, rockFoot);
+  // A face is read on vertical planes along it (u along the wall, v up it), so jointing stays
+  // blocky and gullies, which run down the tile's v axis, run down the fall line. The wall runs
+  // across its downslope direction, between two of six fixed directions 30° apart: one read
+  // takes the nearest even direction, the other the nearest odd one, blended by distance. Each
+  // read changes direction only where its weight is zero, so neither leaves a seam and the
+  // ordinary screen derivatives pick its mip level.
+  vec2 rockAlong = vec2(-rockN.z, -rockN.x);
+  rockAlong = length(rockAlong) > 1e-4 ? rockAlong : vec2(1.0, 0.0);
+  float rockA = mod(atan(rockAlong.y, rockAlong.x), PI) / (PI / 6.0);
+  float rockEven = 2.0 * floor(rockA * 0.5 + 0.5);
+  float rockOdd = 2.0 * floor(rockA * 0.5) + 1.0;
+  float rockT = abs(rockA - rockEven);
+  vec2 rockE0 = rockAxis(rockEven);
+  vec2 rockE1 = rockAxis(rockOdd);
+  // The first read is the ground from above on flat ground and the even direction on a face. Both
+  // kinds of detail fade to nothing where the slope crosses between them (along the crests and
+  // toes), so that switch leaves no seam either.
+  vec2 rockU0 = rockWall > 0.5 ? vec2(dot(vRockP.xy, rockE0), vRockP.z) : vRockP.xy;
+  vec4 rockS0 = texture(uDetail, rockU0 / ${TILE});
+  vec4 rockS1 = texture(uDetail, vec2(dot(vRockP.xy, rockE1), vRockP.z) / ${TILE});
+  // Blending two directions lowers the contrast; restore it so the detail does not fade between them.
+  vec3 rockW = 0.5 + (mix(rockS0.rga, rockS1.rga, rockT) - 0.5)
+    * inversesqrt(rockT * rockT + (1.0 - rockT) * (1.0 - rockT));
+  float rockFaceW = smoothstep(0.5, 0.65, rockWall) * rockNear;
+  float rockFlatW = (1.0 - smoothstep(0.35, 0.5, rockWall)) * rockNear;
+  float rockGullyC = (1.0 - smoothstep(0.0, ${GULLY_WIDTH.toFixed(4)}, abs(rockW.g - 0.5)) - uGullyMean)
+    * (1.0 - smoothstep(1.5, 4.0, rockFoot)) * rockFaceW * smoothstep(0.3, 0.75, rockW.b);
+  float rockJointC = (rockW.r - 0.5) * rockFaceW;
+  float rockGrainC = (rockS0.b - 0.5) * rockFlatW;
   // Over the tint the detail stays, at the same reduced strength as the photo's own detail.
   float rockStrength = mix(1.0, 0.35, uTint);
-  diffuseColor.rgb *= 1.0 + rockStrength * ((rockJoint - 0.5) * 0.5 * rockWall + (rock.b - 0.5) * 0.16 * (1.0 - rockWall));
+  diffuseColor.rgb *= 1.0 + rockStrength * (0.5 * rockJointC + 0.16 * rockGrainC);
   // Gullies are stained darker; the ribs between them read as washed rock.
   diffuseColor.rgb *= mix(vec3(1.0), uStain, clamp(rockGullyC * 0.9 * rockStrength, -0.6, 1.0));
-  float rockHeight = (rockJoint - 0.5) * 0.5 * rockWall - 0.6 * rockGullyC + (rock.b - 0.5) * 0.08 * (1.0 - rockWall);
+  // Relief on the walls only: flat ground keeps its grain as colour.
+  float rockHeight = 0.5 * rockJointC - 0.6 * rockGullyC;
 `
 
 /**
