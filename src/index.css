@@ -2141,23 +2141,6 @@ body {
     border-block: 1px solid var(--color-line);
   }
 
-  /* Every section opens the same way: the heading on the left, one plain paragraph on the right. */
-  .landing-head {
-    display: grid;
-    gap: 14px 56px;
-  }
-  .landing-head p {
-    max-width: 34rem;
-    font-size: 16px;
-    line-height: 1.75;
-    color: var(--color-ink-dim);
-  }
-  @media (width >= 64rem) {
-    .landing-head {
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-      align-items: end;
-    }
-  }
   .section-big,
   .close-title {
     text-wrap: balance;
@@ -2170,38 +2153,282 @@ body {
     color: var(--color-ink);
   }
 
-  .step-list {
-    display: grid;
-    gap: 36px 40px;
+  /* The worked example: one finding followed through survey, change and permit. */
+  .case-lede {
+    max-width: 38rem;
+    margin-top: 16px;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--color-ink-dim);
+  }
+  .case-wait {
     margin-top: 40px;
+    font-size: 15px;
+    color: var(--color-ink-faint);
   }
-  @media (width >= 48rem) {
-    .step-list {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin-top: 52px;
-    }
-  }
-  .step {
-    display: flex;
-    flex-direction: column;
-    padding-top: 18px;
+  .case {
+    margin-top: 36px;
     border-top: 2px solid var(--color-ink);
   }
-  /* Links and results sit at the foot of each column, so a longer paragraph never staggers them. */
-  .step > p {
-    margin-bottom: 18px;
+  .case-top {
+    display: grid;
+    gap: 32px 56px;
+    padding-block: 28px;
+    border-bottom: 1px solid var(--color-line-strong);
   }
-  .step > .link-arrow {
-    align-self: flex-start;
-    margin-top: auto;
+  @media (width >= 64rem) {
+    .case-top {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    }
   }
-  .step-n {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 44px;
+  .case-step {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-family: var(--font-sans);
+    font-stretch: 72%;
+    font-size: 22px;
     font-weight: 700;
-    line-height: 1;
-    color: var(--color-oxide);
+    line-height: 1.15;
+    color: var(--color-ink);
+  }
+  .case-step > span {
+    font-family: var(--font-mono);
+    font-stretch: 100%;
+    font-size: 13px;
+    color: var(--color-ink-faint);
+  }
+  .case-text {
+    max-width: 36rem;
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--color-ink-dim);
+  }
+  .case-heights {
+    margin-top: 16px;
+    border-top: 1px solid var(--color-line-strong);
+  }
+  .case-heights > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 16px;
+    padding-block: 10px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .case-heights dt {
+    font-size: 13.5px;
+    color: var(--color-ink-dim);
+  }
+  .case-heights dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .case-heights .prov {
+    font-size: 13px;
+  }
+  .case-heights dd b {
+    font-weight: 500;
+    color: var(--color-ink-dim);
+  }
+  .case-permit {
+    display: grid;
+    gap: 20px 56px;
+    padding-block: 28px;
+    border-bottom: 1px solid var(--color-line-strong);
+  }
+  @media (width >= 64rem) {
+    .case-permit {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      align-items: start;
+    }
+  }
+  .case-plot {
+    position: relative;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-panel);
+  }
+  .case-plot svg path,
+  .case-plot svg line {
+    vector-effect: non-scaling-stroke;
+  }
+  .case-outside {
+    fill: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  }
+  .case-cut {
+    fill: color-mix(in srgb, var(--color-change-cut) 24%, transparent);
+    stroke: none;
+  }
+  .case-base {
+    fill: none;
+    stroke: var(--color-ink-faint);
+    stroke-width: 1.4;
+    stroke-dasharray: 4 3;
+  }
+  .case-now {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+  .case-edge {
+    stroke: var(--color-ink);
+    stroke-width: 1.5;
+  }
+  .case-cellline {
+    stroke: var(--color-ink-dim);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+  }
+  .case-tag,
+  .case-y {
+    position: absolute;
+    padding-inline: 4px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 20px;
+    white-space: nowrap;
+    color: var(--color-ink);
+    background: color-mix(in srgb, var(--color-panel) 86%, transparent);
+  }
+  .case-tag {
+    top: 4px;
+    translate: 4px 0;
+  }
+  .case-tag-cell {
+    top: auto;
+    bottom: 4px;
+    translate: -100% 0;
+    margin-left: -4px;
+  }
+  .case-y {
+    left: 4px;
+    color: var(--color-ink-faint);
+  }
+  .case-y-hi {
+    top: 28px;
+  }
+  .case-y-lo {
+    bottom: 28px;
+  }
+  .case-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-ink-dim);
+  }
+  .case-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .case-key {
+    display: inline-block;
+    width: 18px;
+    height: 0;
+    border-top: 2px solid var(--color-accent);
+  }
+  .case-key-base {
+    border-top: 2px dashed var(--color-ink-faint);
+  }
+  .case-key-cut {
+    height: 10px;
+    border: 0;
+    background: color-mix(in srgb, var(--color-change-cut) 24%, transparent);
+  }
+  .case-verdict {
+    display: grid;
+    gap: 20px 40px;
+    align-items: center;
+    padding-block: 28px;
+    border-bottom: 2px solid var(--color-ink);
+  }
+  .case-verdict[data-tone='violation'] {
+    --tone: var(--color-violation);
+  }
+  .case-verdict[data-tone='critical'] {
+    --tone: var(--color-critical);
+  }
+  .case-verdict[data-tone='warning'] {
+    --tone: var(--color-warn);
+  }
+  .case-verdict-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    max-width: 34rem;
+  }
+  .case-verdict > .btn {
+    justify-self: start;
+  }
+  @media (width >= 64rem) {
+    .case-verdict {
+      grid-template-columns: minmax(0, 1.2fr) auto auto;
+    }
+  }
+  .case-figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 32px;
+  }
+  .case-figures dt {
+    font-size: 13px;
+    color: var(--color-ink-faint);
+  }
+  .case-figures dd {
+    font-family: var(--font-sans);
+    font-stretch: 72%;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-ink);
+  }
+
+  /* The three rules as a compact ledger: id, rule, what the engine found. */
+  .ledger-title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-ink);
+  }
+  .ledger {
+    margin-top: 20px;
+    border-top: 2px solid var(--color-ink);
+  }
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 4px 12px;
+    align-items: center;
+    padding-block: 12px;
+    border-bottom: 1px solid var(--color-line-strong);
+  }
+  .ledger-row > .rule-result-line {
+    grid-column: 2;
+  }
+  @media (width >= 40rem) {
+    .ledger-row {
+      grid-template-columns: 2.5rem minmax(0, 1fr) minmax(12rem, 16rem);
+    }
+    .ledger-row > .rule-result-line {
+      grid-column: auto;
+    }
+  }
+  .ledger-id {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink-faint);
   }
   /* The rules read as a ledger: id, what the rule says, what the engine found. */
   .rule-rows {

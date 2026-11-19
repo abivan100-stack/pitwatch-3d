@@ -11,7 +11,13 @@ import {
 } from './grid'
 import { latLonToLocal, localToLatLon } from './latlon'
 import { gradeSigma, measure, measureOnSurface, slopeDistanceSigma } from './measure'
-import { distanceToBoundary, insetSegments, pointInPolygon, polygonArea } from './polygon'
+import {
+  distanceToBoundary,
+  insetSegments,
+  nearestOnBoundary,
+  pointInPolygon,
+  polygonArea,
+} from './polygon'
 
 const square: Polygon = [
   { x: 0, y: 0 },
@@ -49,6 +55,12 @@ describe('polygon', () => {
   it('measures distance to the outline from inside and outside', () => {
     expect(distanceToBoundary({ x: 5, y: 2 }, square)).toBe(2)
     expect(distanceToBoundary({ x: 13, y: 14 }, square)).toBe(5)
+  })
+
+  it('finds the nearest point on the outline, on an edge or at a corner', () => {
+    expect(nearestOnBoundary({ x: 5, y: 2 }, square)).toEqual({ x: 5, y: 0 })
+    expect(nearestOnBoundary({ x: 14, y: 5 }, square)).toEqual({ x: 10, y: 5 })
+    expect(nearestOnBoundary({ x: 13, y: 14 }, square)).toEqual({ x: 10, y: 10 })
   })
 })
 
