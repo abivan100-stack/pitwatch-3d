@@ -56,6 +56,19 @@ Newest first.
 - Tests: new `e2e/terrain-textures.spec.ts` counts textures per WebGL context by wrapping `createTexture`, `deleteTexture`, `bindTexture` and the upload calls. R3F releases a canvas's context on unmount, which frees GPU memory without per-texture deletes, so the test asserts per context. Over three map visits it checks that both aerial-image textures (at least 64 px wide, filled from a pixel array) were deleted before each map context went, and that every visit holds the same number of live textures (14 at the 3D map). three.js's 1×1 placeholder textures last for the whole context and are excluded by size. With the two new texture effects removed, the check fails with 2 aerial textures left undeleted. It also passes on the old shared cleanup, which disposed on unmount too, so it guards unmount disposal, not the morph-only case.
 - Checks: `npm run verify` passes (207 unit tests in 25 files). As agreed, testing was kept short and the full browser run was not repeated. The new spec plus `terrain-picking`, `canvas`, `landing-terrain`, `retry` and `home` pass (13 checks).
 
+### 2026-11-19: shared links stay in sync with the selected finding (#58)
+
+- Overview and Findings controls open the map at the selected finding's address. A map selection replaces the current history entry. Back and Forward restore the finding from the address, or clear the selection when the address has no valid finding.
+- The hash parser accepts the extra literal question mark in the reported link and preserves encoded query values. Copy link uses the same address format as navigation.
+- The parser regression and both browser history regressions failed before the fix.
+- Local verification passed 207 unit tests. The full browser run passed 86 checks and identified an old dashboard assertion that a plain map address would keep the previous selection. The updated regression passed and verifies that Overview retains the finding highlight and the unlinked map resets to the default camera framing. Browser checks passed at 1440, 1100 and 800 px.
+
+### 2026-11-19: stale coordinate announcements clear when the selection changes (#57)
+
+- The coordinate form resets its fields and live status together when a terrain pick, tool switch, or Clear supersedes its current selection. Successful typed submissions still announce their coordinates, including off-grid readings.
+- The browser regression failed before the fix because a real terrain click changed the fields but left the off-grid announcement. It also covers switching tools in both directions and clearing the point.
+- Local verification passed 202 unit tests and the 81-case browser suite before #56 merged. The existing terrain retry test passed on retry. After updating to the merged main branch, all nine keyboard tests passed. The Inspector was checked at 1440, 1100 and 800 px.
+
 ### 2026-11-19: only what is drawn can be clicked on the 3D map (ticket #55)
 
 - **Hidden terrain.** `Terrain` passes no `onClick` while it is not shown. R3F keeps an object in its click list only while it has a handler, and neither R3F nor three skips invisible objects, so the hidden mesh used to read and measure ground that was not drawn and also blocked clicks to the badges. Switching Terrain back on restores the handler.
