@@ -12,7 +12,7 @@ PitWatch supports risk-based inspection planning. It does not replace a site vis
 
 - **Landing page** (`#/`): the live 3D model (drag to turn it), with four buttons (Baseline, Current, Change, Findings) that switch what it shows: the baseline survey, the current survey, the measured change coloured on the terrain (rust cut, blue fill) and the findings with the lease line and a pin for each. No scrolling story; a short section on the three permit rules follows.
 - **Dashboard** with a sidebar (a slim icon rail on the 3D map, a drawer on phones):
-  - **Overview** (`#/overview`): the verdict, four headline figures, the result for each permit rule, the findings to look at first, and the survey, surface and lease facts. An interactive site plan draws the lease, permitted zones, changed cells and finding pins from the same data as the 3D map; select a pin with a pointer, touch, Enter or Space to open its finding on the map.
+  - **Overview** (`#/overview`): one answer line (counts and where the most serious finding is), a site plan with its key, the three most serious findings beside it, three headline figures, and a closed disclosure of the survey and permit details. An interactive site plan draws the lease, permitted zones, changed cells and finding outlines and badges from the same data as the 3D map; select an outline or badge with a pointer, touch, Enter or Space to open its finding on the map. The permit-rule results are on the Permit rules page.
   - **Findings** (`#/findings`): every finding as a ruled row with its figures, filters by status and rule, the explanation on demand, Show on map, **Copy link**, **Download CSV** (every row marked simulated), **Download PDF** (a plan of the lease with each finding, every page marked simulated) and a clean **Print report** view.
   - **Permit rules** (`#/rules`), **Uncertainty** (`#/uncertainty`: combined survey σ, the noise band and the threshold the rules report beyond, plus the resolution comparison) and **About the data** (`#/about`, with the keyboard shortcuts).
 - **3D map** (`#/monitor`):
@@ -34,7 +34,7 @@ The original M1-M8 milestones are complete, and so is every item on the [competi
 ## Try the inspection workflow
 
 1. Open the landing page and switch between **Baseline**, **Current**, **Change** and **Findings** to see how the two simulated surveys lead to the engine results.
-2. Open **Overview** to read the permit-rule results and locate the five findings on the site plan.
+2. Open **Overview** to read the answer line and locate the five findings on the site plan.
 3. Select a site-plan pin or choose **Show on map** on a finding. The map restores the evidence layers and frames the selected result.
 4. Open **Inspector** to read a terrain point, or enter its easting and northing. Switch to **Measure** and choose two points to compare distance, grade and the survey profiles.
 5. Visit **Permit rules**, **Uncertainty** and **About the data** to inspect the thresholds, uncertainty assumptions and source limitations behind the result.

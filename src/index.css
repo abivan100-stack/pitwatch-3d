@@ -1187,30 +1187,40 @@ body {
 
   .verdict {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px 32px;
-    padding: 22px 24px;
+    gap: 14px;
+    padding: 14px 20px;
     border-radius: 10px;
     border: 1px solid var(--color-line);
     border-left: 5px solid var(--tone);
     background: color-mix(in srgb, var(--tone) 6%, var(--color-panel));
   }
 
+  /* Plan and findings side by side from lg; the plan is the main block at about three fifths. */
+  .overview-grid {
+    display: grid;
+    gap: 32px 40px;
+  }
+  @media (width >= 64rem) {
+    .overview-grid {
+      grid-template-columns: minmax(0, min(60%, max(30rem, calc(100svh - 19.5rem)))) minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+
   .figures {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1px;
-    margin-top: 16px;
+    margin-top: 32px;
     overflow: hidden;
     border-radius: 10px;
     border: 1px solid var(--color-line);
     background: var(--color-line);
   }
-  @media (width >= 64rem) {
+  @media (width >= 48rem) {
     .figures {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   .figure {
@@ -1218,14 +1228,6 @@ body {
     background: var(--color-panel);
   }
 
-  .rule-result {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 16px;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--color-line);
-  }
   .attention {
     display: flex;
     flex-wrap: wrap;
@@ -1233,7 +1235,8 @@ body {
     padding: 16px 0;
     border-bottom: 1px solid var(--color-line);
   }
-  .attention[data-selected] {
+  .attention[data-selected],
+  .attention[data-active] {
     padding-inline: 12px;
     border-radius: 6px;
     background: color-mix(in srgb, var(--color-accent) 7%, transparent);
@@ -1241,6 +1244,28 @@ body {
   }
   .attention > .min-w-0 {
     flex: 1 1 260px;
+  }
+  /* The list shows a line or two of the explanation; the Findings page has all of it. */
+  .attention-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* Survey and permit details: one folded list, summary styled like a section title. */
+  .details-fold {
+    padding-top: 14px;
+    border-top: 2px solid var(--color-ink);
+  }
+  .details-fold > summary {
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 700;
+    font-stretch: 72%;
+    line-height: 1.1;
+    color: var(--color-ink);
   }
 
   .finding-grid {
@@ -1535,30 +1560,23 @@ body {
   }
   .plan-title-block {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px 18px;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--color-line);
-    background: var(--color-panel);
+    gap: 8px 18px;
+    margin-top: 10px;
   }
   .plan-title-copy {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
     min-width: 0;
-    gap: 3px;
-  }
-  .plan-mine-name {
-    overflow: hidden;
-    color: var(--color-ink);
-    font-size: 14px;
-    font-weight: 650;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    gap: 2px 14px;
   }
   .plan-survey-date {
     color: var(--color-ink-dim);
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
   .plan-instruments {
@@ -1583,9 +1601,9 @@ body {
     line-height: 1;
   }
   .plan-scale-block {
-    display: grid;
-    justify-items: end;
-    gap: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: var(--color-ink);
   }
   .plan-scale-label {
@@ -1629,10 +1647,15 @@ body {
     stroke: var(--color-ink);
     stroke-width: 2.6;
   }
+  .plan-buffer {
+    stroke: var(--color-ink-dim);
+    stroke-width: 1.3;
+    stroke-dasharray: 5 3;
+  }
   .plan-pit {
     stroke: var(--color-accent);
     stroke-width: 1.5;
-    stroke-dasharray: 7 4;
+    stroke-dasharray: 9 4;
   }
   .plan-dump {
     stroke: var(--color-ochre);
@@ -1654,11 +1677,12 @@ body {
     fill-opacity: 0.62;
     stroke: var(--color-change-fill);
   }
+  /* Index contours: pale and thin, so the change fills drawn over them stay the loudest layer. */
   .plan-contour {
     fill: none;
     stroke: var(--color-contour);
     stroke-width: 0.75;
-    stroke-opacity: 0.62;
+    stroke-opacity: 0.34;
     vector-effect: non-scaling-stroke;
   }
   .plan-zone-label,
@@ -1669,9 +1693,6 @@ body {
     font-family: var(--font-sans);
     font-weight: 650;
     text-anchor: middle;
-  }
-  .plan-zone-label {
-    fill: var(--color-ink);
   }
   .plan-pit-label {
     fill: var(--color-accent);
@@ -1684,31 +1705,16 @@ body {
     font-weight: 700;
     text-anchor: start;
   }
-  .plan-observed-label {
-    paint-order: stroke;
-    stroke: var(--color-backdrop);
-    stroke-linejoin: round;
-    text-anchor: middle;
-    font-family: var(--font-mono);
-    font-weight: 700;
-  }
-  .plan-observed-cut-label {
-    fill: var(--color-change-cut);
-  }
-  .plan-observed-leader {
-    fill: none;
+  .plan-zone-leader {
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
-  .plan-observed-cut-leader {
-    stroke: var(--color-change-cut);
+  .plan-pit-leader {
+    stroke: var(--color-accent);
   }
-  .plan-observed-fill-label {
-    fill: var(--color-change-fill);
-  }
-  .plan-observed-fill-leader {
-    stroke: var(--color-change-fill);
+  .plan-dump-leader {
+    stroke: var(--color-ochre);
   }
   .plan-leader {
     stroke: var(--tone);
@@ -1718,13 +1724,26 @@ body {
   .plan-finding-origin {
     fill: var(--tone);
   }
+  /* A finding's outline belongs to its button (the badge): hovering or focusing the badge, or the
+     finding's list row, thickens it. It takes no pointer events, so it never covers another badge. */
   .plan-finding-area {
+    pointer-events: none;
     fill: color-mix(in srgb, var(--tone) 7%, transparent);
     stroke: var(--tone);
     stroke-width: 1.25;
     stroke-opacity: 0.86;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
+  }
+  .plan-pin[data-active] .plan-finding-area,
+  .plan-pin[aria-pressed='true'] .plan-finding-area {
+    fill: color-mix(in srgb, var(--tone) 18%, transparent);
+    stroke-width: 2.75;
+    stroke-opacity: 1;
+  }
+  .plan-pin:focus-visible .plan-finding-area {
+    stroke: var(--color-accent);
+    stroke-width: 3.25;
   }
   .plan-pin {
     cursor: pointer;
@@ -1754,8 +1773,9 @@ body {
     opacity: 0;
     pointer-events: none;
   }
-  .plan-pin:focus-visible .plan-pin-ring,
-  .plan-pin[aria-pressed='true'] .plan-pin-ring {
+  .plan-pin[data-active] .plan-pin-ring,
+  .plan-pin[aria-pressed='true'] .plan-pin-ring,
+  .plan-pin:focus-visible .plan-pin-ring {
     opacity: 1;
   }
   .plan-pin-label-bg {
@@ -1774,25 +1794,28 @@ body {
   .plan-pin:hover .plan-pin-disc {
     fill: var(--color-bg-2);
   }
-  .plan-caption {
-    display: grid;
-    gap: 8px;
-    padding: 10px 14px 12px;
-    border-top: 1px solid var(--color-line);
-    background: var(--color-panel);
-  }
+  /* The key sits directly under the drawing and uses the plan's own colours and dashes. */
   .plan-key {
     display: flex;
     flex-wrap: wrap;
     gap: 7px 14px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--color-line);
+    background: var(--color-panel);
     font-size: 11px;
     color: var(--color-ink-dim);
+    list-style: none;
   }
-  .plan-key span {
+  .plan-key li {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     white-space: nowrap;
+  }
+  .plan-key-glyph {
+    width: 14px;
+    height: 14px;
+    color: var(--tone);
   }
   .plan-swatch {
     display: inline-block;
@@ -1811,6 +1834,10 @@ body {
     height: 0;
     border-top: 2px solid var(--color-ink);
   }
+  .plan-swatch-buffer {
+    height: 0;
+    border-top: 1.5px dashed var(--color-ink-dim);
+  }
   .plan-swatch-pit {
     height: 0;
     border-top: 1.5px dashed var(--color-accent);
@@ -1822,26 +1849,32 @@ body {
   .plan-swatch-contour {
     height: 0;
     border-top: 1px solid var(--color-contour);
+    opacity: 0.6;
+  }
+  /* The footer rail: scale and north belong to the drawing but never sit on it. */
+  .plan-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 22px;
+    padding: 9px 14px 11px;
+    border-top: 1px solid var(--color-line);
+    background: var(--color-panel);
   }
   .plan-note {
-    max-width: 70ch;
+    margin-left: auto;
     color: var(--color-ink-faint);
     font-size: 11px;
     line-height: 1.45;
   }
   @media (width <= 30rem) {
-    .plan-title-block {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px 12px;
-    }
-    .plan-instruments {
-      width: 100%;
-      justify-content: space-between;
-    }
-    .plan-caption {
+    .plan-key,
+    .plan-footer {
       padding-inline: 12px;
+    }
+    .plan-note {
+      margin-left: 0;
+      width: 100%;
     }
   }
 

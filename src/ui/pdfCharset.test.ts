@@ -6,7 +6,7 @@ import { PDF_CHARSET, pdfText } from './pdfCharset'
 describe('pdfText', () => {
   it('keeps the symbols the engine writes, now that the font can draw them', () => {
     const engine =
-      'Excavated 300 m² outside the lease boundary; deepest cut 6.0 m ± 0.14 m (2σ). About 1,200 m³ removed.'
+      'Excavated 300 m² outside the lease boundary; deepest cut 6.0 m ± 0.14 m (2σ). 1,200 m³ removed.'
     expect(pdfText(engine)).toBe(engine)
   })
 

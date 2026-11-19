@@ -431,3 +431,61 @@ export function elevationContoursToSvgPaths(
 
   return contours
 }
+
+const CONTOUR_STEPS = [25, 40, 50, 60, 75, 80, 100, 125, 150, 200, 250, 500]
+
+/**
+ * The finest interval from a short list of round ones that draws at most `maxLevels` index
+ * contours across the relief. The plan shows a few index lines for orientation, not the terrain.
+ */
+export function indexContourInterval(min: number, max: number, maxLevels = 4): number {
+  const levels = (step: number) => Math.floor(max / step) - Math.ceil(min / step) + 1
+  return CONTOUR_STEPS.find((step) => levels(step) <= maxLevels) ?? CONTOUR_STEPS.at(-1)!
+}
+
+/**
+ * Join the unordered segment pairs `insetSegments` returns (a0, b0, a1, b1, ...) into continuous
+ * polylines, so a dash pattern runs along a line instead of restarting on every tiny segment.
+ */
+export function chainSegments(points: readonly Vec2[]): Vec2[][] {
+  const key = (p: Vec2) => `${Math.round(p.x * 100)},${Math.round(p.y * 100)}`
+  const count = Math.floor(points.length / 2)
+  const at = new Map<string, number[]>()
+  for (let i = 0; i < count; i++) {
+    for (const p of [points[2 * i]!, points[2 * i + 1]!]) {
+      const list = at.get(key(p))
+      if (list) list.push(i)
+      else at.set(key(p), [i])
+    }
+  }
+  const used = new Uint8Array(count)
+  const extend = (line: Vec2[]) => {
+    for (;;) {
+      const here = key(line[line.length - 1]!)
+      const next = (at.get(here) ?? []).find((i) => !used[i])
+      if (next === undefined) return
+      used[next] = 1
+      const a = points[2 * next]!
+      const b = points[2 * next + 1]!
+      line.push(key(a) === here ? b : a)
+    }
+  }
+  const lines: Vec2[][] = []
+  for (let i = 0; i < count; i++) {
+    if (used[i]) continue
+    used[i] = 1
+    const line = [points[2 * i]!, points[2 * i + 1]!]
+    extend(line)
+    line.reverse()
+    extend(line)
+    lines.push(line)
+  }
+  return lines
+}
+
+/** SVG path for world polylines, flipped into the viewBox the other plan paths use. */
+export function polylinesToSvgPath(lines: readonly (readonly Vec2[])[], top: number): string {
+  return lines
+    .map((line) => line.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${top - p.y}`).join(''))
+    .join('')
+}

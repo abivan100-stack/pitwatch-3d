@@ -7,7 +7,8 @@ test('every site-plan pin opens its own finding on the map', async ({ page }) =>
     await page.goto('/#/overview')
     const plan = page.getByRole('group', { name: /Plan of the mine from above/ })
     await expect(plan.getByRole('button')).toHaveCount(5, { timeout: 60_000 })
-    await plan.getByRole('button', { name: new RegExp(`^${id},`) }).click()
+    // A click lands on the badge: the finding button also holds its outline, whose box centre can be open ground.
+    await plan.locator(`.plan-pin[data-finding="${id}"] .plan-pin-hit`).click()
     await expect(page).toHaveURL(/#\/monitor(\?finding=[\w-]+)?$/)
     await expect(page.locator('.finding[data-selected]')).toContainText(id)
   }
@@ -36,7 +37,7 @@ test('the phone site plan fits and its pins can be tapped', async ({ browser }) 
     const page = await context.newPage()
     await page.goto('/#/overview')
     const plan = page.getByRole('group', { name: /Plan of the mine from above/ })
-    const pin = plan.getByRole('button', { name: /^R1-1,/ })
+    const pin = plan.locator('.plan-pin[data-finding="R1-1"] .plan-pin-hit')
     await pin.scrollIntoViewIfNeeded()
     const box = await plan.boundingBox()
     expect(box).not.toBeNull()
