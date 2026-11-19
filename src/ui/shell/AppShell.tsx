@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAppStore } from '../../state/store'
+import { LG } from '../breakpoints'
 import type { DashboardRoute } from './nav'
 import { PAGES } from './nav'
 import { Header } from './Header'
@@ -26,6 +27,14 @@ export function AppShell({ route, children }: { route: DashboardRoute; children:
   // drawer is open Tab stays inside it — the page behind the scrim must not take focus.
   useEffect(() => {
     if (!menuOpen) return
+    const desktop = window.matchMedia(LG)
+    if (desktop.matches) {
+      setMenuOpen(false)
+      return
+    }
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setMenuOpen(false)
+    }
     opener.current = document.activeElement as HTMLElement | null
     const sidebar = document.querySelector<HTMLElement>('#sidebar')
     // The drawer is `visibility: hidden` until the browser applies the open style, and a focus()
@@ -70,9 +79,11 @@ export function AppShell({ route, children }: { route: DashboardRoute; children:
         focus.focus()
       }
     }
+    desktop.addEventListener('change', closeOnDesktop)
     window.addEventListener('keydown', onKey)
     return () => {
       cancelAnimationFrame(raf)
+      desktop.removeEventListener('change', closeOnDesktop)
       window.removeEventListener('keydown', onKey)
       opener.current?.focus?.()
     }
