@@ -37,17 +37,54 @@ test('a preset and a slider move the figures and the wording together', async ({
   const verdict = calc.locator('p[role="status"]')
 
   await calc.getByRole('button', { name: 'Global elevation models' }).click()
-  // σ1 = σ2 = 4 m: band 11.3 m, threshold 11.8 m, and the 6 m change is inside the band.
-  await expect(cell(page, 'Noise band')).toContainText('11.3 m')
-  await expect(cell(page, 'R1/R3 threshold')).toContainText('11.8 m')
+  // σ1 = σ2 = 4 m: band 11.31 m, threshold 11.81 m, and the 6 m change is inside the band.
+  await expect(cell(page, 'Noise band')).toContainText('11.31 m')
+  await expect(cell(page, 'R1/R3 threshold')).toContainText('11.81 m')
   await expect(verdict).toContainText('Could be survey noise')
-  await expect(verdict).toContainText('11.3 m')
+  await expect(verdict).toContainText('11.31 m')
 
-  // 12 m clears 11.8 m, so the verdict and its numbers move with the slider.
+  // 12 m clears 11.81 m, so the verdict and its numbers move with the slider.
   await calc.getByLabel('Measured change in ground height').fill('12')
   await expect(verdict).toContainText('Reportable under R1 and R3')
-  await expect(verdict).toContainText('11.8 m')
+  await expect(verdict).toContainText('11.81 m')
   await expect(verdict).not.toContainText('Could be survey noise')
+})
+
+test('printed comparisons preserve the order at both boundaries', async ({ page }) => {
+  await page.goto('/#/uncertainty')
+  const calc = calculator(page)
+  const verdict = calc.locator('p[role="status"]')
+  const change = calc.getByLabel('Measured change in ground height')
+
+  await calc.getByRole('button', { name: 'Global elevation models' }).click()
+  await change.fill('11.32')
+  await expect(verdict).toContainText('11.32 m is larger than the ±11.31 m')
+  await change.fill('11.8')
+  await expect(verdict).toContainText('11.80 m is larger than the ±11.31 m')
+  await expect(verdict).toContainText('below the 11.81 m R1/R3 threshold')
+
+  // Both comparisons would round to equal at two decimal places.
+  await change.fill('11.31')
+  await expect(verdict).toContainText('11.310 m is within the ±11.314 m noise band')
+  await change.fill('11.81')
+  await expect(verdict).toContainText('below the 11.814 m R1/R3 threshold')
+
+  // This reachable gap is smaller than 0.000005 m.
+  const baseline = calc.getByLabel('Baseline survey error (σ1)')
+  const current = calc.getByLabel('Current survey error (σ2)')
+  await baseline.fill('2.06')
+  await current.fill('4.78')
+  await change.fill('10.41')
+  await expect(verdict).toContainText('10.410000 m is larger than the ±10.409995 m')
+
+  // Binary arithmetic yields 0.6799999999999999 m for the exact 0.68 m limit.
+  await baseline.fill('0')
+  await current.fill('0.09')
+  await change.fill('0.18')
+  await expect(verdict).toContainText('0.18 m is within the ±0.18 m noise band')
+  await change.fill('0.68')
+  await expect(verdict).toContainText('Distinguishable from the noise, not reportable')
+  await expect(verdict).toContainText('at the 0.68 m R1/R3 threshold')
 })
 
 test('no page claims a real permit was broken', async ({ page }) => {

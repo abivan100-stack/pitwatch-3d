@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { GridSpec, PermittedLimits, PitZone, TerrainSurvey } from '../domain/types'
+import type { GridSpec, PermittedLimits, PitZone, TerrainSurvey, Vec2 } from '../domain/types'
 import { evaluate } from './engine'
 import { readPoint } from './inspect'
 import { governingPitZone, largestPitZone, pitFloorRows } from './zone'
@@ -113,19 +113,24 @@ describe('depth rule with overlapping pit zones', () => {
 })
 
 describe('inspector with overlapping pit zones', () => {
+  const read = (p: Vec2, s: TerrainSurvey, zones: PitZone[]) => {
+    const permit = limits(zones)
+    return readPoint(p, s, s, permit, evaluate(s, s, permit))
+  }
+
   it('reports the governing zone floor, matching the depth rule', () => {
     const s = survey()
-    const reading = readPoint({ x: 10, y: 10 }, s, s, limits([SHALLOW, DEEP]), [])
+    const reading = read({ x: 10, y: 10 }, s, [SHALLOW, DEEP])
     expect(reading.pit?.floor).toBe(106.5)
 
     // Order must not matter here either.
-    const reversed = readPoint({ x: 10, y: 10 }, s, s, limits([DEEP, SHALLOW]), [])
+    const reversed = read({ x: 10, y: 10 }, s, [DEEP, SHALLOW])
     expect(reversed.pit?.floor).toBe(106.5)
   })
 
   it('is unchanged where only one zone covers the point', () => {
     const s = survey()
-    const reading = readPoint({ x: 10, y: 10 }, s, s, limits([DEEP]), [])
+    const reading = read({ x: 10, y: 10 }, s, [DEEP])
     expect(reading.pit?.floor).toBe(106.5)
   })
 
@@ -137,7 +142,7 @@ describe('inspector with overlapping pit zones', () => {
       grid: { cols: 2, rows: 2, cellSize: 10, originXY: { x: 0, y: 0 } },
       elevations: new Float32Array(4).fill(100),
     }
-    const reading = readPoint({ x: 30, y: 30 }, s, s, limits([DEEP]), [])
+    const reading = read({ x: 30, y: 30 }, s, [DEEP])
     expect(reading.elevation).toBeNull()
     expect(reading.pit).toEqual({ floor: 106.5, above: null })
   })

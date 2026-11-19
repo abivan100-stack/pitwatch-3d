@@ -45,13 +45,16 @@ function Point() {
   // every write, including plain status changes it does not show.
   const surveys = useTerrain((s) => s.surveys)
   const limits = useTerrain((s) => s.limits)
+  const change = useTerrain((s) => s.change)
   const findings = useTerrain((s) => s.findings)
   const mine = useTerrain((s) => s.mine)
   const { baseline, current } = surveys
   const r = useMemo(
     () =>
-      baseline && current && limits ? readPoint(p, baseline, current, limits, findings) : null,
-    [p, baseline, current, limits, findings],
+      baseline && current && limits && change
+        ? readPoint(p, baseline, current, limits, { change, findings })
+        : null,
+    [p, baseline, current, limits, change, findings],
   )
   if (!r || !mine) return null
   const ll = localToLatLon(mine.originLatLon, p)
@@ -83,8 +86,8 @@ function Point() {
           mono
         />
         <Row
-          label="Change"
-          value={r.dh === null ? '—' : `${signed(r.dh)} ± ${n(r.dhSigma, 2)} m`}
+          label="Point change"
+          value={r.dh === null ? '—' : `${signed(r.dh, 2)} ± ${n(r.dhSigma, 2)} m`}
           mono
         />
         <Row label="Slope" value={r.slopeDeg === null ? '—' : `${n(r.slopeDeg)}°`} mono />
@@ -93,18 +96,20 @@ function Point() {
         {r.dh === null && 'No reading here: the point is outside the survey grid.'}
         {r.dh !== null &&
           r.change === 'excavated' &&
-          `Excavated: lowered by more than ${n(limit, 2)} m.`}
-        {r.dh !== null && r.change === 'filled' && `Filled: raised by more than ${n(limit, 2)} m.`}
+          `Excavated cell. Its centre was lowered by more than ${n(limit, 2)} m.`}
+        {r.dh !== null &&
+          r.change === 'filled' &&
+          `Filled cell. Its centre was raised by more than ${n(limit, 2)} m.`}
         {r.dh !== null &&
           r.change === 'none' &&
-          `No significant change (threshold ±${n(limit, 2)} m).`}
+          `No significant change at the cell centre (threshold ±${n(limit, 2)} m).`}
       </p>
       <p className="mt-1 text-[12px] leading-5 text-ink-faint">
         Position is the survey&apos;s plan coordinate ±{n(r.horizontalSigma, 2)} m (1σ, simulated
         survey). The lease side and the buffer edge are read with a {cfg.k}σ band. The compliance
         engine classifies whole {n(current!.grid.cellSize)} m cells by their centre and does not use
         this band, so a finding can cover a point whose side is unconfirmed. The elevation readings
-        and change quote vertical uncertainty.
+        and change quote vertical uncertainty. Both are interpolated at the point.
       </p>
       <dl className="mt-2 border-t border-line pt-2">
         <Row
