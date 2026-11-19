@@ -1,16 +1,17 @@
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
-import type { PerspectiveCamera } from 'three'
+import { Vector3, type PerspectiveCamera } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import type { Vec2 } from '../domain/types'
-import { sampleBilinear } from '../geo/grid'
 import { useAppStore } from '../state/store'
 import { useTerrain } from '../state/terrain'
 import { useCameraState } from './cameraState'
+import { FINDING_AIM_LIFT, findingView, onGround, PIN_HEIGHT } from './overlayGeometry'
 import {
   easeInOutCubic,
-  focusPose,
+  easeOutCubic,
+  flightMs,
   headingOf,
   metresPerPixel,
   northUp,
@@ -19,15 +20,22 @@ import {
   type Pose,
   type V3,
 } from './presets'
-import { BASE_RL, toScene } from './terrainGeometry'
+import { probe } from './probe'
+import { BASE_RL } from './terrainGeometry'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 interface Flight {
   from: Pose
   to: Pose
+  /** Aim heights above the ground at each end, which do not scale (see `rescalePose`). */
+  fromLift: number
+  toLift: number
   start: number
   ms: number
+  ease: (t: number) => number
+  /** Eased progress of the last frame drawn. */
+  e: number
 }
 
 /**
@@ -38,6 +46,14 @@ interface Flight {
 export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
   const controls = useRef<OrbitControlsImpl>(null)
   const flight = useRef<Flight | null>(null)
+  // Height of the aim point above the ground it frames: half a pin for a finding, else 0.
+  const lift = useRef(0)
+  // When a flight is cut short (by a drag or a new flight), the aim stopped part way between the
+  // two lifts, at the progress of the last frame drawn.
+  const settleLift = () => {
+    const f = flight.current
+    if (f) lift.current = f.fromLift + (f.toLift - f.fromLift) * f.e
+  }
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const exaggeration = useAppStore((s) => s.exaggeration)
@@ -46,9 +62,10 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
 
   const floorY = (floorRL - BASE_RL) * exaggeration
 
+  // The HUD redraws on every write, so a flight writes the store once, when it lands.
   const publish = useCallback(() => {
     const c = controls.current
-    if (!c) return
+    if (!c || flight.current) return
     const camera = c.object as PerspectiveCamera
     const pos = camera.position.toArray() as V3
     const target = c.target.toArray() as V3
@@ -59,9 +76,10 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
   }, [size.height])
 
   const apply = useCallback(
-    (p: Pose) => {
+    (p: Pose, aimLift = 0) => {
       const c = controls.current
       if (!c) return
+      lift.current = aimLift
       c.object.position.set(...p.position)
       c.target.set(...p.target)
       c.update()
@@ -72,16 +90,24 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
   )
 
   const flyTo = useCallback(
-    (to: Pose, ms: number) => {
+    (to: Pose, ms: number, ease = easeInOutCubic, toLift = 0) => {
       const c = controls.current
       if (!c) return
-      if (reducedMotion()) return apply(to)
+      if (reducedMotion()) return apply(to, toLift)
+      settleLift()
       flight.current = {
         from: { position: c.object.position.toArray() as V3, target: c.target.toArray() as V3 },
         to,
+        fromLift: lift.current,
+        toLift,
         start: performance.now(),
         ms,
+        ease,
+        e: 0,
       }
+      lift.current = toLift
+      if (probe)
+        probe.flights.push({ start: flight.current.start, ms, early: ease(Math.min(1, 100 / ms)) })
       invalidate()
     },
     [apply, invalidate],
@@ -100,13 +126,14 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
     const now = rescalePose(
       { position: c.object.position.toArray() as V3, target: c.target.toArray() as V3 },
       k,
+      lift.current,
     )
     c.object.position.set(...now.position)
     c.target.set(...now.target)
     const f = flight.current
     if (f) {
-      f.from = rescalePose(f.from, k)
-      f.to = rescalePose(f.to, k)
+      f.from = rescalePose(f.from, k, f.fromLift)
+      f.to = rescalePose(f.to, k, f.toLift)
     }
     lastEx.current = exaggeration
     c.update()
@@ -138,26 +165,58 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.n])
 
-  // Fly to a point on the ground (a finding picked in the list or on the map).
+  // Fly to a finding. Every entry point (the Findings lists, the pins, the Inspector's links and
+  // `?finding=` addresses) only names the finding, so they all get this same view and flight.
   useEffect(() => {
     if (!focus) return
-    const survey = useTerrain.getState().surveys.current
-    if (!survey) return
-    const z = sampleBilinear(survey.grid, survey.elevations, focus.p) ?? BASE_RL
-    const [x, , sz] = toScene(survey.grid, focus.p, z)
-    flyTo(focusPose([x, (z - BASE_RL) * exaggeration, sz]), 1300)
+    const c = controls.current
+    const { surveys, findings } = useTerrain.getState()
+    const f = findings.find((x) => x.id === focus.id)
+    if (!c || !surveys.current || !f) return
+    const to = findingView(surveys.current, f, exaggeration)
+    const from = { position: c.object.position.toArray() as V3, target: c.target.toArray() as V3 }
+    flyTo(to, flightMs(from, to), easeOutCubic, FINDING_AIM_LIFT)
+    if (probe) probe.framed = f.id
     // Only react to new requests, not to exaggeration changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.n])
 
   useEffect(publish, [publish])
 
+  const get = useThree((s) => s.get)
+  useEffect(() => {
+    if (!probe) return
+    const project = (p: V3) => {
+      const { camera, gl } = get()
+      const v = new Vector3(...p).project(camera)
+      const r = gl.domElement.getBoundingClientRect()
+      return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }
+    }
+    probe.cameraState = useCameraState
+    probe.pose = () => {
+      const c = controls.current!
+      return { position: c.object.position.toArray() as V3, target: c.target.toArray() as V3 }
+    }
+    probe.pinTop = (id) => {
+      const { surveys, findings } = useTerrain.getState()
+      const f = findings.find((x) => x.id === id)
+      if (!f || !surveys.current) return null
+      const ex = useAppStore.getState().exaggeration
+      return project(onGround(surveys.current, f.centroid, ex, PIN_HEIGHT))
+    }
+    return () => {
+      delete probe!.pose
+      delete probe!.pinTop
+      delete probe!.framed
+    }
+  }, [get])
+
   useFrame(() => {
     const f = flight.current
     const c = controls.current
     if (!f || !c) return
     const t = Math.min(1, (performance.now() - f.start) / f.ms)
-    const e = easeInOutCubic(t)
+    const e = (f.e = f.ease(t))
     const lerp = (a: V3, b: V3): V3 => [
       a[0] + (b[0] - a[0]) * e,
       a[1] + (b[1] - a[1]) * e,
@@ -166,9 +225,13 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
     c.object.position.set(...lerp(f.from.position, f.to.position))
     c.target.set(...lerp(f.from.target, f.to.target))
     c.update()
+    if (t < 1) {
+      invalidate()
+      return
+    }
+    flight.current = null
+    if (probe) probe.flights[probe.flights.length - 1].end = performance.now()
     publish()
-    if (t < 1) invalidate()
-    else flight.current = null
   })
 
   return (
@@ -181,7 +244,11 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
       minDistance={140}
       maxDistance={5600}
       screenSpacePanning={false}
-      onStart={() => (flight.current = null)}
+      onStart={() => {
+        // A drag ends the flight where it is.
+        settleLift()
+        flight.current = null
+      }}
       onChange={publish}
     />
   )
