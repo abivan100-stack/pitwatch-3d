@@ -43,12 +43,23 @@ const pathOf = (hash: string): string => hash.split('?')[0]!
 const read = (): Route => BY_HASH.get(pathOf(window.location.hash)) ?? 'home'
 
 /** The finding a shared link points at (`#/monitor?finding=R1-1`), or null. */
-export const findingFromHash = (hash: string): string | null =>
-  new URLSearchParams(hash.split('?')[1] ?? '').get('finding')
+export function findingFromHash(hash: string): string | null {
+  const start = hash.indexOf('?')
+  if (start < 0) return null
+  const query = hash.slice(start + 1)
+  const finding = new URLSearchParams(query).get('finding')
+  // Some links introduce a finding after a literal second '?', as in ref=x?finding=R1-1.
+  return finding ?? new URLSearchParams(query.replace(/\?finding=/g, '&finding=')).get('finding')
+}
+
+export const isMonitorHash = (hash: string): boolean => pathOf(hash) === MONITOR_HREF
+
+export const monitorHash = (id: string | null): string =>
+  id === null ? MONITOR_HREF : `${MONITOR_HREF}?finding=${encodeURIComponent(id)}`
 
 /** A link that opens the 3D map on one finding, for sharing. */
 export const findingLink = (id: string): string =>
-  `${window.location.origin}${window.location.pathname}${window.location.search}${ROUTE_HREF.monitor}?finding=${encodeURIComponent(id)}`
+  `${window.location.origin}${window.location.pathname}${window.location.search}${monitorHash(id)}`
 
 const subscribe = (onChange: () => void) => {
   window.addEventListener('hashchange', onChange)
@@ -63,9 +74,9 @@ export type LegalRoute = (typeof LEGAL_ROUTES)[number]
 export const isLegal = (route: Route): route is LegalRoute =>
   (LEGAL_ROUTES as readonly string[]).includes(route)
 
-/** Goes to a screen by changing the hash, which `useRoute` and the back button both follow. */
-export const navigate = (route: Route) => {
-  if (window.location.hash !== ROUTE_HREF[route]) window.location.hash = ROUTE_HREF[route]
+/** Opens a finding on the map from another dashboard page. */
+export const navigateToFinding = (id: string) => {
+  window.location.hash = monitorHash(id)
 }
 
 /**
