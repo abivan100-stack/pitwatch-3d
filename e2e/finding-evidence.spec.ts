@@ -102,7 +102,7 @@ test('the phone map clears the drawer after selection and keeps the finding on r
 
 type V3 = [number, number, number]
 interface Probe {
-  flights: { start: number; ms: number; end?: number }[]
+  flights: { start: number; ms: number; end?: number; early?: number }[]
   cameraState?: { subscribe: (fn: () => void) => () => void }
   pose?: () => { position: V3; target: V3 }
   pinTop?: (id: string) => { x: number; y: number } | null
@@ -163,6 +163,8 @@ test.describe('with full motion', () => {
       // planned end is what is measured, not the frame.
       expect(flight.start).toBeGreaterThanOrEqual(clickedAt)
       expect(flight.start + flight.ms - clickedAt).toBeLessThanOrEqual(id === 'R1-2' ? 700 : 1000)
+      // Ease-out: the camera's own easing covers at least 15% of the distance in the first 100 ms.
+      expect(flight.early).toBeGreaterThanOrEqual(0.15)
       // The camera store (scale bar, compass) is written once, when the flight lands.
       expect(await page.evaluate(() => (window as unknown as ProbeWindow).__writes)).toBe(1)
 

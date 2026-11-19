@@ -106,7 +106,8 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
         e: 0,
       }
       lift.current = toLift
-      if (probe) probe.flights.push({ start: flight.current.start, ms })
+      if (probe)
+        probe.flights.push({ start: flight.current.start, ms, early: ease(Math.min(1, 100 / ms)) })
       invalidate()
     },
     [apply, invalidate],

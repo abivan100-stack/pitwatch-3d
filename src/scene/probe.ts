@@ -8,7 +8,13 @@ import type { Pose } from './presets'
  */
 export interface Probe {
   /** Every flight started: its start time and planned length (ms), and when it landed. */
-  flights: { start: number; ms: number; end?: number }[]
+  flights: {
+    start: number
+    ms: number
+    end?: number
+    /** Share of the distance the flight's own easing covers in its first 100 ms. */
+    early?: number
+  }[]
   /** The camera store, so a test can count its writes. */
   cameraState?: typeof useCameraState
   pose?: () => Pose
