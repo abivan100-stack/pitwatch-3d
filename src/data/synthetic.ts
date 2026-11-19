@@ -141,9 +141,10 @@ const insetFor = (depth: number) => (depth * (BERM_WIDTH_M + FACE_RUN_M)) / BENC
 
 /**
  * Walk the rim anticlockwise from the point nearest RAMP.start, keeping the ramp as far
- * inside the wall as its depth requires, until it reaches the floor.
+ * inside the wall as its depth requires, until it reaches the floor. Returns no ramp when the
+ * pit is too narrow for even its first point (the stage is then benches only).
  */
-function buildRamp(rim: Polygon, floorRL: number, start: Vec2): Ramp {
+function buildRamp(rim: Polygon, floorRL: number, start: Vec2): Ramp | undefined {
   const n = rim.length
   let k0 = 0
   for (let k = 1; k < n; k++) {
@@ -175,10 +176,12 @@ function buildRamp(rim: Polygon, floorRL: number, start: Vec2): Ramp {
     points.push(p)
     depth.push(d)
   }
+  // The fold check rejected the very first point: there is no wall to run the ramp along.
+  const end = points[points.length - 1]
+  if (!end) return undefined
   // If the wall ran out first, finish with a straight drop towards the middle of the
   // floor, steepened if needed so it lands on the floor.
   const target = centroidOf(rim)
-  const end = points[points.length - 1]
   const run = Math.hypot(target.x - end.x, target.y - end.y) || 1
   const finalGrade = Math.max(RAMP.grade, (maxDepth - d) / run)
   for (let guard = 0; d < maxDepth && guard < 200; guard++) {

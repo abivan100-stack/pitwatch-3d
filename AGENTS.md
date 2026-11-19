@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the ramp builder fails softly when no ramp point survives (ticket #61)
+
+- `buildRamp` in `src/data/synthetic.ts` read the last ramp point to start the straight drop to the floor. If the fold check rejected the very first point, that read hit an empty list and threw inside the survey worker, failing the whole survey. It now returns no ramp in that case, and the stage samples as benches only. `Pit.ramp` was already optional, and `rampDistance` and `pitSurface` already handle a pit without one. Both shipped pits keep their first ramp point, so they build exactly as before.
+- Test: a `pit ramp` case in `src/data/data.test.ts` builds a 20 m-wide pit. Its ramp centreline would sit 15 m inside one wall and 5 m from the other, so the fold check rejects the first point. The case expects no ramp and a finite surface inside the pit. Without the fix it fails with `TypeError: Cannot read properties of undefined (reading 'x')`.
+- Checks: `npm run verify` passes (208 unit tests in 25 files), with the compliance snapshot and the synthetic-terrain tests unchanged. As agreed, local browser runs were kept short; this changes only data generation for a case no shipped pit reaches, and CI runs the full browser suite on the PR.
+
 ### 2026-11-19: terrain textures are disposed only when replaced or unmounted (ticket #62)
 
 - `Terrain` had one cleanup that disposed both survey textures and the three materials whenever any of them changed. When only the morph target changed, it disposed the current survey's texture while the new materials still drew it, which forced a re-upload and mipmap rebuild. Each texture now has its own effect, keyed on itself, and the materials keep theirs. Nothing on screen changes. No path in the app reaches the morph-only case today: the terrain store sets both surveys together, once, and a retry runs only from the error state, before `Terrain` mounts. The fix is defensive, and the morph-only case is justified by this trace: with the split, a change to `texture2` or `materials` runs only those cleanups, and `texture` is disposed only when it is replaced or on unmount.
