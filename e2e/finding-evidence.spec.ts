@@ -113,12 +113,16 @@ test('panel legend is compact and last; the Findings page keeps the full legend'
     return secs[secs.length - 1]?.querySelector('.sev-compact') !== null
   })
   expect(isLast).toBe(true)
+  // Small but readable: text exactly 12 px, glyphs at least 14 px.
   const sizes = await lines.evaluateAll((els) =>
     els.map((e) => parseFloat(getComputedStyle(e).fontSize)),
   )
-  expect(sizes.every((s) => s <= 12)).toBe(true)
+  expect(sizes).toEqual([12, 12, 12])
+  const glyphs = await lines.evaluateAll((els) =>
+    els.map((e) => e.querySelector('svg')!.getBoundingClientRect().width),
+  )
+  expect(glyphs.every((w) => w >= 14)).toBe(true)
   const h = await panel.locator('.sev-compact').evaluate((e) => e.getBoundingClientRect().height)
-  console.log('legend rows height', h)
   expect(h).toBeLessThanOrEqual(120)
 
   await page.goto('/#/findings')

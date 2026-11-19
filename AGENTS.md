@@ -53,10 +53,10 @@ Newest first.
 ### 2026-11-19: the map panel's severity legend is one small line per severity (issue #67)
 
 - `SeverityLegend` gains a `compact` prop (default off). The Findings tab in the 3D map panel uses it: glyph (14 px), name and meaning on one line at 12 px, wrapping only when the panel is narrow, no tinted or padded blocks. The severity colour stays on the glyph and name; the meaning uses `--color-ink-dim`. Wording unchanged, still the last section after the threshold note. The Findings page keeps the full legend (`.sev-row`, unchanged). New CSS is the `.sev-line` block in `src/index.css`.
-- Test: `e2e/finding-evidence.spec.ts` gains one check: three compact lines, the legend is the last section of the tab, text at most 12 px, height at most 120 px, and `/#/findings` still has three `.sev-row` and no `.sev-line`.
+- Test: `e2e/finding-evidence.spec.ts` gains one check: three compact lines, the legend is the last section of the tab, text exactly 12 px and glyphs at least 14 px, rows at most 120 px tall, and `/#/findings` still has three `.sev-row` and no `.sev-line`.
 - Revert proof: with `FindingsPanel.tsx` restored to `main`, the check fails at `expect(lines).toHaveCount(3)` (received 0); restored afterwards.
-- Measured legend rows (1440 × 900, five findings): 76 px (budget 120). Also 76 px at 800 and 390, 92 px at 1100 and 360 where one meaning wraps. No horizontal overflow on the map or Findings page at 1440, 1100, 800, 390 and 360 px; no console errors.
-- Checks: `npm run verify` passes; `e2e/finding-evidence.spec.ts` 3 of 3 pass on port 4203. Full `test:e2e` not run (CI runs it). Contrast of `--color-ink-dim` on the panel was not re-measured; it is the token the old legend already used.
+- Measured legend rows (1440 × 900, five findings): 76 px (budget 120). Also 76 px at 800 and 390, and 92 px at 1100 and 360, where one meaning wraps. At 1440 px the panel list is 318 px wide, so the Warning meaning wraps there too, which the issue allows when the panel is narrow. No horizontal overflow on the map or Findings page at 1440, 1100, 800, 390 and 360 px; no console errors.
+- Checks: `npm run verify` passes (210 unit tests in 25 files). `finding-evidence` and `dashboard` pass (12 checks), and CI's full suite passed on the PR. The independent review measured the contrast on the panel colour: 7.69:1 for the meaning text and 5.5–5.9:1 for the severity names, all above AA. It also found the Findings page legend's markup and computed styles identical to `main`. Review follow-ups: the size assertions are tighter, a debug `console.log` is gone, and the compact list no longer needs `className=""` to drop the default spacing.
 
 ### 2026-11-19: the dashboard's SIMULATED DATA badge is quieter, label kept (issue #66)
 
