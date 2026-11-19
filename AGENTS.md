@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the landing date bar calls the in-between model an illustration (ticket #59)
+
+- During the 900 ms tween between Baseline and Current, the date bar read "<date>, day N of 281", although the model at that moment is a blend of the two surveys, not a survey. New pure `storyClockLabel` in `src/ui/format.ts` keeps both ends exactly as before ("281 days between surveys" at the baseline, "22 Aug 2026, day 281 of 281" at the current survey) and reads "Illustration between surveys" whenever 0.001 < t < 1. `tweenStory` ends exactly on 0 or 1, so the end texts are reached. No motion was added, and under reduced motion the tween jumps, so only the end texts appear.
+- Tests: a `storyClockLabel` unit test, and new `e2e/story-clock.spec.ts`. The browser check slows page time (`performance.now` and animation-frame timestamps) to 1/20 speed so the tween has in-between frames even under software WebGL. It records every readout from Findings back to Baseline and expects only the two end texts and the illustration. With `StoryClock.tsx` reverted it fails, because the bar never shows the illustration text; with the change it passes.
+- Checks: `npm run verify` passes (203 unit tests in 25 files). Not the full browser run: at the owner's request testing was kept short. The new spec plus the landing-page specs (`home`, `landing-terrain`, `a11y`, `badge`, 24 checks at 390, 800 and 1440 px) pass.
+
 ### 2026-11-19: printed figures agree with the verdict (#54)
 
 - The Inspector prints the interpolated point change to two decimals, matching the precision of the cell threshold.
