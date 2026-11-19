@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from '../../state/store'
 import { useTerrain } from '../../state/terrain'
 import { LG, XL } from '../breakpoints'
 import { toggleFullscreen } from '../fullscreen'
 import { LayerPanel } from '../LayerPanel'
 import { SidePanel } from '../SidePanel'
-import { findingFromHash, ROUTE_HREF } from '../route'
+import { findingFromHash, isMonitorHash, monitorHash } from '../route'
 import { Viewport } from '../Viewport'
 
 /**
@@ -29,31 +29,8 @@ export function MapPage() {
   const detailsHidden = useAppStore((s) => s.detailsHidden)
   const layersUserSet = useAppStore((s) => s.layersUserSet)
   const detailsUserSet = useAppStore((s) => s.detailsUserSet)
-  const selectedFinding = useAppStore((s) => s.selectedFinding)
   const ready = useTerrain((s) => s.status === 'ready')
   const findings = useTerrain((s) => s.findings)
-  const linked = useRef(false)
-
-  // A shared link (`#/monitor?finding=R1-1`) opens the map on that finding once the engine has
-  // reported. The address then follows the selection, so whatever is on screen can be shared.
-  useEffect(() => {
-    if (!ready) return
-    const id = findingFromHash(window.location.hash)
-    const f = id ? findings.find((x) => x.id === id) : undefined
-    if (f && useAppStore.getState().selectedFinding !== f.id) {
-      useAppStore.getState().selectFinding(f.id, f.centroid)
-    }
-    linked.current = true
-  }, [ready, findings])
-  useEffect(() => {
-    if (!linked.current) return
-    const id = useAppStore.getState().selectedFinding
-    const next = id ? `${ROUTE_HREF.monitor}?finding=${encodeURIComponent(id)}` : ROUTE_HREF.monitor
-    if (window.location.hash !== next) {
-      const { pathname, search } = window.location
-      window.history.replaceState(null, '', `${pathname}${search}${next}`)
-    }
-  }, [selectedFinding, ready])
 
   // On a laptop-width screen the model is the point of the map, and the two floating panels
   // leave it a narrow stage: at 1100 px the stage would be 372 px wide. Below `xl` the findings
@@ -63,6 +40,46 @@ export function MapPage() {
   // visitor chooses, and then their choice sticks.
   useFoldBelow(XL, detailsUserSet, useAppStore.getState().setDetailsHidden)
   useFoldBelow(LG, layersUserSet, useAppStore.getState().setLayersHidden)
+
+  // Apply a linked finding after the initial width rules so it can open its details panel.
+  useEffect(() => {
+    if (!ready) return
+
+    let applyingHash = false
+    const applyHash = () => {
+      const { hash } = window.location
+      if (!isMonitorHash(hash)) return
+      const id = findingFromHash(hash)
+      const finding = findings.find((f) => f.id === id)
+      const nextId = finding?.id ?? null
+      const { selectedFinding, focus, selectFinding } = useAppStore.getState()
+
+      // Re-entering the map can restore the same finding after its camera request was cleared.
+      if (nextId === selectedFinding && (!finding || focus)) return
+      applyingHash = true
+      try {
+        selectFinding(nextId, finding?.centroid)
+      } finally {
+        applyingHash = false
+      }
+    }
+
+    applyHash()
+    const unsubscribe = useAppStore.subscribe(({ selectedFinding }, previous) => {
+      // Back and Forward own their history entries. Map selections replace the current entry.
+      if (applyingHash || selectedFinding === previous.selectedFinding) return
+      const { hash } = window.location
+      const next = monitorHash(selectedFinding)
+      if (isMonitorHash(hash) && hash !== next) {
+        window.history.replaceState(window.history.state, '', next)
+      }
+    })
+    window.addEventListener('hashchange', applyHash)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('hashchange', applyHash)
+    }
+  }, [ready, findings])
 
   // [ and ] collapse the side panels, F toggles full screen, R resets the view.
   // The navigation drawer and editable fields take priority over map shortcuts.

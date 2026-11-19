@@ -27,6 +27,16 @@ describe('shared finding links', () => {
     expect(findingFromHash('#/monitor?other=1')).toBeNull()
   })
 
+  it('reads a finding after an extra literal question mark', () => {
+    expect(findingFromHash('#/monitor?ref=x?finding=R1-1')).toBe('R1-1')
+  })
+
+  it('preserves normal parameters and escaped question marks', () => {
+    expect(findingFromHash('#/monitor?ref=x%3Fy&finding=R1-2')).toBe('R1-2')
+    expect(findingFromHash('#/monitor?ref=x%3Ffinding%3DR1-1')).toBeNull()
+    expect(findingFromHash('#/monitor?finding=R1%3F1')).toBe('R1?1')
+  })
+
   it('leaves a map hash with a query alone, and still rewrites a typo', () => {
     expect(plannedHash('#/monitor?finding=R2-1')).toBeNull()
     expect(plannedHash('#/typo?finding=R2-1')).toBe(HOME_HREF)
