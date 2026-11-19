@@ -1,6 +1,7 @@
-import { useEffect, useId, useMemo, useRef, type CSSProperties } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { SURFACE_KEY } from '../../data/orthophoto'
 import { useCameraState } from '../../scene/cameraState'
+import { changeThreshold } from '../../compliance/change'
 import { COMPLIANCE_CONFIG } from '../../compliance/config'
 import { OVERLAY, rampGradient } from '../../scene/palette'
 import { scaleBar, type ViewPreset } from '../../scene/presets'
@@ -129,67 +130,18 @@ export function ToolControls() {
   )
 }
 
-/** Key for whichever colouring is on: the aerial image's surfaces or the elevation ramp. */
 /** Ramp positions labelled in the key. */
 const KEY_TICKS = [0, 0.25, 0.5, 0.75, 1]
 
-export function MapKey() {
-  const survey = useTerrain((s) => s.surveys.current)
-  const tintOn = useAppStore((s) => s.layers.tint)
-  const contours = useAppStore((s) => s.layers.contours)
-  const scale = useMemo(() => survey && elevationScale(survey.elevations), [survey])
-  if (!survey || !scale) return null
-  const tint = tintOn || !survey.orthophoto
+type KeyRow = { key: string; swatch: React.ReactNode; label: string }
 
-  return (
-    <div>
-      {tint ? (
-        <>
-          <div className="h-2 rounded-[1px]" style={{ background: rampGradient() }} />
-          <div className="mt-1 flex justify-between font-mono text-[11px] text-ink-dim">
-            {KEY_TICKS.map((t) => (
-              <span key={t}>{scale.at(t).toFixed(0)}</span>
-            ))}
-          </div>
-          <p className="mt-1.5 text-[11.5px] leading-4 text-ink-faint">
-            Elevation, m RL. Colours are spread by how much ground lies at each height, so the
-            plateau shows its relief too.
-          </p>
-        </>
-      ) : (
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-          {SURFACE_KEY.map((k) => (
-            <li key={k.label} className="flex items-center gap-2 text-[12px] text-ink-dim">
-              <span
-                className="h-3 w-3 shrink-0 rounded-[2px]"
-                style={{ background: `rgb(${k.rgb.join(' ')})` }}
-                aria-hidden="true"
-              />
-              {k.label}
-            </li>
-          ))}
-        </ul>
-      )}
-      {contours && (
-        <div className="mt-2 text-[11.5px] text-ink-faint">Contours every 5 m, bold every 25 m</div>
-      )}
-      {!tint && (
-        <p className="mt-2 text-[11.5px] leading-4 text-ink-faint">
-          Simulated aerial image draped on the survey surface.
-        </p>
-      )}
-    </div>
-  )
-}
-
-/** Key for the permit, change and finding overlays that are switched on. */
-export function OverlayKey() {
-  const layers = useAppStore((s) => s.layers)
-  const limits = useTerrain((s) => s.limits)
-  const change = useTerrain((s) => s.change)
-  const onCurrent = useAppStore((s) => s.epoch === 'current')
-  if (!limits || !change) return null
-  const rows: { key: string; swatch: React.ReactNode; label: string }[] = []
+/** Rows for the permit, change and finding overlays that are switched on. */
+function overlayRows(
+  layers: ReturnType<typeof useAppStore.getState>['layers'],
+  limits: NonNullable<ReturnType<typeof useTerrain.getState>['limits']>,
+  onCurrent: boolean,
+): KeyRow[] {
+  const rows: KeyRow[] = []
   // White map lines sit on a dark chip so they stay visible on the pale panel.
   const swatch = (inner: React.CSSProperties) => (
     <span
@@ -247,29 +199,126 @@ export function OverlayKey() {
       })
     }
   }
-  if (!rows.length) return null
-  return (
-    <div>
-      <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {rows.map((r) => (
-          <li key={r.key} className="flex items-center gap-2 text-[12px] text-ink-dim">
+  return rows
+}
+
+/**
+ * The map key, placed on the stage above the timeline. It is open on arrival where there is room
+ * (1280 px wide and 700 px tall) and a single "Key" button otherwise; either way the visitor can
+ * toggle it, and it opens upward.
+ */
+export function MapKey() {
+  const survey = useTerrain((s) => s.surveys.current)
+  const limits = useTerrain((s) => s.limits)
+  const change = useTerrain((s) => s.change)
+  const layers = useAppStore((s) => s.layers)
+  const onCurrent = useAppStore((s) => s.epoch === 'current')
+  const [open, setOpen] = useState(() => window.innerWidth >= 1280 && window.innerHeight >= 700)
+  const id = useId()
+  const scale = useMemo(() => survey && elevationScale(survey.elevations), [survey])
+  if (!survey || !scale || !limits || !change) return null
+
+  const tint = layers.tint || !survey.orthophoto
+  const surface: KeyRow[] = tint
+    ? []
+    : SURFACE_KEY.map((k) => ({
+        key: k.label,
+        label: k.label,
+        swatch: (
+          <span
+            className="h-3 w-3 shrink-0 rounded-[2px]"
+            style={{ background: `rgb(${k.rgb.join(' ')})` }}
+          />
+        ),
+      }))
+  const overlays = overlayRows(layers, limits, onCurrent)
+  const showChange = layers.change && onCurrent
+  const count = (tint ? 1 : surface.length) + overlays.length
+  // A long label takes the whole row, so every row stays on one line in the two-column grid.
+  const grid = (rows: KeyRow[]) => (
+    <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
+      {rows.map((r) => (
+        <li
+          key={r.key}
+          className={`flex items-center gap-2 text-[12px] text-ink-dim ${r.label.length >= 14 ? 'col-span-2' : ''}`}
+        >
+          <span aria-hidden="true" className="flex shrink-0">
             {r.swatch}
-            {r.label}
-          </li>
-        ))}
-      </ul>
-      {layers.change && onCurrent && (
-        <p className="mt-2 text-[11.5px] leading-4 text-ink-faint">
-          Change is shown only where it exceeds {COMPLIANCE_CONFIG.minChangeM} m plus{' '}
-          {COMPLIANCE_CONFIG.k}σ (σ ±{change.sigma.toFixed(2)} m). Other ground is dimmed.
-        </p>
-      )}
-      {layers.findings && onCurrent && (
-        <p className="mt-2 text-[11.5px] leading-4 text-ink-faint">
-          Coloured cells and pins come from the rule engine, not from hand-placed marks.
-        </p>
-      )}
-    </div>
+          </span>
+          {r.label}
+        </li>
+      ))}
+    </ul>
+  )
+  const note = 'text-[12px] leading-4 text-ink-faint'
+
+  return (
+    <section
+      aria-label="Map key"
+      className="map-key pointer-events-none absolute inset-x-4 bottom-24 flex justify-center max-xl:bottom-[8.5rem] max-sm:bottom-[10.75rem]"
+    >
+      <div className="flex w-full max-w-[600px] flex-col items-start">
+        <div
+          id={id}
+          data-open={open ? '' : undefined}
+          className="map-key-body pointer-events-auto w-[260px] max-w-full"
+        >
+          <div className="map-key-inner">
+            <div className="card mb-2 flex flex-col gap-2 px-3 py-2.5">
+              {tint && (
+                <div>
+                  <div
+                    className="h-2 rounded-[1px]"
+                    style={{ background: rampGradient() }}
+                    aria-hidden="true"
+                  />
+                  <div className="mt-1 flex justify-between font-mono text-[12px] text-ink-dim">
+                    {KEY_TICKS.map((t) => (
+                      <span key={t}>{scale.at(t).toFixed(0)}</span>
+                    ))}
+                  </div>
+                  <div className={note}>Elevation, m RL</div>
+                </div>
+              )}
+              {surface.length > 0 && grid(surface)}
+              {overlays.length > 0 && grid(overlays)}
+              {(layers.contours || !tint || showChange) && (
+                <div className="flex flex-col gap-0.5 border-t border-line pt-2">
+                  {layers.contours && (
+                    <div className={note}>Contours every 5 m, bold every 25 m</div>
+                  )}
+                  {!tint && <div className={note}>Simulated aerial image</div>}
+                  {showChange && (
+                    <div className={note}>
+                      Changes under {changeThreshold(change.sigma, COMPLIANCE_CONFIG).toFixed(2)} m
+                      are not shown (noise)
+                    </div>
+                  )}
+                </div>
+              )}
+              {layers.findings && onCurrent && (
+                <p className={`${note} border-t border-line pt-2`}>
+                  Coloured cells and pins come from the rule engine, not hand-placed marks.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen((o) => !o)}
+          className="map-chip pointer-events-auto flex items-center gap-2 text-[12px] font-medium text-ink"
+        >
+          Key
+          <span className="font-mono text-ink-dim">{count}</span>
+          <span aria-hidden="true" className="font-mono text-ink-faint">
+            {open ? '−' : '+'}
+          </span>
+        </button>
+      </div>
+    </section>
   )
 }
 
