@@ -17,9 +17,26 @@ Codex and Claude each own five tickets. Each ticket uses a fresh builder session
 | #59    | Landing date bar labels the in-between model as an illustration  | Claude (Sonnet 5.5) | medium | Check the wording during the transition and at both endpoints                                       |
 | #61    | Ramp builder fails softly when no ramp point survives            | Claude (Sonnet 5.5) | medium | Cover the empty ramp case and verify that the compliance snapshot stays unchanged                   |
 
+## Codex completion
+
+All five Codex fixes are implemented and verified.
+
+| Ticket | Status                         | Pull request |
+| ------ | ------------------------------ | ------------ |
+| #53    | Merged                         | [#76][pr-76] |
+| #54    | Merged                         | [#76][pr-76] |
+| #56    | Merged                         | [#82][pr-82] |
+| #57    | Checks passed, open for review | [#84][pr-84] |
+| #58    | Checks passed, open for review | [#85][pr-85] |
+
+[pr-76]: https://github.com/abivan100-stack/pitwatch-3d/pull/76
+[pr-82]: https://github.com/abivan100-stack/pitwatch-3d/pull/82
+[pr-84]: https://github.com/abivan100-stack/pitwatch-3d/pull/84
+[pr-85]: https://github.com/abivan100-stack/pitwatch-3d/pull/85
+
 ## Order
 
-1. Codex starts with #53, then takes #54, #56, #57 and #58 in that order.
+1. Codex implemented #53, #54, #56, #57 and #58 in that order.
 2. Claude starts with #55. Continue with #60, then #62 once #55 is merged, followed by #59 and #61.
 3. Start tickets one at a time, or two at most in separate worktrees. Browser tests time out on a loaded machine.
 4. Finish with one full `npm run verify && npm run test:e2e` on an idle machine, then the 1440, 1100 and 800 px browser check.
