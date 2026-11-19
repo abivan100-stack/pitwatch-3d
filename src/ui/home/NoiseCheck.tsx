@@ -8,14 +8,7 @@ const PRESETS = [
   { label: 'Global elevation models', s1: 4, s2: 4, change: 6 },
 ]
 
-const m = (v: number, digits = v < 1 ? 2 : 1) => `${v.toFixed(digits)} m`
-
-/** A boundary that lands on a slider step can differ from it by binary roundoff. */
-function snapToSliderStep(boundary: number): number {
-  const step = Number(boundary.toFixed(2))
-  const roundoff = 2 * Number.EPSILON * Math.max(1, boundary)
-  return Math.abs(boundary - step) <= roundoff ? step : boundary
-}
+const m = (v: number) => `${v < 1 ? v.toFixed(2) : v.toFixed(1)} m`
 
 /**
  * Two lines have to be cleared before a change is reported: the noise band (k·σ) and the
@@ -30,22 +23,11 @@ export function NoiseCheck() {
 
   const cfg = COMPLIANCE_CONFIG
   const sigma = combinedSigma(s1, s2)
-  // Use the engine's threshold formula and account for exact slider steps.
-  const reportableFrom = snapToSliderStep(changeThreshold(sigma, cfg))
-  const noiseBand = snapToSliderStep(cfg.k * sigma)
+  // The engine's own helper, so this page cannot drift from the reported findings.
+  const reportableFrom = changeThreshold(sigma, cfg)
+  const noiseBand = cfg.k * sigma
   const size = Math.abs(change)
   const verdict = size <= noiseBand ? 'noise' : size <= reportableFrom ? 'between' : 'reportable'
-  const boundaries = [noiseBand, reportableFrom]
-  let digits = 2
-  // Keep unequal values distinct when rounding would show the same number.
-  while (
-    boundaries.some(
-      (boundary) => boundary !== size && boundary.toFixed(digits) === size.toFixed(digits),
-    )
-  ) {
-    digits++
-  }
-  const compared = (value: number) => m(value, digits)
   // Number line runs from 0 to the further of the two, with headroom.
   const max = Math.max(size, reportableFrom) * 1.3 || 1
   const pct = (v: number) => `${Math.min(100, (v / max) * 100)}%`
@@ -135,14 +117,14 @@ export function NoiseCheck() {
             </div>
             <div className="bg-panel p-3">
               <dt className="text-[12px] text-ink-faint">Noise band ({cfg.k}σ)</dt>
-              <dd className="cond text-[24px] font-bold text-ink">{compared(noiseBand)}</dd>
+              <dd className="cond text-[24px] font-bold text-ink">{m(noiseBand)}</dd>
             </div>
             <div className="bg-panel p-3">
               <dt className="text-[12px] text-ink-faint">
                 R1/R3 threshold ({cfg.minChangeM} m + {cfg.k}σ)
               </dt>
               <dd className="cond col-span-2 text-[24px] font-bold text-ink lg:col-span-1">
-                {compared(reportableFrom)}
+                {m(reportableFrom)}
               </dd>
             </div>
           </dl>
@@ -155,8 +137,8 @@ export function NoiseCheck() {
           >
             {verdict === 'noise' && (
               <>
-                <strong className="font-semibold">Could be survey noise.</strong> {compared(size)}{' '}
-                is within the ±{compared(noiseBand)} noise band, so no rule reports it.
+                <strong className="font-semibold">Could be survey noise.</strong> {m(size)} is
+                inside the ±{m(noiseBand)} noise band, so no rule reports it.
               </>
             )}
             {verdict === 'between' && (
@@ -164,16 +146,14 @@ export function NoiseCheck() {
                 <strong className="font-semibold">
                   Distinguishable from the noise, not reportable.
                 </strong>{' '}
-                {compared(size)} is larger than the ±{compared(noiseBand)} the surveys could produce
-                by themselves, but {size === reportableFrom ? 'at' : 'below'} the{' '}
-                {compared(reportableFrom)} R1/R3 threshold.
+                {m(size)} is larger than the ±{m(noiseBand)} the surveys could produce by
+                themselves, but below the {m(reportableFrom)} R1/R3 threshold.
               </>
             )}
             {verdict === 'reportable' && (
               <>
-                <strong className="font-semibold">Reportable under R1 and R3.</strong>{' '}
-                {compared(size)} clears the {compared(reportableFrom)} threshold, so the rules test
-                it against the permit.
+                <strong className="font-semibold">Reportable under R1 and R3.</strong> {m(size)}{' '}
+                clears the {m(reportableFrom)} threshold, so the rules test it against the permit.
               </>
             )}
           </p>
@@ -211,7 +191,7 @@ function Slider({
           {label}
         </label>
         <output htmlFor={id} className="font-mono text-[13px] text-ink">
-          {m(value, 2)}
+          {m(value)}
         </output>
       </div>
       <input

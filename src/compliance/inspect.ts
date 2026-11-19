@@ -7,8 +7,8 @@ import type {
 } from '../domain/types'
 import { cellAt, indexOf, sampleBilinear } from '../geo/grid'
 import { distanceToBoundary, pointInPolygon } from '../geo/polygon'
+import { changeThreshold } from './change'
 import { COMPLIANCE_CONFIG, type ComplianceConfig } from './config'
-import type { Evaluation } from './engine'
 import { combinedSigma, K } from './uncertainty'
 import { governingPitZone } from './zone'
 
@@ -44,7 +44,7 @@ export interface PointReading {
   /** current − baseline, and its combined 1σ. */
   dh: number | null
   dhSigma: number
-  /** The engine's change classification of the containing cell, when the point is sampled. */
+  /** Whether the change is large enough to count (beyond minChange + kσ). */
   change: 'excavated' | 'filled' | 'none'
   /** Slope of the current surface, degrees. */
   slopeDeg: number | null
@@ -92,14 +92,15 @@ export function readPoint(
   baseline: TerrainSurvey,
   current: TerrainSurvey,
   limits: PermittedLimits,
-  { change, findings }: Evaluation,
-  cfg: Pick<ComplianceConfig, 'k'> = COMPLIANCE_CONFIG,
+  findings: readonly ComplianceFinding[],
+  cfg: Pick<ComplianceConfig, 'k' | 'minChangeM'> = COMPLIANCE_CONFIG,
 ): PointReading {
   const g = current.grid
   const elevation = sampleBilinear(g, current.elevations, p)
   const base = sampleBilinear(g, baseline.elevations, p)
   const dh = elevation !== null && base !== null ? elevation - base : null
   const dhSigma = combinedSigma(baseline.verticalUncertainty, current.verticalUncertainty)
+  const limit = changeThreshold(dhSigma, cfg)
 
   // Central differences one cell either side.
   const h = g.cellSize
@@ -117,8 +118,8 @@ export function readPoint(
   // uses (deepest below its own floor), rather than whichever happens to be first in the list.
   const zone = governingPitZone(limits.pitZones, [{ p, h: elevation ?? NaN }])
 
-  const cell = dh === null ? null : cellAt(g, p)
-  const index = cell ? indexOf(g, cell.col, cell.row) : null
+  const cell = cellAt(g, p)
+  const index = cell ? indexOf(g, cell.col, cell.row) : -1
 
   return {
     p,
@@ -126,14 +127,7 @@ export function readPoint(
     baseline: base,
     dh,
     dhSigma,
-    change:
-      index === null
-        ? 'none'
-        : change.excavated[index]
-          ? 'excavated'
-          : change.filled[index]
-            ? 'filled'
-            : 'none',
+    change: dh === null ? 'none' : dh < -limit ? 'excavated' : dh > limit ? 'filled' : 'none',
     slopeDeg,
     leaseSide: leaseVerdict(p, limits.leaseBoundary, horizontalSigma, cfg.k),
     insideLease,
@@ -149,6 +143,6 @@ export function readPoint(
           above: elevation === null ? null : elevation - zone.approvedFloorElevation,
         }
       : null,
-    findingIds: index === null ? [] : findingIdsAt(findings, index),
+    findingIds: index < 0 ? [] : findingIdsAt(findings, index),
   }
 }
