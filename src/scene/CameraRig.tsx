@@ -15,6 +15,7 @@ import {
   metresPerPixel,
   northUp,
   presetPose,
+  rescalePose,
   type Pose,
   type V3,
 } from './presets'
@@ -86,6 +87,33 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
     [apply, invalidate],
   )
 
+  // Keep the aim point on the same ground feature when the vertical scale changes. A flight in
+  // progress is rescaled too: its poses were taken at the old scale, and its next frame would
+  // otherwise put the camera back on the old depth. Declared before the request effects below,
+  // because React runs effects in order: when a request and a scale change land in one render,
+  // the camera is rescaled first and the new flight is then built at the new scale throughout.
+  const lastEx = useRef(exaggeration)
+  useEffect(() => {
+    const c = controls.current
+    if (!c || lastEx.current === exaggeration) return
+    const k = exaggeration / lastEx.current
+    const now = rescalePose(
+      { position: c.object.position.toArray() as V3, target: c.target.toArray() as V3 },
+      k,
+    )
+    c.object.position.set(...now.position)
+    c.target.set(...now.target)
+    const f = flight.current
+    if (f) {
+      f.from = rescalePose(f.from, k)
+      f.to = rescalePose(f.to, k)
+    }
+    lastEx.current = exaggeration
+    c.update()
+    publish()
+    invalidate()
+  }, [exaggeration, publish, invalidate])
+
   // Opening shot: start high above the pit and settle into the oblique view.
   // Only on mount; later changes go through the view requests below.
   const floorYAtMount = useRef(floorY)
@@ -121,20 +149,6 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
     // Only react to new requests, not to exaggeration changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.n])
-
-  // Keep the aim point on the same ground feature when the vertical scale changes.
-  const lastEx = useRef(exaggeration)
-  useEffect(() => {
-    const c = controls.current
-    if (!c || lastEx.current === exaggeration) return
-    const before = c.target.y
-    c.target.y *= exaggeration / lastEx.current
-    c.object.position.y += c.target.y - before
-    lastEx.current = exaggeration
-    c.update()
-    publish()
-    invalidate()
-  }, [exaggeration, publish, invalidate])
 
   useEffect(publish, [publish])
 
