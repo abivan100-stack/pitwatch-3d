@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: terrain textures are disposed only when replaced or unmounted (ticket #62)
+
+- `Terrain` had one cleanup that disposed both survey textures and the three materials whenever any of them changed. When only the morph target changed, it disposed the current survey's texture while the new materials still drew it, which forced a re-upload and mipmap rebuild. Each texture now has its own effect, keyed on itself, and the materials keep theirs. Nothing on screen changes. In the app, only a reload or retry that replaces one survey reaches this path. No UI control changes the morph target alone, so the morph-only case is justified by this trace: with the split, a change to `texture2` or `materials` runs only those cleanups, and `texture` is disposed only when it is replaced or on unmount.
+- Tests: new `e2e/terrain-textures.spec.ts` counts textures per WebGL context by wrapping `createTexture`, `deleteTexture`, `bindTexture` and the upload calls. R3F releases a canvas's context on unmount, which frees GPU memory without per-texture deletes, so the test asserts per context. Over three map visits it checks that both aerial-image textures (at least 64 px wide, filled from a pixel array) were deleted before each map context went, and that every visit holds the same number of live textures (14 at the 3D map). three.js's 1×1 placeholder textures last for the whole context and are excluded by size. With the two new texture effects removed, the check fails with 2 aerial textures left undeleted.
+- Checks: `npm run verify` passes (207 unit tests in 25 files). As agreed, testing was kept short and the full browser run was not repeated. The new spec plus `terrain-picking`, `canvas`, `landing-terrain`, `retry` and `home` pass (13 checks).
+
 ### 2026-11-19: only what is drawn can be clicked on the 3D map (ticket #55)
 
 - **Hidden terrain.** `Terrain` passes no `onClick` while it is not shown. R3F keeps an object in its click list only while it has a handler, and neither R3F nor three skips invisible objects, so the hidden mesh used to read and measure ground that was not drawn and also blocked clicks to the badges. Switching Terrain back on restores the handler.
