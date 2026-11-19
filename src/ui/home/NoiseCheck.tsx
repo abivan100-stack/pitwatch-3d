@@ -4,9 +4,16 @@ import { COMPLIANCE_CONFIG } from '../../compliance/config'
 import { combinedSigma } from '../../compliance/uncertainty'
 
 const PRESETS = [
-  { label: 'Drone surveys with ground control', s1: 0.05, s2: 0.05, change: 0.4 },
-  { label: 'Global elevation models', s1: 4, s2: 4, change: 6 },
+  { label: 'Drone survey with ground control', s1: 0.05, s2: 0.05, change: 0.4 },
+  { label: 'Global elevation model', s1: 4, s2: 4, change: 6 },
 ]
+
+/** The number line always runs 0 to AXIS_MAX, so a marker moves only when its value does. */
+const AXIS_MAX = 12
+const TICKS = [0, 3, 6, 9, 12]
+/** Slider steps in metres: coarse enough to drag, and the keyboard arrow moves by the same. */
+const WOBBLE_STEP = 0.05
+const CHANGE_STEP = 0.1
 
 const m = (v: number, digits = v < 1 ? 2 : 1) => `${v.toFixed(digits)} m`
 
@@ -18,7 +25,7 @@ function snapToSliderStep(boundary: number): number {
 }
 
 /**
- * Two lines have to be cleared before a change is reported: the noise band (k·σ) and the
+ * Two lines have to be cleared before a change is reported: the noise limit (k·σ) and the
  * smallest change worth reporting on top of it (minChangeM + k·σ, the engine's own threshold).
  * The depth rule R2 is a different test and is explained on its own.
  */
@@ -46,143 +53,188 @@ export function NoiseCheck() {
     digits++
   }
   const compared = (value: number) => m(value, digits)
-  // Number line runs from 0 to the further of the two, with headroom.
-  const max = Math.max(size, reportableFrom) * 1.3 || 1
-  const pct = (v: number) => `${Math.min(100, (v / max) * 100)}%`
+  const pct = (v: number) => Math.min(100, (v / AXIS_MAX) * 100)
+
+  // Fixed rows, so a flag changes height never. Each flag spans its marker's x (see .noise-flag).
+  const flags = [
+    { key: 'limit', text: 'Reporting threshold', value: reportableFrom },
+    { key: 'band', text: 'Noise limit', value: noiseBand },
+    { key: 'change', text: 'Your change', value: size },
+  ]
 
   return (
     <section aria-labelledby="noise-title" className="rule-section">
-      <div className="grid gap-10 xl:grid-cols-[0.8fr_1.2fr] xl:gap-14">
-        <div>
-          <h2 id="noise-title" className="section-title">
-            When is a change reportable?
-          </h2>
-          <p className="mt-3 max-w-[30rem] text-[15px] leading-7 text-ink-dim">
-            Every survey has error, and comparing two of them adds the errors up: σ = √(σ1² + σ2²).
-            A change must clear two lines before R1 and R3 report it: the noise band ({cfg.k}σ),
-            then the smallest change worth reporting on top of that ({cfg.minChangeM} m + {cfg.k}σ).
-            Move the sliders to see where both lines fall.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setS1(p.s1)
-                  setS2(p.s2)
-                  setChange(p.change)
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
+      <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
+        <div className="contents lg:flex lg:flex-col lg:gap-6" data-testid="noise-left">
+          <div className="max-lg:order-1">
+            <h2 id="noise-title" className="section-title">
+              When is a change reportable?
+            </h2>
+            <p className="mt-3 max-w-[34rem] text-[15px] leading-7 text-ink-dim">
+              A change is reported only if it is bigger than the surveys&rsquo; own wobble, and
+              bigger than a minimum on top of that.
+            </p>
           </div>
+
+          <div className="max-lg:order-3" data-testid="noise-result">
+            <figure
+              className="noise-chart"
+              role="img"
+              aria-label={`Number line from 0 to ${AXIS_MAX} metres. Noise limit ${compared(noiseBand)}, reporting threshold ${compared(reportableFrom)}, your change ${compared(size)}.`}
+            >
+              <div className="noise-flags" aria-hidden="true">
+                {flags.map((f, row) => (
+                  <div key={f.key}>
+                    <div
+                      className="noise-leader"
+                      style={{ left: `${pct(f.value)}%`, top: row * 28 + 24 }}
+                    />
+                    <div
+                      className={`noise-flag ${f.key === 'change' && verdict === 'reportable' ? 'real' : ''}`}
+                      style={{
+                        left: `${pct(f.value)}%`,
+                        translate: `-${pct(f.value)}% 0`,
+                        top: row * 28,
+                      }}
+                    >
+                      {f.text} <strong>{compared(f.value)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* The shaded band is what the surveys could produce by themselves, the dashed
+                  rule is where reporting starts, the diamond is the change being tested. */}
+              <div className="noise-line" aria-hidden="true">
+                <div className="noise-band" style={{ width: `${pct(noiseBand)}%` }} />
+                <div className="noise-limit" style={{ left: `${pct(reportableFrom)}%` }} />
+                <div
+                  className={`noise-marker ${verdict === 'reportable' ? 'real' : ''}`}
+                  style={{ left: `${pct(size)}%` }}
+                />
+              </div>
+              <div className="noise-ticks" aria-hidden="true">
+                {TICKS.map((t) => (
+                  <span key={t} style={{ left: `${(t / AXIS_MAX) * 100}%` }}>
+                    {t} m
+                  </span>
+                ))}
+              </div>
+              <figcaption className="mt-3 text-[13px] leading-6 text-ink-dim">
+                Shaded: what the two surveys could produce by themselves, the noise limit ({cfg.k}{' '}
+                times their combined wobble, σ = {m(sigma)}). Dashed line: the smallest change that
+                is reported, the noise limit plus a {cfg.minChangeM} m minimum. Diamond: your
+                change.
+              </figcaption>
+            </figure>
+
+            <div className="mt-5">
+              {/* Announced only when the category changes: the figures below it can move on
+                  every slider step without re-reading anything. */}
+              <p
+                role="status"
+                className={`text-[15px] font-semibold leading-6 ${
+                  verdict === 'reportable' ? 'text-violation' : 'text-ink'
+                }`}
+              >
+                {verdict === 'noise' && 'Could be survey noise.'}
+                {verdict === 'between' && 'Distinguishable from the noise, not reportable.'}
+                {verdict === 'reportable' && 'Reportable under R1 and R3.'}
+              </p>
+              <p className="mt-1 text-[14px] leading-6 text-ink-dim">
+                {verdict === 'noise' && (
+                  <>
+                    {compared(size)} is within the ±{compared(noiseBand)} noise limit, so no rule
+                    reports it.
+                  </>
+                )}
+                {verdict === 'between' && (
+                  <>
+                    {compared(size)} is larger than the ±{compared(noiseBand)} the surveys could
+                    produce by themselves, but {size === reportableFrom ? 'at' : 'below'} the{' '}
+                    {compared(reportableFrom)} reporting threshold.
+                  </>
+                )}
+                {verdict === 'reportable' && (
+                  <>
+                    {compared(size)} clears the {compared(reportableFrom)} reporting threshold, so
+                    the lease-boundary and dumping rules (R1 and R3) test it against the permit.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <details className="noise-note max-lg:order-4">
+            <summary>Does the depth rule use this?</summary>
+            <p>
+              No. The depth rule (R2) compares the ground with the approved pit floor and has no
+              minimum-change allowance, so a breach a few centimetres deep is still a warning. It
+              uses only the current survey&rsquo;s wobble ({cfg.k}σ2 = {m(cfg.k * s2)}).
+            </p>
+          </details>
         </div>
 
-        <div className="noise">
+        <div
+          className="noise max-lg:order-2 lg:flex lg:flex-col lg:justify-between"
+          data-testid="noise-controls"
+        >
+          <div
+            role="group"
+            aria-label="Example surveys"
+            className="noise-seg"
+            data-testid="noise-presets"
+          >
+            {PRESETS.map((p) => {
+              const active = s1 === p.s1 && s2 === p.s2
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  aria-pressed={active}
+                  className="noise-seg-btn"
+                  onClick={() => {
+                    setS1(p.s1)
+                    setS2(p.s2)
+                    setChange(p.change)
+                  }}
+                >
+                  <span className="font-semibold">{p.label}</span>
+                  <span className="noise-seg-note">
+                    Sets both surveys to {m(p.s1, 2)} wobble and the example change to{' '}
+                    {m(p.change, 1)}.
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
           <Slider
             id={`${id}-s1`}
-            label="Baseline survey error (σ1)"
+            label="Baseline survey wobble (σ1)"
+            hint="How much the survey itself can move a height. 0 to 5 m."
             value={s1}
             max={5}
-            step={0.01}
+            step={WOBBLE_STEP}
             onChange={setS1}
           />
           <Slider
             id={`${id}-s2`}
-            label="Current survey error (σ2)"
+            label="Current survey wobble (σ2)"
+            hint="How much the survey itself can move a height. 0 to 5 m."
             value={s2}
             max={5}
-            step={0.01}
+            step={WOBBLE_STEP}
             onChange={setS2}
           />
           <Slider
             id={`${id}-c`}
             label="Measured change in ground height"
+            hint={`The height difference between the two surveys, in metres, 0 to ${AXIS_MAX} m. The presets set an example change.`}
             value={change}
-            max={12}
-            step={0.01}
+            max={AXIS_MAX}
+            step={CHANGE_STEP}
             onChange={setChange}
           />
-
-          {/* Number line: the shaded band is what noise alone could produce, the dashed
-              rule is where R1 and R3 start reporting. */}
-          <div className="mt-8" aria-hidden="true">
-            <div className="noise-line">
-              <div className="noise-band" style={{ width: pct(noiseBand) }} />
-              <div className="noise-limit" style={{ left: pct(reportableFrom) }} />
-              <div
-                className={`noise-marker ${verdict === 'reportable' ? 'real' : ''}`}
-                style={{ left: pct(size) }}
-              />
-            </div>
-            <div className="mt-2 flex justify-between font-mono text-[11px] text-ink-faint">
-              <span>0 m</span>
-              <span>{m(max)}</span>
-            </div>
-            <p className="mt-1 font-mono text-[11px] leading-4 text-ink-faint">
-              shaded: noise band ({cfg.k}σ) · dashed: R1/R3 threshold ({cfg.minChangeM} m + {cfg.k}
-              σ)
-            </p>
-          </div>
-
-          <dl className="mt-6 grid grid-cols-1 gap-px border border-line bg-line min-[30rem]:grid-cols-3">
-            <div className="bg-panel p-3">
-              <dt className="text-[12px] text-ink-faint">Combined σ</dt>
-              <dd className="cond text-[24px] font-bold text-ink">{m(sigma)}</dd>
-            </div>
-            <div className="bg-panel p-3">
-              <dt className="text-[12px] text-ink-faint">Noise band ({cfg.k}σ)</dt>
-              <dd className="cond text-[24px] font-bold text-ink">{compared(noiseBand)}</dd>
-            </div>
-            <div className="bg-panel p-3">
-              <dt className="text-[12px] text-ink-faint">
-                R1/R3 threshold ({cfg.minChangeM} m + {cfg.k}σ)
-              </dt>
-              <dd className="cond col-span-2 text-[24px] font-bold text-ink lg:col-span-1">
-                {compared(reportableFrom)}
-              </dd>
-            </div>
-          </dl>
-
-          <p
-            role="status"
-            className={`mt-4 text-[14px] leading-6 ${
-              verdict === 'reportable' ? 'text-violation' : 'text-ink-dim'
-            }`}
-          >
-            {verdict === 'noise' && (
-              <>
-                <strong className="font-semibold">Could be survey noise.</strong> {compared(size)}{' '}
-                is within the ±{compared(noiseBand)} noise band, so no rule reports it.
-              </>
-            )}
-            {verdict === 'between' && (
-              <>
-                <strong className="font-semibold">
-                  Distinguishable from the noise, not reportable.
-                </strong>{' '}
-                {compared(size)} is larger than the ±{compared(noiseBand)} the surveys could produce
-                by themselves, but {size === reportableFrom ? 'at' : 'below'} the{' '}
-                {compared(reportableFrom)} R1/R3 threshold.
-              </>
-            )}
-            {verdict === 'reportable' && (
-              <>
-                <strong className="font-semibold">Reportable under R1 and R3.</strong>{' '}
-                {compared(size)} clears the {compared(reportableFrom)} threshold, so the rules test
-                it against the permit.
-              </>
-            )}
-          </p>
-
-          <p className="mt-2 text-[13px] leading-6 text-ink-faint">
-            The depth rule is not on this line. R2 compares the ground with the approved pit floor
-            using the current survey's own uncertainty ({cfg.k}σ2 = {m(cfg.k * s2)}) and no
-            minimum-change allowance, so a floor breach a few centimetres deep is still a warning.
-          </p>
         </div>
       </div>
     </section>
@@ -192,6 +244,7 @@ export function NoiseCheck() {
 function Slider({
   id,
   label,
+  hint,
   value,
   max,
   step,
@@ -199,21 +252,25 @@ function Slider({
 }: {
   id: string
   label: string
+  hint: string
   value: number
   max: number
   step: number
   onChange: (v: number) => void
 }) {
   return (
-    <div className="mt-5 first:mt-0">
+    <div className="mt-8">
       <div className="flex items-baseline justify-between gap-4">
-        <label htmlFor={id} className="text-[14px] text-ink-dim">
+        <label htmlFor={id} className="text-[14px] font-medium text-ink">
           {label}
         </label>
-        <output htmlFor={id} className="font-mono text-[13px] text-ink">
+        <span className="noise-value font-mono text-[13px] text-ink" aria-hidden="true">
           {m(value, 2)}
-        </output>
+        </span>
       </div>
+      <p id={`${id}-hint`} className="text-[13px] leading-5 text-ink-dim">
+        {hint}
+      </p>
       <input
         id={id}
         type="range"
@@ -221,6 +278,8 @@ function Slider({
         max={max}
         step={step}
         value={value}
+        aria-describedby={`${id}-hint`}
+        aria-valuetext={m(value, 2)}
         onChange={(e) => onChange(Number(e.target.value))}
         className="noise-range w-full"
       />
