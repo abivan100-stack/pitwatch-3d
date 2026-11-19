@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the mobile navigation drawer owns keyboard input (#56)
+
+- The map ignores keyboard events while the navigation drawer is open and skips events already handled by another control. Escape closes the drawer and returns focus to Menu. A second Escape on the map clears the measurement.
+- Widening to the desktop layout closes the mobile drawer and releases its focus trap. Browser regressions cover measurement preservation, blocked map shortcuts, and restored shortcuts after resizing. Both tests failed before the fix.
+- `npm run verify` passed all 202 unit tests, and Playwright passed all 82 browser tests. Browser checks at 1440, 1100 and 800 px confirmed that desktop shortcuts work and the mobile menu blocks tool, fullscreen and camera actions until it closes.
+
 ### 2026-11-19: printed figures agree with the verdict (#54)
 
 - The Inspector prints the interpolated point change to two decimals, matching the precision of the cell threshold.

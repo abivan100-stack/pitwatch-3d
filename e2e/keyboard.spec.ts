@@ -208,6 +208,76 @@ test('a very long typed measurement is refused instead of profiled', async ({ pa
   expect(failures).toEqual([])
 })
 
+test('Escape closes the navigation drawer before clearing a map measurement', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 })
+  await openMonitor(page)
+  await page.keyboard.press('m')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await openInspector(page)
+  await enterCoordinate(page, '900', '800')
+  await enterCoordinate(page, '1100', '800')
+
+  const distance = page.getByText('200.0 m ± 0.14 m', { exact: true })
+  await expect(distance).toBeVisible()
+  const menu = page.getByRole('button', { name: 'Menu', exact: true })
+  await menu.click()
+  const nav = page.getByRole('navigation', { name: 'Dashboard' })
+  await expect(nav).toBeVisible()
+  await expect(page.locator('#sidebar :focus')).toHaveCount(1)
+
+  await page.keyboard.press('Escape')
+  await expect(nav).toBeHidden()
+  await expect(menu).toBeFocused()
+  await expect(distance).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(distance).toHaveCount(0)
+})
+
+test('navigation drawer blocks map shortcuts and releases them at desktop width', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 900 })
+  await openMonitor(page)
+
+  const menu = page.getByRole('button', { name: 'Menu', exact: true })
+  const nav = page.getByRole('navigation', { name: 'Dashboard' })
+  const map = page.locator('.monitor')
+  const measure = page.getByRole('button', { name: 'Measure', exact: true })
+  await expect(map).toHaveAttribute('data-layers', 'hidden')
+  await expect(map).toHaveAttribute('data-details', 'hidden')
+  await expect(measure).toHaveAttribute('aria-pressed', 'false')
+
+  await menu.click()
+  await expect(nav).toBeVisible()
+  await expect(page.locator('#sidebar :focus')).toHaveCount(1)
+  await page.keyboard.press('m')
+  await page.keyboard.press('[')
+  await page.keyboard.press(']')
+  await expect(measure).toHaveAttribute('aria-pressed', 'false')
+  await expect(map).toHaveAttribute('data-layers', 'hidden')
+  await expect(map).toHaveAttribute('data-details', 'hidden')
+
+  await page.setViewportSize({ width: 1100, height: 900 })
+  await expect(menu).toBeHidden()
+  await expect(page.locator('.shell')).not.toHaveAttribute('data-menu', 'true')
+  const layersButton = page.getByRole('button', { name: 'Map panel' })
+  const detailsButton = page.getByRole('button', { name: 'Details panel' })
+  await expect(layersButton).toHaveAttribute('aria-pressed', 'true')
+  await expect(detailsButton).toHaveAttribute('aria-pressed', 'false')
+
+  await page.keyboard.press('m')
+  await expect(measure).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.press('[')
+  await expect(layersButton).toHaveAttribute('aria-pressed', 'false')
+  await page.keyboard.press(']')
+  await expect(detailsButton).toHaveAttribute('aria-pressed', 'true')
+
+  await page.setViewportSize({ width: 800, height: 900 })
+  await expect(menu).toHaveAttribute('aria-expanded', 'false')
+  await expect(nav).toBeHidden()
+})
+
 test('the coordinate form fits the phone drawer', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await openMonitor(page)
