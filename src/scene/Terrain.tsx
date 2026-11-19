@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { Orthophoto, TerrainSurvey } from '../domain/types'
 import { useAppStore } from '../state/store'
 import type { TerrainMarks } from './marks'
+import { drawnOnTop } from './overlayGeometry'
 import { OVERLAY, SOIL_PROFILE } from './palette'
 import { BASE_RL, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
 import { makeSurfaceUniforms, type SurfaceUniforms } from './surfaceUniforms'
@@ -344,18 +345,24 @@ export function Terrain({
     invalidate()
   })
 
+  const shown = visible ?? layers.terrain
   return (
-    <group scale={[1, exaggeration, 1]} visible={visible ?? layers.terrain}>
+    <group scale={[1, exaggeration, 1]} visible={shown}>
       <mesh
         geometry={geometry.surface}
         material={materials.surface}
         customDepthMaterial={materials.depth}
         castShadow
         receiveShadow
+        // R3F and three raycast invisible objects too, so a hidden surface must drop its
+        // handler: without one the mesh leaves R3F's interaction list and takes no clicks.
         onClick={
-          onPick
+          onPick && shown
             ? (e) => {
                 if (e.delta > 4) return // a drag, not a click
+                // A badge drawn through the ground (no depth test) is what the visitor sees
+                // under the pointer, so let the click pass on to it instead of reading the wall.
+                if (e.intersections.some((i) => drawnOnTop(i.object))) return
                 e.stopPropagation()
                 onPick(e.point)
               }

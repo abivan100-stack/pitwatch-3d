@@ -1,5 +1,7 @@
+import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import type { GridSpec } from '../domain/types'
+import { drawnOnTop } from './overlayGeometry'
 import { hexToRgb, RAMP, rampAt, rampGradient, srgbToLinear } from './palette'
 import {
   focusPose,
@@ -146,6 +148,20 @@ describe('focus view', () => {
     expect(position[1]).toBeGreaterThan(20)
     expect(position[2]).toBeGreaterThan(30)
     expect(headingOf(position, target)).toBeGreaterThan(270) // looking north-west
+  })
+})
+
+describe('drawnOnTop', () => {
+  it('is true only for an object whose material skips the depth test', () => {
+    const badge = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false }))
+    const ground = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial())
+    const multi = new THREE.Mesh(new THREE.BufferGeometry(), [
+      new THREE.MeshBasicMaterial({ depthTest: false }),
+    ])
+    expect(drawnOnTop(badge)).toBe(true)
+    expect(drawnOnTop(ground)).toBe(false)
+    expect(drawnOnTop(multi)).toBe(false)
+    expect(drawnOnTop(new THREE.Group())).toBe(false)
   })
 })
 
