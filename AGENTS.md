@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: two fixes recovered from unmerged October branches
+
+- A branch cleanup found two Codex commits from 2026-10-24 that never reached `main` and still applied: `8c77504` from `codex/issue-21-colors` and `99e5133` from `codex/issue-21-findings-copy`. Both are cherry-picked here with `-x`. The other two unmerged branches added nothing: `codex/issue-36-e2e` is already in `main`, and `codex/issue-21-homepage` only merged these two plus a test fix and a log entry that are both obsolete. All four branches were then deleted.
+- **Colours.** `src/index.css` hard-coded four landing colours (`#77736b` twice in the strata stripes, the hero shadow's `rgb(40 32 20 / 0.5)` and the dark chip's `rgb(255 255 255 / 0.28)` border). They now come from `--color-ink`, `--color-bg` and `--color-side-ink`. The new `e2e/landing-design-tokens.spec.ts` changes those tokens at runtime and expects all four styles to follow. Against `main`'s CSS it fails on the stripe colour. Not in scope, and still literal: the card shadows at the top of `src/index.css` and one `rgb(40 32 20 / 0.4)` shadow.
+- **Copy.** The landing page's Findings caption said every pin is "ground the engine classifies as breaking the lease". The pins also mark R2 pit-floor and R3 dumping findings and include warnings. It now reads "Each pin marks a simulated finding under one of the permit rules…", and `e2e/uncertainty.spec.ts` checks the new wording and that "breaking the lease" is gone.
+- Checks: `npm run verify` passes (210 unit tests in 25 files). `landing-design-tokens`, `uncertainty`, `home` and `a11y` pass (24 checks).
+
 ### 2026-11-19: the ramp builder fails softly when no ramp point survives (ticket #61)
 
 - `buildRamp` in `src/data/synthetic.ts` read the last ramp point to start the straight drop to the floor. If the fold check rejected the very first point, that read hit an empty list and threw inside the survey worker, failing the whole survey. It now returns no ramp in that case, and the stage samples as benches only. `Pit.ramp` was already optional, and `rampDistance` and `pitSurface` already handle a pit without one. Both shipped pits keep their first ramp point, so they build exactly as before.
