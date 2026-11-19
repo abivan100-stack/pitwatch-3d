@@ -62,6 +62,14 @@ Newest first.
 - Proof: with the `CameraRig.tsx` change reverted, the under-way check fails (34% of pixels differ); with it, all three pass. The one-task check failed (38%) against the draft that kept the old effect order.
 - Checks: `npm run verify` passes (205 unit tests in 25 files). Full `npm run test:e2e`: 81 of 82 passed; `map-width` "follows the window across lg" failed under three workers, as on 2026-11-19 for #55, and passed with `--workers=1` along with the new spec. 3D map at 1440, 1100 and 800 px after a Pit flight: no horizontal overflow, no console errors. A separate Opus 5.5 high-effort review found no bug; its two test risks (a settle check shorter than one software frame, and a flight-start poll that could fire on the button's pressed style) are fixed: the canvas must stay unchanged for 2.5 s, and the poll watches only the middle of the stage.
 
+### 2026-11-19: printed figures agree with the verdict (#54)
+
+- The Inspector prints the interpolated point change to two decimals, matching the precision of the cell threshold.
+- The Uncertainty calculator starts at two decimal places and adds digits when rounding would hide a difference between the slider value and a boundary. A mathematical tie stays at the boundary despite binary roundoff. The default noise band and R1/R3 threshold still read 0.14 m and 0.64 m.
+- The browser regression failed before the fix at 11.32 m. It also covers 11.80 m, values that round to the same cent as a boundary, and an exact tie. The keyboard test checks the Inspector's point change precision.
+
+- Verification passed with 202 unit tests and 80 Playwright tests. The existing map-resize check passed on retry. At 1440, 1100 and 800 px, both views fit without browser page errors, including the calculator's six-decimal comparison. An exhaustive check of 251,001 survey-error pairs matched the exact ordering at adjacent slider positions.
+
 ### 2026-11-19: Inspector verdict uses the same cell as its findings (#53)
 
 - The Inspector reads the engine's change classification and finding IDs from the same cell. The point change still shows the interpolated elevation difference and its propagated vertical uncertainty. The verdict names the cell centre and its threshold. A point outside the sampled grid shows no cell verdict or finding links.
