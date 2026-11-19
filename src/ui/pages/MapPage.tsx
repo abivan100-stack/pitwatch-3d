@@ -65,17 +65,17 @@ export function MapPage() {
   useFoldBelow(LG, layersUserSet, useAppStore.getState().setLayersHidden)
 
   // [ and ] collapse the side panels, F toggles full screen, R resets the view.
-  // Ignored while typing.
+  // The navigation drawer and editable fields take priority over map shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return
       if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return
-      const { toggleLayers, toggleDetails, requestView, setTool, clearPicks } =
+      const { menuOpen, tool, toggleLayers, toggleDetails, requestView, setTool, clearPicks } =
         useAppStore.getState()
+      if (menuOpen) return
       if (e.key === '[') toggleLayers()
       else if (e.key === ']') toggleDetails()
-      else if (e.key === 'm' || e.key === 'M')
-        setTool(useAppStore.getState().tool === 'measure' ? 'inspect' : 'measure')
+      else if (e.key === 'm' || e.key === 'M') setTool(tool === 'measure' ? 'inspect' : 'measure')
       else if (e.key === 'Escape') clearPicks()
       else if (e.key === 'f' || e.key === 'F') toggleFullscreen()
       else if ((e.key === 'r' || e.key === 'R') && useTerrain.getState().status === 'ready')
