@@ -30,8 +30,11 @@ test('Details is closed by default, opens with the keyboard and lists the R1-1 c
   await expect(why).toContainText('(critical from 5,000 m²)')
   await expect(why).toContainText('(critical from 25,000 m³)')
   await expect(why).toContainText('(critical from 10 m)')
-  // The measured values are the row's own figures.
-  const area = await row.locator('.frow-figures div', { hasText: 'Area' }).locator('dd').innerText()
+  // The measured values are the row's own figures (the value, without its provenance tag).
+  const area = await row
+    .locator('.frow-figures div', { hasText: 'Area' })
+    .locator('dd')
+    .evaluate((dd) => dd.firstChild!.textContent!.trim())
   await expect(why).toContainText(`Area ${area}`)
 
   await expect(row.getByRole('region', { name: /Measurements for R1-1/ })).toContainText('±')
