@@ -76,7 +76,7 @@ test('the landing page can open the 3D map directly', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: '3D map' })).toBeVisible()
 })
 
-test('each step can be shown on the model, and the rules report the engine result', async ({
+test('the worked example can be shown on the model, and the rules report the engine result', async ({
   page,
 }) => {
   await page.goto('/')
@@ -84,12 +84,19 @@ test('each step can be shown on the model, and the rules report the engine resul
   // The sections below the hero are wired back to the model above.
   await page.getByRole('button', { name: 'How it works' }).click()
   await expect(
-    page.getByRole('heading', { level: 2, name: 'From two surveys to a verdict' }),
+    page.getByRole('heading', { level: 2, name: 'One finding, followed from survey to verdict' }),
   ).toBeInViewport()
 
-  await page.getByRole('button', { name: 'Show on the model' }).nth(1).click()
   const views = page.getByRole('group', { name: 'What the model shows' })
-  await expect(views.getByRole('button', { name: 'Change' })).toHaveAttribute(
+  await views.getByRole('button', { name: 'Baseline' }).click()
+  await expect(views.getByRole('button', { name: 'Baseline' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  // The verdict's button (no arrow link) brings the model back on the findings view.
+  await page.getByRole('button', { name: 'See R1-1 on the 3D model' }).click({ timeout: 60_000 })
+  await expect(views.getByRole('button', { name: 'Findings' })).toHaveAttribute(
     'aria-pressed',
     'true',
   )
