@@ -60,28 +60,28 @@ function Steps({ c, onShowOnModel }: { c: Case; onShowOnModel: () => void }) {
             <span aria-hidden="true">1</span> Survey the ground twice
           </h3>
           <p className="case-text">
-            Two drone surveys map the same cell of the pit, {BASELINE && CURRENT ? '' : ''}
-            at E {n(c.p.x)} m, N {n(c.p.y)} m. Each height carries the survey’s own error.
+            Two drone surveys map the same cell of the pit, at E {n(c.p.x)} m, N {n(c.p.y)} m. Each
+            height carries the survey’s own error.
           </p>
           <dl className="case-heights">
             <div>
               <dt>Baseline, {BASELINE ? formatDate(BASELINE.date) : ''}</dt>
               <dd>
-                {n(c.baselineRL, 2)} m RL <b>±{n(c.baselineSigma, 2)} m</b>
+                {n(c.baselineRL, 2)} m RL <b>±{n(c.baselineSigma, 2)} m (1σ)</b>
                 <ProvenanceTag value="simulated" />
               </dd>
             </div>
             <div>
               <dt>Current, {CURRENT ? formatDate(CURRENT.date) : ''}</dt>
               <dd>
-                {n(c.currentRL, 2)} m RL <b>±{n(c.currentSigma, 2)} m</b>
+                {n(c.currentRL, 2)} m RL <b>±{n(c.currentSigma, 2)} m (1σ)</b>
                 <ProvenanceTag value="simulated" />
               </dd>
             </div>
             <div>
               <dt>Difference</dt>
               <dd>
-                {sign(c.dh, 2)} m <b>±{n(c.dhSigma, 2)} m</b>
+                {sign(c.dh, 2)} m <b>±{n(c.dhSigma, 2)} m (1σ)</b>
                 <ProvenanceTag value="derived" />
               </dd>
             </div>
@@ -111,7 +111,7 @@ function Steps({ c, onShowOnModel }: { c: Case; onShowOnModel: () => void }) {
             R1 tests whether excavated ground lies outside the lease boundary. The centre of this
             cell is {n(c.leaseDistance, 1)} m {outside ? 'outside' : 'inside'} it (position ±
             {n(c.horizontalSigma, 2)} m, 1σ), so{' '}
-            {outside ? 'R1 reports a violation' : 'R1 tests it against the safety buffer'}.
+            {outside ? 'R1 flags this cell' : 'R1 tests it against the safety buffer'}.
           </p>
         </div>
         <Section c={c} />
@@ -138,7 +138,9 @@ function Steps({ c, onShowOnModel }: { c: Case; onShowOnModel: () => void }) {
           ].map(([label, value]) => (
             <div key={label}>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              <dd>
+                {value} <ProvenanceTag value="derived" />
+              </dd>
             </div>
           ))}
         </dl>
@@ -222,6 +224,10 @@ function Section({ c }: { c: Case }) {
   const x = (d: number) => (d / s.length) * W
   const y = (z: number) => H - ((z - y0) / (y1 - y0)) * H
   const edgeX = x(c.edgeAt)
+  // The line runs from the cell towards the nearest lease edge, so the cell's own side is left of
+  // the edge: outside the lease when the cell is outside, inside it otherwise.
+  const cellOutside = c.leaseSide === 'outside'
+  const [outFrom, outTo] = cellOutside ? [0, edgeX] : [edgeX, W]
   const cellX = x(c.cellAt)
 
   // Material removed: the strip between the baseline and the current surface where it is lower.
@@ -243,10 +249,10 @@ function Section({ c }: { c: Case }) {
         <svg
           viewBox={`0 0 ${W} ${H}`}
           role="img"
-          aria-label={`Cross-section ${n(s.length)} m long through ${c.finding.id}, from ${n(lo)} to ${n(hi)} metres RL. The lease boundary is ${n(c.leaseDistance, 1)} metres from the cell. Baseline ground is higher than the current surface at the cell.`}
+          aria-label={`Cross-section ${n(s.length)} m long through ${c.finding.id}, from ${n(lo)} to ${n(hi)} metres RL. The lease boundary is ${n(c.leaseDistance, 1)} metres from the cell. Baseline ground is ${c.dh < 0 ? 'higher' : 'lower'} than the current surface at the cell.`}
           className="block w-full"
         >
-          <rect x={0} y={0} width={edgeX} height={H} className="case-outside" />
+          <rect x={outFrom} y={0} width={outTo - outFrom} height={H} className="case-outside" />
           {cut && <path d={`${cut}${top}Z`} className="case-cut" />}
           <path d={pathOf(s.d, base, x, y)} className="case-base" />
           <path d={pathOf(s.d, now, x, y)} className="case-now" />
@@ -276,7 +282,10 @@ function Section({ c }: { c: Case }) {
         <span>
           <i className="case-key case-key-cut" /> Removed between the surveys
         </span>
-        <span>Left of the boundary: outside the lease. Vertical scale fitted to the data.</span>
+        <span>
+          {cellOutside ? 'Left' : 'Right'} of the boundary: outside the lease. Vertical scale fitted
+          to the data.
+        </span>
       </figcaption>
     </figure>
   )

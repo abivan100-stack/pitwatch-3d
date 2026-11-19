@@ -2566,7 +2566,8 @@ body {
     font-weight: 600;
     color: var(--color-ink);
   }
-  .case-heights .prov {
+  .case-heights .prov,
+  .case-figures .prov {
     font-size: 13px;
   }
   .case-heights dd b {

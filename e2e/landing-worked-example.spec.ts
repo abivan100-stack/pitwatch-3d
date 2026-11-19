@@ -40,22 +40,27 @@ test('the worked example figures match the Findings page for the same finding', 
   await page.goto('/')
   const verdict = page.locator('.case-verdict')
   await expect(verdict).toContainText('R1-1', READY)
-  const landing = await verdict
-    .locator('.case-figures > div')
-    .evaluateAll((els) =>
-      els.map((el) => [el.querySelector('dt')!.textContent, el.querySelector('dd')!.textContent]),
-    )
+  // Each value carries a provenance tag; compare the value text without it.
+  const figures = (els: Element[]) =>
+    els.map((el) => {
+      const dd = el.querySelector('dd')!.cloneNode(true) as HTMLElement
+      const tags = [...dd.querySelectorAll('.prov')].map((t) => t.textContent)
+      dd.querySelectorAll('.prov').forEach((t) => t.remove())
+      return [el.querySelector('dt')!.textContent!, dd.textContent!.trim(), tags.join()]
+    })
+  const landing = await verdict.locator('.case-figures > div').evaluateAll(figures)
   expect(landing.map(([label]) => label)).toEqual(['Area', 'Volume', 'Max excess'])
 
   await page.goto('/#/findings')
   const row = page.locator('li.frow', { hasText: 'R1-1' })
   await expect(row).toBeVisible(READY)
-  const findings = await row
-    .locator('.frow-figures > div')
-    .evaluateAll((els) =>
-      els.map((el) => [el.querySelector('dt')!.textContent, el.querySelector('dd')!.textContent]),
-    )
-  expect(landing).toEqual(findings)
+  // The Findings row has more figures than the landing shows: compare the landing's three by label.
+  const findings = await row.locator('.frow-figures > div').evaluateAll(figures)
+  const byLabel = new Map(findings.map(([label, value, tag]) => [label, [value, tag]]))
+  for (const [label, value, tag] of landing) {
+    expect(tag).toBe('derived')
+    expect([value, tag]).toEqual(byLabel.get(label))
+  }
 })
 
 test('the landing sections no longer use three equal steps or rule rows', async ({ page }) => {
