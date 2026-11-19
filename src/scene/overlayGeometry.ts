@@ -1,3 +1,4 @@
+import type { Object3D } from 'three'
 import type { Polygon, TerrainSurvey, Vec2 } from '../domain/types'
 import { sampleBilinear } from '../geo/grid'
 import { BASE_RL, toScene } from './terrainGeometry'
@@ -27,4 +28,13 @@ export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number) {
     }
   }
   return pts
+}
+
+/**
+ * True for an object drawn over everything (its material skips the depth test), such as a
+ * finding badge. It shows through the terrain, so it must also win a click over the terrain.
+ */
+export function drawnOnTop(o: Object3D): boolean {
+  const m = (o as Object3D & { material?: { depthTest?: boolean } | unknown[] }).material
+  return !!m && !Array.isArray(m) && m.depthTest === false
 }
