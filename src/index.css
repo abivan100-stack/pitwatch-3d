@@ -140,15 +140,10 @@ body {
     gap: 7px;
     white-space: nowrap;
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 11.5px;
     letter-spacing: 0.06em;
     line-height: 1.4;
-    color: var(--color-warn);
-    padding: 4px 10px;
-    border-radius: 3px;
-    border: 1px solid color-mix(in srgb, var(--color-warn) 38%, transparent);
-    background: color-mix(in srgb, var(--color-warn) 5%, var(--color-panel));
+    color: var(--color-ink-faint);
   }
 
   /* The landing page's quiet note that the values are simulated. */
@@ -599,6 +594,24 @@ body {
     border-left: 3px solid var(--tone);
     background: color-mix(in srgb, var(--tone) 7%, transparent);
     color: var(--tone);
+  }
+  .sev-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 2px 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tone);
+  }
+  .sev-line > svg {
+    margin-top: 1px;
+  }
+  .sev-line b {
+    font-weight: 600;
+  }
+  .sev-meaning {
+    color: var(--color-ink-dim);
   }
   .sev-warn {
     --tone: var(--color-warn);
@@ -1272,7 +1285,8 @@ body {
   }
   .frow-figures {
     display: flex;
-    gap: 28px;
+    flex-wrap: wrap;
+    gap: 10px 28px;
     grid-column: 1;
   }
   .frow-figures dt {
@@ -1318,12 +1332,13 @@ body {
   }
   @media (width >= 64rem) {
     .frow {
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
     }
     .frow-figures {
       display: grid;
-      grid-template-columns: repeat(3, 7.5rem);
+      grid-template-columns: repeat(3, 6rem) 4rem 9rem;
+      gap: 20px;
       grid-column: 2;
     }
     .frow-go {
@@ -1342,9 +1357,143 @@ body {
       justify-self: start;
       gap: 16px;
     }
+  }
+  @media (width < 40rem) {
     .frow-figures {
-      gap: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 20px;
     }
+  }
+
+  /* Findings page: the Details disclosure. The body animates open with a grid-row transition. */
+  .fd {
+    grid-column: 1 / -1;
+    font-size: 13px;
+  }
+  .fd-btn {
+    font-weight: 600;
+    color: var(--color-accent);
+    cursor: pointer;
+  }
+  .fd-btn::after {
+    content: '';
+    display: inline-block;
+    margin-left: 8px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s;
+  }
+  .fd-btn[aria-expanded='true']::after {
+    transform: translateY(1px) rotate(-135deg);
+  }
+  .fd-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+  }
+  .fd-wrap[data-open] {
+    grid-template-rows: 1fr;
+  }
+  .fd-body {
+    min-height: 0;
+    overflow: hidden;
+    line-height: 1.55;
+    color: var(--color-ink-dim);
+  }
+  .fd-wrap:not([data-open]) .fd-body {
+    visibility: hidden;
+    transition: visibility 0s 0.25s;
+  }
+  .fd-body > p {
+    max-width: 46rem;
+    margin-top: 8px;
+  }
+  .fd-grid {
+    display: grid;
+    gap: 18px 32px;
+    margin-top: 14px;
+    padding-bottom: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  }
+  .fd-grid h4 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    border-bottom: 1px solid var(--color-line-strong);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .fd-grid p,
+  .fd-grid li {
+    margin-top: 4px;
+  }
+  .fd-grid ul {
+    list-style: disc;
+    padding-left: 18px;
+  }
+  .fd-row {
+    padding: 3px 0;
+  }
+  .fd-row dt {
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fd-row dd {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+  .fd-plan svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 16rem;
+    background: var(--color-backdrop);
+  }
+  .fd-plan figcaption {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fd-ring {
+    fill: none;
+    stroke: var(--tone);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* Findings page: totals for the shown findings. */
+  .fsum dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 10px 24px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-line-strong);
+  }
+  .fsum dt {
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fsum dd {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--color-ink);
+  }
+  .fsum p {
+    font-size: 12.5px;
+    color: var(--color-ink-dim);
+  }
+  .fsum a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .rule-list {
@@ -2008,24 +2157,46 @@ body {
     }
   }
 
-  /* The map card's key folds away; its summary reads as the card's other section titles. */
-  .key-details > summary {
-    display: block;
-    padding: 12px 16px;
-    cursor: pointer;
-    list-style: none;
+  /* The stage key opens upward: the body grows from 0 to its height over 200 ms. */
+  .map-key-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+      grid-template-rows 0.2s ease-out,
+      visibility 0s 0.2s;
   }
-  .key-details > summary::-webkit-details-marker {
-    display: none;
+  .map-key-body[data-open] {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 0.2s ease-out;
   }
-  .key-details > summary::after {
-    content: '+';
-    float: right;
-    font-family: var(--font-mono);
-    color: var(--color-ink-faint);
+  .map-key-inner {
+    min-height: 0;
+    overflow: hidden;
   }
-  .key-details[open] > summary::after {
-    content: '−';
+  /* The card grows upward from above the timeline. Cap it so it stops below the click-tool stack
+     (60 px header, the tools and their status chip up to 140 px into the stage, a 12 px gap), and
+     scroll inside it beyond that. The offsets follow the section's bottom: 6rem, 8.5rem below xl,
+     10.75rem below sm, plus the 30 px Key button and the card's 8 px margin. */
+  .map-key-card {
+    max-height: max(120px, calc(100dvh - 346px));
+    overflow-y: auto;
+  }
+  @media (width < 80rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 386px));
+    }
+  }
+  @media (width < 40rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 422px));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .map-key-body {
+      transition: none !important;
+    }
   }
 }
 
@@ -2785,8 +2956,11 @@ body {
   .frow {
     break-inside: avoid;
   }
-  .frow-more > :not(summary) {
-    display: block !important;
+  .fd-wrap {
+    grid-template-rows: 1fr !important;
+  }
+  .fd-body {
+    visibility: visible !important;
   }
   .frow-go {
     display: none !important;

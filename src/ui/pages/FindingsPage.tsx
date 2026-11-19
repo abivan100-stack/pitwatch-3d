@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ComplianceFinding, RuleId } from '../../domain/types'
+import { findingDetail, findingTotals } from '../../compliance/findingDetail'
 import { findingsToCsv } from '../../compliance/report'
 import { SURVEY_EPOCHS } from '../../data/fixtures/mine'
 import { useAppStore } from '../../state/store'
@@ -7,7 +8,8 @@ import { useTerrain } from '../../state/terrain'
 import { savePdfReport } from '../reportPdf'
 import { countText, GLYPH, RULE_NAMES, toneOf } from '../findings'
 import { SeverityLegend, ThresholdNote } from '../panels/FindingsPanel'
-import { findingLink, navigateToFinding } from '../route'
+import { findingLink, navigateToFinding, OVERVIEW_HREF } from '../route'
+import { FindingDetails } from './FindingDetails'
 import { Page } from '../shell/AppShell'
 import { LoadGate } from '../shell/LoadGate'
 import { ProvenanceTag } from '../ProvenanceTag'
@@ -62,14 +64,35 @@ function exportPdf(findings: readonly ComplianceFinding[]) {
   })
 }
 
-/** Prints with every explanation open, then puts the page back as the reader had it. */
-function printReport() {
-  const closed = [...document.querySelectorAll<HTMLDetailsElement>('.frow-more:not([open])')]
-  for (const d of closed) d.open = true
-  window.addEventListener('afterprint', () => closed.forEach((d) => (d.open = false)), {
-    once: true,
-  })
-  window.print()
+/** Totals for the shown findings, so they follow the status and rule filters like the CSV does. */
+function SummaryStrip({ shown }: { shown: readonly ComplianceFinding[] }) {
+  const limits = useTerrain((s) => s.limits)
+  if (!limits) return null
+  const t = findingTotals(shown, limits)
+  const dates = `${SURVEY_EPOCHS[0]?.date ?? ''} to ${SURVEY_EPOCHS[1]?.date ?? ''}`
+  return (
+    <section aria-label={`Totals for the shown findings, surveys ${dates}`} className="fsum mt-5">
+      <dl>
+        {[
+          ['Area flagged', `${n(t.areaM2)} m²`],
+          ['Cut and below-floor volume', `${n(t.excavatedM3)} m³`],
+          ['Fill volume', `${n(t.filledM3)} m³`],
+          ['Flagged area ÷ lease area', `${n(t.leaseShare * 100, 1)}%`],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p>
+        <ProvenanceTag value="derived" /> Shown findings, surveys {dates}. Cut and below-floor is R1
+        volume removed plus R2 volume below the approved floor; fill is R3. Flagged area includes
+        ground outside the lease. The verdict and the boundary-violation volume are on the{' '}
+        <a href={OVERVIEW_HREF}>Overview</a>.
+      </p>
+    </section>
+  )
 }
 
 function Filter<T extends string>({
@@ -174,7 +197,7 @@ function List() {
               >
                 {pdf === 'building' ? 'Building PDF…' : 'Download PDF'}
               </button>
-              <button type="button" className="btn" onClick={printReport}>
+              <button type="button" className="btn" onClick={() => window.print()}>
                 Print report
               </button>
             </div>
@@ -184,6 +207,7 @@ function List() {
               The PDF could not be built. Try again.
             </p>
           )}
+          <SummaryStrip shown={shown} />
           {shown.length === 0 ? (
             <p className="mt-6 text-[14px] text-ink-dim">No finding matches those filters.</p>
           ) : (
@@ -208,6 +232,16 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
   const Glyph = GLYPH[tone]
   const selected = useAppStore((s) => s.selectedFinding === f.id)
   const [copied, setCopied] = useState(false)
+  const current = useTerrain((s) => s.surveys.current)
+  const baseline = useTerrain((s) => s.surveys.baseline)
+  const limits = useTerrain((s) => s.limits)
+  const detail = useMemo(
+    () => (current && baseline && limits ? findingDetail(f, current, baseline, limits) : null),
+    [f, current, baseline, limits],
+  )
+  const meanChange = detail
+    ? `${detail.meanDh > 0 ? '+' : ''}${n(detail.meanDh, 2)} ± ${n(detail.dhSigma, 2)} m (1σ)`
+    : '-'
 
   const copyLink = async () => {
     try {
@@ -238,10 +272,14 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
           ['Area', `${n(f.areaM2)} m²`],
           ['Volume', `${n(f.volumeM3)} m³`],
           ['Max excess', `${n(f.maxExceedance, 1)} m`],
+          ['Cells', n(f.cells.length)],
+          ['Mean change', meanChange],
         ].map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {value} <ProvenanceTag value="derived" />
+            </dd>
           </div>
         ))}
       </dl>
@@ -253,13 +291,9 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
           {copied ? 'Link copied' : 'Copy link'}
         </button>
       </div>
-      <details className="frow-more">
-        <summary>Why it was flagged</summary>
-        <p>{f.explanation}</p>
-        <p className="mt-2 font-mono text-[11.5px] text-ink-faint">
-          Centre E {n(f.centroid.x)} m, N {n(f.centroid.y)} m
-        </p>
-      </details>
+      {current && baseline && limits && (
+        <FindingDetails f={f} current={current} baseline={baseline} limits={limits} />
+      )}
     </li>
   )
 }
