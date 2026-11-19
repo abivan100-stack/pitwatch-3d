@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: terrain textures are disposed only when replaced or unmounted (ticket #62)
+
+- `Terrain` had one cleanup that disposed both survey textures and the three materials whenever any of them changed. When only the morph target changed, it disposed the current survey's texture while the new materials still drew it, which forced a re-upload and mipmap rebuild. Each texture now has its own effect, keyed on itself, and the materials keep theirs. Nothing on screen changes. No path in the app reaches the morph-only case today: the terrain store sets both surveys together, once, and a retry runs only from the error state, before `Terrain` mounts. The fix is defensive, and the morph-only case is justified by this trace: with the split, a change to `texture2` or `materials` runs only those cleanups, and `texture` is disposed only when it is replaced or on unmount.
+- Tests: new `e2e/terrain-textures.spec.ts` counts textures per WebGL context by wrapping `createTexture`, `deleteTexture`, `bindTexture` and the upload calls. R3F releases a canvas's context on unmount, which frees GPU memory without per-texture deletes, so the test asserts per context. Over three map visits it checks that both aerial-image textures (at least 64 px wide, filled from a pixel array) were deleted before each map context went, and that every visit holds the same number of live textures (14 at the 3D map). three.js's 1×1 placeholder textures last for the whole context and are excluded by size. With the two new texture effects removed, the check fails with 2 aerial textures left undeleted. It also passes on the old shared cleanup, which disposed on unmount too, so it guards unmount disposal, not the morph-only case.
+- Checks: `npm run verify` passes (207 unit tests in 25 files). As agreed, testing was kept short and the full browser run was not repeated. The new spec plus `terrain-picking`, `canvas`, `landing-terrain`, `retry` and `home` pass (13 checks).
+
 ### 2026-11-19: shared links stay in sync with the selected finding (#58)
 
 - Overview and Findings controls open the map at the selected finding's address. A map selection replaces the current history entry. Back and Forward restore the finding from the address, or clear the selection when the address has no valid finding.

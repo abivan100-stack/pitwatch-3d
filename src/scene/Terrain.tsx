@@ -303,15 +303,18 @@ export function Terrain({
     },
     [geometry],
   )
+  // Each resource is disposed only when it is itself replaced or the terrain unmounts. New
+  // materials keep drawing an unchanged texture, so a shared cleanup would dispose a texture
+  // still in use whenever only the other survey changed, and force a re-upload.
+  useEffect(() => () => texture?.dispose(), [texture])
+  useEffect(() => () => texture2?.dispose(), [texture2])
   useEffect(
     () => () => {
-      texture?.dispose()
-      texture2?.dispose()
       materials.surface.dispose()
       materials.skirt.dispose()
       materials.depth.dispose()
     },
-    [texture, texture2, materials],
+    [materials],
   )
 
   // Without an aerial image the tint is the only colouring available.
