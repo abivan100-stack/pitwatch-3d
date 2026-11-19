@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 
 // The 3D model used to be a tile floating on the page: the surveyed block ended in a cut and
 // nothing lay beyond it. It now sits in decorative natural ground (the apron) that fades into the
-// page, with a hairline where the surveyed area ends. The apron is scenery: it is never read, so
-// it must take no click and the Inspector must treat a point on it as outside the survey.
+// page, with a hairline where the surveyed area ends. The apron is scenery, never surveyed: a click
+// on it must not read the ground behind it, and the Inspector must report it as outside the survey.
 
 test.use({ reducedMotion: 'reduce' })
 test.describe.configure({ timeout: 180_000 })
@@ -111,7 +111,7 @@ test('the key says where the surveyed area ends', async ({ page }) => {
   })
 })
 
-test('the apron takes no click, and a point on it is outside the survey', async ({ page }) => {
+test('a click or a typed point on the apron is read as outside the survey', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/#/monitor')
   const camera = page.getByRole('group', { name: 'Camera view' })
@@ -138,14 +138,28 @@ test('the apron takes no click, and a point on it is outside the survey', async 
   await page.keyboard.press(']')
   await expect(inspector).toBeHidden()
 
-  // The apron lies either side of the block at the Top preset: a click on it reads nothing.
-  for (const x of [100, 1340]) await page.mouse.click(x, 450)
+  // The apron lies either side of the block at the Top preset. A click there picks a point west
+  // (or east) of the grid, and the Inspector says it has no reading there.
+  const east = page.getByLabel('East', { exact: true })
+  for (const [x, outside] of [
+    [100, (v: number) => v < 0],
+    [1340, (v: number) => v > 2048],
+  ] as const) {
+    await page.mouse.click(x, 450)
+    await showInspector()
+    await expect(inspector.getByText('Selected point')).toBeVisible()
+    expect(outside(Number(await east.inputValue()))).toBe(true)
+    await expect(
+      page.getByText('No reading here: the point is outside the survey grid.'),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.keyboard.press(']')
+    await expect(inspector).toBeHidden()
+  }
   await showInspector()
-  await expect(inspector.getByText('Nothing selected')).toBeVisible()
-  await expect(inspector.getByText('Selected point')).toHaveCount(0)
 
   // A typed point on the apron is read as outside the surveyed grid, in today's words.
-  await page.getByLabel('East', { exact: true }).fill('-1500')
+  await east.fill('-1500')
   await page.getByLabel('North', { exact: true }).fill('1000')
   await page.getByRole('button', { name: 'Read point' }).click()
   await expect(page.locator('form').getByRole('status')).toContainText(

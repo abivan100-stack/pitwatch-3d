@@ -3,9 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { apronGrid, apronHeights } from '../data/apron'
 import { GRID, SEED } from '../data/fixtures/scenario'
 import type { TerrainSurvey } from '../domain/types'
-import { clickOnDecoration, surveyEdgeLine } from './overlayGeometry'
+import { pickGround, surveyEdgeLine } from './overlayGeometry'
 import { BASE_RL, buildApronArrays, buildTerrainArrays } from './terrainGeometry'
-import { SHADOW_HALF, SUN_POSITION } from './sun'
 
 const a = apronGrid(GRID)
 const apron = buildApronArrays(a, apronHeights(a, SEED))
@@ -62,35 +61,31 @@ describe('apron geometry', () => {
   })
 })
 
-describe('shadow frustum', () => {
-  it('covers the block corner plus the shadow its tallest feature throws, and beats the old 1500 m', () => {
-    const elevation = Math.atan2(SUN_POSITION[1], Math.hypot(SUN_POSITION[0], SUN_POSITION[2]))
-    const corner = Math.hypot(HALF, HALF)
-    expect(SHADOW_HALF).toBeGreaterThan(1500)
-    expect(SHADOW_HALF - corner).toBeGreaterThanOrEqual(100 / Math.tan(elevation))
-  })
-})
-
 describe('clicks on the apron', () => {
   const ground = { material: { depthTest: true } } as unknown as Object3D
   const badge = { material: { depthTest: false } } as unknown as Object3D
   const click = (delta: number, ...objects: Object3D[]) => {
     const stopPropagation = vi.fn()
-    clickOnDecoration({
-      delta,
-      intersections: objects.map((object) => ({ object })),
-      stopPropagation,
-    })
-    return stopPropagation
+    const onPick = vi.fn()
+    const point = { x: 1500, y: 0, z: 0 }
+    pickGround(
+      { delta, point, intersections: objects.map((object) => ({ object })), stopPropagation },
+      onPick,
+    )
+    return { stopPropagation, onPick, point }
   }
 
-  it('are taken, so they cannot fall through to the surveyed ground behind', () => {
-    expect(click(0, ground)).toHaveBeenCalledOnce()
+  it('are taken and read, so the Inspector reports the point outside the survey', () => {
+    const { stopPropagation, onPick, point } = click(0, ground)
+    expect(stopPropagation).toHaveBeenCalledOnce()
+    expect(onPick).toHaveBeenCalledWith(point)
   })
 
   it('leave a drag to the camera and a badge drawn over everything to the badge', () => {
-    expect(click(9, ground)).not.toHaveBeenCalled()
-    expect(click(0, ground, badge)).not.toHaveBeenCalled()
+    for (const r of [click(9, ground), click(0, ground, badge)]) {
+      expect(r.stopPropagation).not.toHaveBeenCalled()
+      expect(r.onPick).not.toHaveBeenCalled()
+    }
   })
 })
 

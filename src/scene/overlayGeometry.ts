@@ -71,23 +71,25 @@ export function surveyEdgeLine(survey: TerrainSurvey, ex: number) {
   return leaseLine(survey, [min, { x: max.x, y: min.y }, max, { x: min.x, y: max.y }], ex)
 }
 
-/** The part of an R3F click event the decoration handler reads. */
-interface ClickLike {
+/** The part of an R3F click event the pick handler reads. */
+interface ClickLike<P> {
   delta: number
+  point: P
   intersections: { object: Object3D }[]
   stopPropagation(): void
 }
 
 /**
- * Click handler for ground that is drawn but was never surveyed (the apron). A click on it reads
- * nothing, and it must not fall through to the surveyed ground behind it: only what is drawn at
- * the pointer can be clicked. A drag is a camera move, and a badge drawn over everything wins the
- * click as it does over the terrain, so neither is stopped here.
+ * Click handler for drawn ground, surveyed or not (the apron). A drag is a camera move, and a badge
+ * drawn over everything (no depth test) is what the visitor sees, so both pass on. Anything else is
+ * a pick of this ground, and stops here: it must not fall through to ground behind it. A pick on the
+ * apron is off the survey grid, which the Inspector reports as such.
  */
-export function clickOnDecoration(e: ClickLike) {
+export function pickGround<P>(e: ClickLike<P>, onPick: (point: P) => void) {
   if (e.delta > 4) return
   if (e.intersections.some((i) => drawnOnTop(i.object))) return
   e.stopPropagation()
+  onPick(e.point)
 }
 
 /**

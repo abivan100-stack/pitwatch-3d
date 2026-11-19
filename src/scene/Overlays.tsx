@@ -171,7 +171,7 @@ export function Overlays({ survey }: { survey: TerrainSurvey }) {
 
   return (
     <>
-      <SurveyEdge survey={survey} ex={ex} />
+      {layers.terrain && <SurveyEdge survey={survey} ex={ex} />}
       {layers.lease && lease && <Line points={lease} color={OVERLAY.lease} lineWidth={2.5} />}
       {layers.buffer && buffer && buffer.length > 0 && (
         <Line

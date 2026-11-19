@@ -1,4 +1,4 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { APRON_FADE_M, apronGrid, apronHeights } from '../data/apron'
@@ -6,7 +6,7 @@ import { SEED } from '../data/fixtures/scenario'
 import type { Orthophoto, TerrainSurvey } from '../domain/types'
 import { useAppStore } from '../state/store'
 import type { TerrainMarks } from './marks'
-import { clickOnDecoration, drawnOnTop } from './overlayGeometry'
+import { pickGround } from './overlayGeometry'
 import { OVERLAY, ROCK, SOIL_PROFILE } from './palette'
 import {
   ROCK_DETAIL_COLOR,
@@ -222,6 +222,8 @@ function apronFor(g: TerrainSurvey['grid']) {
   let hit = apronCache.get(key)
   if (!hit) {
     const a = apronGrid(g)
+    // ponytail: the apron is the synthetic site's natural ground (fixture SEED) whatever the
+    // provider; a real survey provider needs its own surrounding ground or a flat apron.
     hit = buildApronArrays(a, apronHeights(a, SEED))
     apronCache.set(key, hit)
   }
@@ -436,6 +438,9 @@ export function Terrain({
   })
 
   const shown = visible ?? layers.terrain
+  // R3F and three raycast invisible objects too, so hidden ground must drop its handler: without
+  // one the mesh leaves R3F's interaction list and takes no clicks.
+  const pick = onPick && shown ? (e: ThreeEvent<MouseEvent>) => pickGround(e, onPick) : undefined
   return (
     <group scale={[1, exaggeration, 1]} visible={shown}>
       <mesh
@@ -444,31 +449,12 @@ export function Terrain({
         customDepthMaterial={materials.depth}
         castShadow
         receiveShadow
-        // R3F and three raycast invisible objects too, so a hidden surface must drop its
-        // handler: without one the mesh leaves R3F's interaction list and takes no clicks.
-        onClick={
-          onPick && shown
-            ? (e) => {
-                if (e.delta > 4) return // a drag, not a click
-                // A badge drawn through the ground (no depth test) is what the visitor sees
-                // under the pointer, so let the click pass on to it instead of reading the wall.
-                if (e.intersections.some((i) => drawnOnTop(i.object))) return
-                e.stopPropagation()
-                onPick(e.point)
-              }
-            : undefined
-        }
+        onClick={pick}
       />
       <mesh geometry={geometry.skirt} material={materials.skirt} receiveShadow />
-      {/* Decorative ground outside the survey. It is drawn, so it is also a click target that
-          reads nothing: otherwise a click where it stands in front of the surveyed ground would
-          pick that ground behind it. Badges drawn over everything still win, as on the terrain. */}
-      <mesh
-        geometry={apronGeometry}
-        material={apronMaterial}
-        receiveShadow
-        onClick={onPick && shown ? clickOnDecoration : undefined}
-      />
+      {/* Decorative ground outside the survey. It is drawn, so it is also a click target: a click
+          on it reads an off-grid point instead of the surveyed ground behind it. */}
+      <mesh geometry={apronGeometry} material={apronMaterial} receiveShadow onClick={pick} />
     </group>
   )
 }

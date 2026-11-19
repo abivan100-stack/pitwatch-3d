@@ -202,9 +202,13 @@ test('coordinate announcements clear on a terrain pick, tool switch, and Clear',
   if (!stage) throw new Error('The map stage is missing')
   const x = stage.x + stage.width * 0.45
   const y = stage.y + stage.height * 0.38
-  await page.mouse.move(x, y)
-  await page.mouse.click(x, y)
-  await expect(east).not.toHaveValue('5000')
+  // The camera group shows before the lazy scene takes clicks, so repeat the click until the pick
+  // lands. The fields hold 5000 until a pick replaces them, so this cannot pass early.
+  await expect(async () => {
+    await page.mouse.move(x, y)
+    await page.mouse.click(x, y)
+    await expect(east).not.toHaveValue('5000', { timeout: 2_000 })
+  }).toPass({ timeout: 60_000 })
   await expect(north).not.toHaveValue('5000')
   await expect(
     page.getByText('No reading here: the point is outside the survey grid.'),
