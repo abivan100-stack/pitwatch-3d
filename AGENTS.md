@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: Inspector verdict uses the same cell as its findings (#53)
+
+- The Inspector reads the engine's change classification and finding IDs from the same cell. The point change still shows the interpolated elevation difference and its propagated vertical uncertainty. The verdict names the cell centre and its threshold. A point outside the sampled grid shows no cell verdict or finding links.
+- Small-grid regressions cover the unchanged cell centre, a point 4 m off-centre with a −0.60 m interpolated change in an excavated cell, and a point half a cell outside a flagged edge. Both tests failed before the fix. The engine and survey fixtures are unchanged.
+- Verification passed with 202 unit tests, the existing snapshot of all five findings, and all 79 Playwright tests. On the dev server at 1440, 1100 and 800 px, an off-centre point in a flagged cell showed its finding and excavation verdict, and an off-grid point showed neither. No browser page errors were reported.
+
 ### 2026-11-19: read-only bug check of the whole repo, spec #52 and tickets #53–#62
 
 - `docs/bug-check-2026-11-19.md` records twelve findings and labels the evidence for each. Three were traced in code only: clicks on badges drawn through pit walls, exaggeration changes during camera flights, and terrain texture disposal. A probe reproduced the Inspector showing a finding alongside "No significant change."
