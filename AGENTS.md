@@ -54,8 +54,8 @@ Newest first.
 
 - `.stamp` in `src/index.css` loses its border, tinted background, padding, radius and bold weight. It is now plain mono text at the landing `.sim-note` size and colour (`--color-ink-faint`, already AA on the paper tokens), with the dot kept. The header markup, the exact label and the `title` tooltip are unchanged, and the text is not `aria-hidden`. `.sim-note` is untouched.
 - This deliberately undoes the 2026-10-30 choice to make the stamp match the status chip: the two no longer read as a pair.
-- Tests: `e2e/badge.spec.ts` now also runs at 1100 px and, on the dashboard, asserts no border, a transparent background, no `aria-hidden` and no horizontal overflow. Revert proof: with the `index.css` change stashed, the check fails (`border-top-width` expected 0px, received 1px); restored, it passes.
-- Checks: badge (4) and a11y (9) browser specs pass on port 4202, with axe clean on every dashboard page. Overflow is asserted at 390, 800, 1100 and 1440 px; no separate screenshot review was done. `npm run verify` under load timed out 5 terrain-generation unit tests unrelated to this change (see PR).
+- Tests: `e2e/badge.spec.ts` now also runs at 1100 px. At each of 390, 800, 1100 and 1440 px it opens all six dashboard pages and checks five things on each: the badge is visible; it has no border and a transparent background; it is not `aria-hidden`; the `title` is unchanged; and the page has no horizontal overflow. Revert proof: against `main`'s `index.css` the check fails (`border-top-width` expected 0px, received 1px); with the change it passes.
+- Checks: `npm run verify` passes (210 unit tests in 25 files). `badge` (4) and `a11y` (13) pass, so axe reports no critical or serious violation on any dashboard page with the new badge colour (`--color-ink-faint`). These were rerun after the parallel design wave was stopped; under that load the first run had timed out terrain-generation tests and the engine-dependent axe pages.
 
 ### 2026-11-19: two fixes recovered from unmerged October branches
 
