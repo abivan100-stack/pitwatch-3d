@@ -288,6 +288,10 @@ function Details() {
           provenance="simulated"
         />
       </dl>
+      <p className="mt-3 text-[12.5px] leading-5 text-ink-faint">
+        The ground around the surveyed area on the 3D model is decorative, simulated scenery. It is
+        not measured, and no figure on this page uses it.
+      </p>
     </details>
   )
 }
