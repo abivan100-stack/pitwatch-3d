@@ -106,7 +106,26 @@ export function ThresholdNote() {
 }
 
 /** What the three severity shapes mean. */
-export function SeverityLegend({ className = 'space-y-2' }: { className?: string }) {
+export function SeverityLegend({
+  className = 'space-y-2',
+  compact = false,
+}: {
+  className?: string
+  compact?: boolean
+}) {
+  if (compact)
+    return (
+      <ul className={`sev-compact ${className}`}>
+        {LEGEND.map(({ Glyph, name, tone, meaning }) => (
+          <li key={name} className={`sev-line ${tone}`}>
+            <Glyph className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              <b>{name}</b> <span className="sev-meaning">{meaning}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
   return (
     <ul className={className}>
       {LEGEND.map(({ Glyph, name, tone, meaning }) => (
@@ -147,7 +166,7 @@ export function FindingsPanel() {
       </Section>
       <div className="divider" />
       <Section title="How findings are marked">
-        <SeverityLegend />
+        <SeverityLegend compact className="" />
       </Section>
     </>
   )

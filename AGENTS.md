@@ -50,6 +50,14 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the map panel's severity legend is one small line per severity (issue #67)
+
+- `SeverityLegend` gains a `compact` prop (default off). The Findings tab in the 3D map panel uses it: glyph (14 px), name and meaning on one line at 12 px, wrapping only when the panel is narrow, no tinted or padded blocks. The severity colour stays on the glyph and name; the meaning uses `--color-ink-dim`. Wording unchanged, still the last section after the threshold note. The Findings page keeps the full legend (`.sev-row`, unchanged). New CSS is the `.sev-line` block in `src/index.css`.
+- Test: `e2e/finding-evidence.spec.ts` gains one check: three compact lines, the legend is the last section of the tab, text at most 12 px, height at most 120 px, and `/#/findings` still has three `.sev-row` and no `.sev-line`.
+- Revert proof: with `FindingsPanel.tsx` restored to `main`, the check fails at `expect(lines).toHaveCount(3)` (received 0); restored afterwards.
+- Measured legend rows (1440 × 900, five findings): 76 px (budget 120). Also 76 px at 800 and 390, 92 px at 1100 and 360 where one meaning wraps. No horizontal overflow on the map or Findings page at 1440, 1100, 800, 390 and 360 px; no console errors.
+- Checks: `npm run verify` passes; `e2e/finding-evidence.spec.ts` 3 of 3 pass on port 4203. Full `test:e2e` not run (CI runs it). Contrast of `--color-ink-dim` on the panel was not re-measured; it is the token the old legend already used.
+
 ### 2026-11-19: two fixes recovered from unmerged October branches
 
 - A branch cleanup found two Codex commits from 2026-10-24 that never reached `main` and still applied: `8c77504` from `codex/issue-21-colors` and `99e5133` from `codex/issue-21-findings-copy`. Both are cherry-picked here with `-x`. The other two unmerged branches added nothing: `codex/issue-36-e2e` is already in `main`, and `codex/issue-21-homepage` only merged these two plus a test fix and a log entry that are both obsolete. All four branches were then deleted.

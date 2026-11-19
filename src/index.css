@@ -600,6 +600,24 @@ body {
     background: color-mix(in srgb, var(--tone) 7%, transparent);
     color: var(--tone);
   }
+  .sev-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 2px 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tone);
+  }
+  .sev-line > svg {
+    margin-top: 1px;
+  }
+  .sev-line b {
+    font-weight: 600;
+  }
+  .sev-meaning {
+    color: var(--color-ink-dim);
+  }
   .sev-warn {
     --tone: var(--color-warn);
   }
