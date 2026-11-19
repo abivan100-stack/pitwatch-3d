@@ -52,10 +52,10 @@ Newest first.
 
 ### 2026-11-19: read-only bug check of the whole repo, spec #52 and tickets #53–#62
 
-- Report: `docs/bug-check-2026-11-19.md`. Twelve confirmed defects, most severe first: hidden terrain still takes clicks; the Inspector can list a finding beside "No significant change" (bilinear verdict vs nearest-cell findings, reproduced with a probe); Escape on the phone drawer also clears the measurement; the coordinate form keeps a stale status; rounded figures contradict their verdicts (Inspector, Uncertainty); Back after Show on map desyncs a shared link; badges drawn through a pit wall lose the click to the terrain; the landing date bar dates a blend; a second `?` drops a shared finding; exaggeration during a flight is lost; a texture can be disposed while in use; the ramp builder throws if its first point is rejected (latent). Plausible-only items and the clean areas are listed in the report.
+- `docs/bug-check-2026-11-19.md` records twelve findings and labels the evidence for each. Three were traced in code only: clicks on badges drawn through pit walls, exaggeration changes during camera flights, and terrain texture disposal. A probe reproduced the Inspector showing a finding alongside "No significant change."
 - No source, test or fixture changed. Spec #52 and ten `ready-for-agent` sub-issues #53–#62 on `abivan100-stack/pitwatch-3d`; #62 is natively blocked by #55 (same terrain component).
 - `origin` is `abivan100-stack/pitwatch-3d`, the only remote; the header above and `docs/agents/issue-tracker.md` now say so instead of describing the `Raghav2012Code/pitwatch` fork, and `gh repo set-default` points at origin.
-- Checks: `npm run verify` passes (200 unit tests in 25 files); `npm audit --omit=dev` finds 0 vulnerabilities; `npm run test:e2e --workers=2` passed 78 of 79 while the review's Vitest runs loaded the machine, with `retry.spec.ts` timing out waiting for the engine; both retry checks pass alone (44.5 s). Not one clean full browser run.
+- `npm run verify` passed 200 unit tests in 25 files, and `npm audit --omit=dev` found 0 vulnerabilities. In the full browser run, 78 of 79 checks passed and `retry.spec.ts` timed out waiting for the engine. Both retry checks passed in isolation (44.5 s). The cause of the timeout remains unverified.
 
 ### 2026-11-19: Inspector and profile agree on survey uncertainty (fork ticket #41)
 
