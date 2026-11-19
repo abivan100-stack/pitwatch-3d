@@ -1917,7 +1917,7 @@ body {
       to bottom,
       var(--color-oxide) 0 2px,
       var(--color-ochre) 2px 3px,
-      color-mix(in srgb, var(--color-ink) 65%, var(--color-bg) 35%) 3px 5px
+      var(--layer-3) 3px 5px
     );
   }
   .landing-brand {
@@ -2286,7 +2286,7 @@ body {
       to bottom,
       var(--color-oxide) 0 2px,
       var(--color-ochre) 2px 3px,
-      color-mix(in srgb, var(--color-ink) 65%, var(--color-bg) 35%) 3px 5px
+      var(--layer-3) 3px 5px
     );
   }
   .landing-close :focus-visible {
