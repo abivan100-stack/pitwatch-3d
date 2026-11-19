@@ -70,11 +70,15 @@ function DetailBody({ f, current, baseline, limits }: { f: ComplianceFinding } &
     () => findingDetail(f, current, baseline, limits),
     [f, current, baseline, limits],
   )
-  const pm = `± ${n(d.dhSigma, 2)} m`
+  const pm = `± ${n(d.dhSigma, 2)} m (1σ)`
   const peakLabel = f.ruleId === 'R3' ? 'Highest cell' : 'Deepest cell'
   const e = (p: { x: number; y: number }) => `E ${n(p.x)} m, N ${n(p.y)} m`
   const sigmaV = current.verticalUncertainty
-  const side = d.where.insideLease ? 'inside' : 'outside'
+  const band = `± ${n(current.horizontalUncertainty, 2)} m (1σ)`
+  const where =
+    d.where.leaseSide === 'unconfirmed'
+      ? `${n(d.where.leaseDistance, 2)} m, side not confirmed: within the ${n(2 * current.horizontalUncertainty, 2)} m (2σ) band`
+      : `${n(d.where.leaseDistance, 2)} m ${d.where.leaseSide} ${band}`
 
   return (
     <div className="fd-grid">
@@ -83,7 +87,7 @@ function DetailBody({ f, current, baseline, limits }: { f: ComplianceFinding } &
         <dl>
           <Row
             label="Cells"
-            value={`${n(d.cellCount)} of ${n(current.grid.cellSize)} m`}
+            value={`${n(d.cellCount)} cells, ${n(current.grid.cellSize)} m grid`}
             prov="derived"
           />
           <Row label="Mean change" value={`${signed(d.meanDh, 2)} m ${pm}`} prov="derived" />
@@ -91,12 +95,12 @@ function DetailBody({ f, current, baseline, limits }: { f: ComplianceFinding } &
           <Row label="Highest change" value={`${signed(d.maxDh, 2)} m ${pm}`} prov="derived" />
           <Row
             label={`Baseline level, ${peakLabel.toLowerCase()}`}
-            value={`${n(d.peak.baseline, 1)} m RL ± ${n(baseline.verticalUncertainty, 2)} m`}
+            value={`${n(d.peak.baseline, 1)} m RL ± ${n(baseline.verticalUncertainty, 2)} m (1σ)`}
             prov="simulated"
           />
           <Row
             label={`Current level, ${peakLabel.toLowerCase()}`}
-            value={`${n(d.peak.current, 1)} m RL ± ${n(sigmaV, 2)} m`}
+            value={`${n(d.peak.current, 1)} m RL ± ${n(sigmaV, 2)} m (1σ)`}
             prov="simulated"
           />
           <Row
@@ -137,11 +141,7 @@ function DetailBody({ f, current, baseline, limits }: { f: ComplianceFinding } &
         <h4>Where</h4>
         <dl>
           <Row label="Centre" value={e(d.where.centroid)} prov="derived" />
-          <Row
-            label="Distance to lease boundary"
-            value={`${n(d.where.leaseDistance)} m ${side} ± ${n(current.horizontalUncertainty, 2)} m`}
-            prov="derived"
-          />
+          <Row label="Distance to lease boundary" value={where} prov="derived" />
           {d.where.pitZoneId && (
             <Row
               label="Pit zone"

@@ -80,7 +80,7 @@ test('the summary strip totals follow the filters and match the rows and the CSV
     .reduce((a, r) => a + num(r[col('volume_m3')]!), 0)
   expect(Math.abs((await value('Area flagged')) - areaCsv)).toBeLessThanOrEqual(3)
   expect(Math.abs((await value('Fill volume')) - fill)).toBeLessThanOrEqual(3)
-  expect(Math.abs((await value('Excavated volume')) - cut)).toBeLessThanOrEqual(3)
+  expect(Math.abs((await value('Cut and below-floor volume')) - cut)).toBeLessThanOrEqual(3)
 
   // Filtering to R3 leaves only the fill volume.
   await page
@@ -88,7 +88,7 @@ test('the summary strip totals follow the filters and match the rows and the CSV
     .getByRole('button', { name: 'R3', exact: true })
     .click()
   await expect(page.locator('li.frow')).toHaveCount(1)
-  expect(await value('Excavated volume')).toBe(0)
+  expect(await value('Cut and below-floor volume')).toBe(0)
   expect(await value('Fill volume')).toBeGreaterThan(0)
 })
 

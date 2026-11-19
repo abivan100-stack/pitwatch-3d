@@ -66,9 +66,17 @@ describe('findingDetail measurements', () => {
     expect(d.peak).toMatchObject({ p: { x: 0, y: 0 }, baseline: 100, current: 97, dh: -3 })
   })
 
-  it('reports the lowest ground as the peak of a depth finding', () => {
+  it('reports the lowest ground as the peak of a depth finding, not the deepest cut', () => {
+    // Cell 0 is the lowest ground (89 m) but cell 1 lost the most (5 m): R2 is about the floor.
+    const before = survey('baseline', [90, 100, ...flat(100).slice(2)])
+    const after = survey('current', [89, 95, ...flat(100).slice(2)])
     const f = finding({ ruleId: 'R2', cells: [0, 1] })
-    expect(findingDetail(f, cur, base, limits()).peak.p).toEqual({ x: 0, y: 0 })
+    expect(findingDetail(f, after, before, limits()).peak.p).toEqual({ x: 0, y: 0 })
+    // An R1 finding on the same cells peaks at the deepest cut instead.
+    expect(findingDetail(finding({ cells: [0, 1] }), after, before, limits()).peak.p).toEqual({
+      x: 10,
+      y: 0,
+    })
   })
 
   it('reports the highest fill as the peak of a dumping finding', () => {
@@ -79,8 +87,16 @@ describe('findingDetail measurements', () => {
 
   it('measures the centroid against the lease boundary', () => {
     const d = findingDetail(finding({ centroid: { x: 50, y: 0 } }), cur, base, limits())
-    expect(d.where.insideLease).toBe(false)
+    expect(d.where.leaseSide).toBe('outside')
     expect(d.where.leaseDistance).toBeCloseTo(15)
+  })
+
+  it('does not claim a side when the centroid is within the 2σ band of the boundary', () => {
+    // Lease edge at x = 35; horizontal σ 0.1 m, so the 2σ band is 0.2 m.
+    const near = findingDetail(finding({ centroid: { x: 35.15, y: 10 } }), cur, base, limits())
+    expect(near.where.leaseSide).toBe('unconfirmed')
+    const clear = findingDetail(finding({ centroid: { x: 34.5, y: 10 } }), cur, base, limits())
+    expect(clear.where.leaseSide).toBe('inside')
   })
 })
 

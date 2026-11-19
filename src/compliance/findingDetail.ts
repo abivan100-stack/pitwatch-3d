@@ -1,7 +1,9 @@
 import type { ComplianceFinding, PermittedLimits, TerrainSurvey, Vec2 } from '../domain/types'
 import { centerOfIndex } from '../geo/grid'
-import { distanceToBoundary, pointInPolygon, polygonArea } from '../geo/polygon'
+import { distanceToBoundary, polygonArea } from '../geo/polygon'
 import { COMPLIANCE_CONFIG, type ComplianceConfig, type SeverityThresholds } from './config'
+import { severityOf } from './engine'
+import { leaseVerdict, type LeaseVerdict } from './inspect'
 import { combinedSigma } from './uncertainty'
 
 export type SeverityMeasure = 'area' | 'volume' | 'exceedance'
@@ -31,9 +33,10 @@ export interface FindingDetail {
   rating: { line: 'critical' | 'medium' | null; measures: RatingMeasure[] }
   where: {
     centroid: Vec2
-    /** Distance from the centroid to the lease boundary, metres, and which side it is on. */
+    /** Distance from the centroid to the lease boundary, metres. */
     leaseDistance: number
-    insideLease: boolean
+    /** Side of the lease the centroid can honestly claim, within the k·σ horizontal band. */
+    leaseSide: LeaseVerdict
     pitZoneId?: string
     pitFloor?: number
   }
@@ -43,7 +46,10 @@ function ratingOf(
   f: ComplianceFinding,
   cfg: ComplianceConfig,
 ): { line: 'critical' | 'medium' | null; measures: RatingMeasure[] } {
-  const line = f.status === 'violation' ? 'critical' : 'medium'
+  // The engine decides the rating; this only lists the measures behind it, so the two cannot drift.
+  const severity = severityOf(f.status, f.areaM2, f.volumeM3, f.maxExceedance, cfg)
+  if (severity !== 'critical' && severity !== 'medium') return { line: null, measures: [] }
+  const line = severity
   const t: SeverityThresholds = line === 'critical' ? cfg.critical : cfg.mediumWarning
   const measures = (
     [
@@ -54,8 +60,7 @@ function ratingOf(
   )
     .filter(([, value, threshold]) => value >= threshold)
     .map(([measure, value, threshold]) => ({ measure, value, threshold }))
-  // Severity is critical/medium exactly when at least one measure reached the line.
-  return measures.length ? { line, measures } : { line: null, measures: [] }
+  return { line, measures }
 }
 
 /** Measurements, rating basis and location for one finding. Pure; both surveys share a grid. */
@@ -103,7 +108,7 @@ export function findingDetail(
     where: {
       centroid: c,
       leaseDistance: distanceToBoundary(c, limits.leaseBoundary),
-      insideLease: pointInPolygon(c, limits.leaseBoundary),
+      leaseSide: leaseVerdict(c, limits.leaseBoundary, current.horizontalUncertainty, cfg.k),
       ...(zone ? { pitZoneId: zone.id, pitFloor: zone.approvedFloorElevation } : {}),
     },
   }

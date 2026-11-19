@@ -75,9 +75,9 @@ function SummaryStrip({ shown }: { shown: readonly ComplianceFinding[] }) {
       <dl>
         {[
           ['Area flagged', `${n(t.areaM2)} m²`],
-          ['Excavated volume', `${n(t.excavatedM3)} m³`],
+          ['Cut and below-floor volume', `${n(t.excavatedM3)} m³`],
           ['Fill volume', `${n(t.filledM3)} m³`],
-          ['Share of lease area', `${n(t.leaseShare * 100, 1)}%`],
+          ['Flagged area ÷ lease area', `${n(t.leaseShare * 100, 1)}%`],
         ].map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
@@ -86,8 +86,9 @@ function SummaryStrip({ shown }: { shown: readonly ComplianceFinding[] }) {
         ))}
       </dl>
       <p>
-        <ProvenanceTag value="derived" /> Shown findings, surveys {dates}. Excavated is R1 and R2
-        volume; fill is R3. The verdict and the boundary-violation volume are on the{' '}
+        <ProvenanceTag value="derived" /> Shown findings, surveys {dates}. Cut and below-floor is R1
+        volume removed plus R2 volume below the approved floor; fill is R3. Flagged area includes
+        ground outside the lease. The verdict and the boundary-violation volume are on the{' '}
         <a href={OVERVIEW_HREF}>Overview</a>.
       </p>
     </section>
@@ -239,7 +240,7 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
     [f, current, baseline, limits],
   )
   const meanChange = detail
-    ? `${detail.meanDh > 0 ? '+' : ''}${n(detail.meanDh, 2)} ± ${n(detail.dhSigma, 2)} m`
+    ? `${detail.meanDh > 0 ? '+' : ''}${n(detail.meanDh, 2)} ± ${n(detail.dhSigma, 2)} m (1σ)`
     : '-'
 
   const copyLink = async () => {
@@ -276,7 +277,9 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
         ].map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {value} <ProvenanceTag value="derived" />
+            </dd>
           </div>
         ))}
       </dl>
