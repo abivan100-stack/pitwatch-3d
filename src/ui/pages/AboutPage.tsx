@@ -104,8 +104,11 @@ export function AboutPage() {
             <p className="mt-3 max-w-[34rem] text-[15px] leading-7 text-ink-dim">
               The terrain, both surveys and every finding are generated from a fixed random seed, so
               the same scenario appears every time. The aerial image draped on the 3D model is
-              simulated too: it is painted from the synthetic surface, not photographed. Use it to
-              judge the method, not any real site.
+              simulated too: it is painted from the synthetic surface, not photographed. The ground
+              around the surveyed area on the 3D model is decorative, simulated scenery outside the
+              thin line that marks the survey edge; it is not measured, and the findings, the
+              Inspector, the measurements and the exports never use it. Use it to judge the method,
+              not any real site.
             </p>
           </section>
 

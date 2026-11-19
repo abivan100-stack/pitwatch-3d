@@ -1,6 +1,6 @@
 import type { Object3D } from 'three'
 import type { ComplianceFinding, GridSpec, Polygon, TerrainSurvey, Vec2 } from '../domain/types'
-import { centerOfIndex, sampleBilinear } from '../geo/grid'
+import { centerOfIndex, extent, sampleBilinear } from '../geo/grid'
 import { focusPose, type Pose } from './presets'
 import { BASE_RL, toScene } from './terrainGeometry'
 
@@ -63,6 +63,33 @@ export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number) {
     }
   }
   return pts
+}
+
+/** The edge of the surveyed area: where the survey ends and the decorative apron begins. */
+export function surveyEdgeLine(survey: TerrainSurvey, ex: number) {
+  const { min, max } = extent(survey.grid)
+  return leaseLine(survey, [min, { x: max.x, y: min.y }, max, { x: min.x, y: max.y }], ex)
+}
+
+/** The part of an R3F click event the pick handler reads. */
+interface ClickLike<P> {
+  delta: number
+  point: P
+  intersections: { object: Object3D }[]
+  stopPropagation(): void
+}
+
+/**
+ * Click handler for drawn ground, surveyed or not (the apron). A drag is a camera move, and a badge
+ * drawn over everything (no depth test) is what the visitor sees, so both pass on. Anything else is
+ * a pick of this ground, and stops here: it must not fall through to ground behind it. A pick on the
+ * apron is off the survey grid, which the Inspector reports as such.
+ */
+export function pickGround<P>(e: ClickLike<P>, onPick: (point: P) => void) {
+  if (e.delta > 4) return
+  if (e.intersections.some((i) => drawnOnTop(i.object))) return
+  e.stopPropagation()
+  onPick(e.point)
 }
 
 /**

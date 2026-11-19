@@ -8,6 +8,7 @@ import { CameraRig } from './CameraRig'
 import { buildMarks } from './marks'
 import { Overlays } from './Overlays'
 import { BACKDROP_FALLBACK, LIGHT } from './palette'
+import { SHADOW_HALF, SUN_POSITION } from './sun'
 import { Terrain } from './Terrain'
 import { fromScene, toScene } from './terrainGeometry'
 import { ViewOffset } from './ViewOffset'
@@ -76,15 +77,15 @@ export default function TerrainScene() {
       {/* Cool sky fill and a warm, fairly low sun from the north-west. */}
       <hemisphereLight args={[LIGHT.sky, LIGHT.ground, 0.95]} />
       <directionalLight
-        position={[-1700, 1400, -1100]}
+        position={[...SUN_POSITION]}
         color={LIGHT.sun}
         intensity={2.4}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-1500}
-        shadow-camera-right={1500}
-        shadow-camera-top={1500}
-        shadow-camera-bottom={-1500}
+        shadow-camera-left={-SHADOW_HALF}
+        shadow-camera-right={SHADOW_HALF}
+        shadow-camera-top={SHADOW_HALF}
+        shadow-camera-bottom={-SHADOW_HALF}
         shadow-camera-near={500}
         shadow-camera-far={6000}
         shadow-bias={-0.0004}

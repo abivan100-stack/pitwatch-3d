@@ -259,6 +259,10 @@ function Facts() {
           <Row label="Interval" value={`${interval} days`} provenance="derived" />
           <Row label="Method" value={baseline?.method ?? '—'} />
         </dl>
+        <p className="mt-3 text-[12.5px] leading-5 text-ink-faint">
+          The ground around the surveyed area on the 3D model is decorative, simulated scenery. It
+          is not measured, and no figure on this page uses it.
+        </p>
       </section>
 
       <section aria-labelledby="surface" className="rule-section">
