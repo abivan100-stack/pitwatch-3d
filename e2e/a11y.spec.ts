@@ -43,6 +43,17 @@ for (const route of ['overview', 'findings', 'rules', 'uncertainty', 'about']) {
   })
 }
 
+// The Uncertainty page at the two widths its layout changes between: two columns and one.
+for (const width of [1440, 390]) {
+  test(`uncertainty has no critical or serious violations at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/#/uncertainty')
+    await expect(page.locator('.noise-flag').first()).toBeVisible()
+
+    expect(await seriousViolations(page)).toEqual([])
+  })
+}
+
 test('the phone navigation drawer is clean', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/#/overview')
