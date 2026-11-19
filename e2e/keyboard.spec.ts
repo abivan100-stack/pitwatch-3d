@@ -56,7 +56,7 @@ test('a typed coordinate reads the point and announces it', async ({ page }) => 
   // The Inspector reports the point, exactly as a click there would.
   await expect(page.getByText('Selected point')).toBeVisible()
   await expect(
-    page.locator('#details-tabpanel dd').filter({ hasText: 'E 1,024 m, N 900 m' }),
+    page.locator('#details-tabpanel dd').filter({ hasText: 'E 1,024.00 m, N 900.00 m' }),
   ).toBeVisible()
 
   // The live region carries the outcome for a screen reader.
@@ -101,19 +101,23 @@ test('a point reading quotes horizontal error and refuses an unconfirmable side'
   await openMonitor(page)
   await openInspector(page)
 
-  // On a lease vertex: the horizontal band reaches the boundary, so no side can be claimed.
-  await enterCoordinate(page, '1640', '240')
+  const reading = page.locator('#details-tabpanel dd')
+  await enterCoordinate(page, '240.30', '220.30')
+  await expect(reading.filter({ hasText: 'E 240.30 m, N 220.30 m ± 0.10 m' })).toBeVisible()
   await expect(
-    page.locator('#details-tabpanel dd').filter({ hasText: 'E 1,640 m, N 240 m ± 0.10 m' }),
-  ).toBeVisible()
-  await expect(
-    page.locator('#details-tabpanel dd').filter({ hasText: 'Side cannot be confirmed' }),
+    reading.filter({ hasText: 'Inside, 0.29 m from the boundary ±0.10 m' }),
   ).toBeVisible()
 
-  // Away from the boundary the same reading does claim a side, with its horizontal ±.
-  await enterCoordinate(page, '1800', '500')
-  await expect(page.locator('#details-tabpanel dd').filter({ hasText: 'Outside, ' })).toContainText(
-    '±0.10 m',
+  await enterCoordinate(page, '239.70', '219.70')
+  await expect(reading.filter({ hasText: 'E 239.70 m, N 219.70 m ± 0.10 m' })).toBeVisible()
+  await expect(
+    reading.filter({ hasText: 'Outside, 0.42 m from the boundary ±0.10 m' }),
+  ).toBeVisible()
+
+  await enterCoordinate(page, '240', '220')
+  await expect(reading.filter({ hasText: 'E 240.00 m, N 220.00 m ± 0.10 m' })).toBeVisible()
+  await expect(reading.filter({ hasText: 'Side cannot be confirmed' })).toContainText(
+    '0.00 m from the boundary, within the 0.20 m (2σ) horizontal error band',
   )
 })
 
@@ -126,7 +130,7 @@ test('a coordinate outside the grid is applied and reported honestly', async ({ 
   // It is still read, so the panel is not empty: the position is real, the elevation is not.
   await expect(page.getByText('Selected point')).toBeVisible()
   await expect(
-    page.locator('#details-tabpanel dd').filter({ hasText: 'E 2,400 m, N 1,200 m' }),
+    page.locator('#details-tabpanel dd').filter({ hasText: 'E 2,400.00 m, N 1,200.00 m' }),
   ).toBeVisible()
   const elevation = page
     .locator('#details-tabpanel dt', { hasText: 'Elevation' })

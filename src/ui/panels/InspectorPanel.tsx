@@ -64,7 +64,7 @@ function Point() {
       <dl>
         <Row
           label="Position"
-          value={`E ${n(p.x)} m, N ${n(p.y)} m ± ${n(r.horizontalSigma, 2)} m`}
+          value={`E ${n(p.x, 2)} m, N ${n(p.y, 2)} m ± ${n(r.horizontalSigma, 2)} m`}
           mono
         />
         <Row label="Lat, lon" value={`${formatLat(ll.lat)}, ${formatLon(ll.lon)}`} mono />
@@ -111,8 +111,8 @@ function Point() {
           label="Lease"
           value={
             r.leaseSide === 'unconfirmed'
-              ? `Side cannot be confirmed: ${n(r.leaseDistance)} m from the boundary, within the ${n(r.horizontalBand, 2)} m (${cfg.k}σ) horizontal error band`
-              : `${r.leaseSide === 'inside' ? 'Inside' : 'Outside'}, ${n(r.leaseDistance)} m from the boundary ±${n(r.horizontalSigma, 2)} m${r.bufferUnconfirmed ? ', at the safety-buffer edge (side of it cannot be confirmed)' : r.inBuffer ? ', in the safety buffer' : ''}`
+              ? `Side cannot be confirmed: ${n(r.leaseDistance, 2)} m from the boundary, within the ${n(r.horizontalBand, 2)} m (${cfg.k}σ) horizontal error band`
+              : `${r.leaseSide === 'inside' ? 'Inside' : 'Outside'}, ${n(r.leaseDistance, 2)} m from the boundary ±${n(r.horizontalSigma, 2)} m${r.bufferUnconfirmed ? ', at the safety-buffer edge (side of it cannot be confirmed)' : r.inBuffer ? ', in the safety buffer' : ''}`
           }
         />
         {r.pit && (

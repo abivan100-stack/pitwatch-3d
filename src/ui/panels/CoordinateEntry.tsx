@@ -5,7 +5,7 @@ import { useAppStore } from '../../state/store'
 import { useTerrain } from '../../state/terrain'
 import { Section } from './parts'
 
-/** Report the entered coordinate as typed, not rounded like the Position row. */
+/** Keep up to two decimal places in the form's status messages. */
 const coord = (v: number) => v.toLocaleString('en-GB', { maximumFractionDigits: 2 })
 
 /** Empty or not a finite number means "do not submit"; zero is a real coordinate. */

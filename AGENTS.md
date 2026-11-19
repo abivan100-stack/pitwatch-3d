@@ -50,6 +50,11 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: Inspector shows centimetre precision at the lease edge (fork ticket #40)
+
+- The Position and Lease rows display local coordinates and boundary distance to two decimal places. The keyboard check distinguishes points 0.29 m inside and 0.42 m outside the lease and confirms that the exact vertex remains unconfirmed within the 0.20 m band.
+- All six keyboard browser tests and 29 compliance and Inspector unit tests passed, including the existing compliance snapshot.
+
 ### 2026-11-19: Findings PDF wraps at the printed body size (fork ticket #39)
 
 - The report wraps each explanation in the same font and size it uses to draw the body. The R2-only browser check uses the PDF's embedded glyph advances and text positions to catch lines beyond the printable column and still compares the decoded explanation with the Findings page.
