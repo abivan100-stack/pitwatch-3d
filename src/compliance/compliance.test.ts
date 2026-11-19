@@ -194,11 +194,9 @@ describe('severity and explanations', () => {
 
 describe('synthetic scenario', async () => {
   const p = new SyntheticTerrainProvider()
-  const { findings } = evaluate(
-    await p.getSurvey('baseline'),
-    await p.getSurvey('current'),
-    await p.getLimits(),
-  )
+  const baseline = await p.getSurvey('baseline')
+  const current = await p.getSurvey('current')
+  const { findings } = evaluate(baseline, current, await p.getLimits())
 
   it('produces exactly the planted findings', () => {
     const summary = findings.map((f) => ({
@@ -220,6 +218,21 @@ describe('synthetic scenario', async () => {
       'R1-3 warning', // shallow scrape inside the buffer
     ])
     expect(summary).toMatchSnapshot()
+  })
+
+  it('keeps every elevation and finding byte for byte: the pit look (#79) changes only the image', () => {
+    // 32-bit FNV-1a over the raw bytes, pinned to the values before the image changed.
+    const fnv = (bytes: Uint8Array) => {
+      let h = 0x811c9dc5
+      for (const b of bytes) h = Math.imul(h ^ b, 0x01000193)
+      return (h >>> 0).toString(16).padStart(8, '0')
+    }
+    const raw = (a: Float32Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
+    expect(fnv(raw(baseline.elevations))).toBe('c81d61ee')
+    expect(fnv(raw(current.elevations))).toBe('d61b3b0e')
+    expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('ef3f65e5')
+    // What did change: the aerial image is drawn at 2048 px over the 2048 m grid.
+    expect(current.orthophoto?.width).toBe(2048)
   })
 
   it('explains every finding with its numbers', () => {

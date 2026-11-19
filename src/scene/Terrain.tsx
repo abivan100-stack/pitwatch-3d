@@ -5,7 +5,14 @@ import type { Orthophoto, TerrainSurvey } from '../domain/types'
 import { useAppStore } from '../state/store'
 import type { TerrainMarks } from './marks'
 import { drawnOnTop } from './overlayGeometry'
-import { OVERLAY, SOIL_PROFILE } from './palette'
+import { OVERLAY, ROCK, SOIL_PROFILE } from './palette'
+import {
+  ROCK_DETAIL_COLOR,
+  ROCK_DETAIL_NORMAL,
+  ROCK_DETAIL_PARS,
+  detailTexture,
+  detailTile,
+} from './rockDetail'
 import { BASE_RL, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
 import { makeSurfaceUniforms, type SurfaceUniforms } from './surfaceUniforms'
 
@@ -21,22 +28,27 @@ const MORPH_POSITION =
 const ELEVATION_VARYING = {
   head:
     MORPH_HEAD +
-    'attribute vec3 aAltNormal;\nvarying float vElev;\nuniform float uBase;\nattribute float aChange;\nattribute vec3 aFinding;\nvarying float vChange;\nvarying vec3 vFinding;\n',
+    'attribute vec3 aAltNormal;\nvarying float vElev;\nuniform float uBase;\nattribute float aChange;\nattribute vec3 aFinding;\nvarying float vChange;\nvarying vec3 vFinding;\nvarying vec3 vRockP;\nvarying vec3 vSlopeN;\n',
   normal: 'vec3 objectNormal = normalize(mix(vec3(normal), aAltNormal, uMorph));',
   body:
     MORPH_POSITION +
-    '\n  vElev = transformed.y + uBase;\n  vChange = aChange;\n  vFinding = aFinding;',
+    '\n  vElev = transformed.y + uBase;\n  vChange = aChange;\n  vFinding = aFinding;' +
+    // For the rock detail: plan metres (east, north) and height of this survey, unexaggerated, so
+    // the detail stays fixed to the ground during a morph; and the shown normal, for the slope.
+    '\n  vRockP = vec3(position.x, -position.z, position.y);\n  vSlopeN = objectNormal;',
 }
 
 type Uniform<T> = { value: T }
 
 /**
  * Surface material: aerial image or elevation tint (blended by a uniform), lit by the
- * scene, with optional contour lines drawn in the fragment shader.
+ * scene, with close-range rock detail (see rockDetail.ts) and optional contour lines drawn in
+ * the fragment shader.
  */
 function makeSurfaceMaterial(
   map: THREE.Texture | null,
   map2: THREE.Texture | null,
+  detail: THREE.Texture,
   morph: Uniform<number>,
   uniforms: SurfaceUniforms,
 ) {
@@ -60,6 +72,9 @@ function makeSurfaceMaterial(
       uCrit: color(OVERLAY.critical),
       uMorph: morph,
       uMap2: { value: map2 ?? map },
+      uDetail: { value: detail },
+      uGullyMean: { value: detailTile().gullyMean },
+      uStain: color(ROCK.stain),
     })
     shader.vertexShader =
       ELEVATION_VARYING.head +
@@ -71,6 +86,7 @@ function makeSurfaceMaterial(
       'uniform float uMorph;\nuniform sampler2D uMap2;\n' +
       'varying float vChange;\nvarying vec3 vFinding;\nuniform vec2 uOverlay;\nuniform vec3 uCut;\nuniform vec3 uFill;\nuniform vec3 uWarn;\nuniform vec3 uViol;\nuniform vec3 uCrit;\n' +
       shader.fragmentShader
+        .replace('#include <common>', '#include <common>\n' + ROCK_DETAIL_PARS)
         .replace(
           '#include <map_fragment>',
           `#ifdef USE_MAP
@@ -87,6 +103,7 @@ function makeSurfaceMaterial(
           `#ifdef USE_COLOR
   diffuseColor.rgb *= mix(vec3(1.0), vColor.rgb, uTint);
 #endif
+${ROCK_DETAIL_COLOR}
   // Distance to the nearest contour in screen pixels gives a crisp ~1 px line at any zoom.
   float f = vElev / uInterval;
   float minor = 1.0 - smoothstep(0.0, 1.0, abs(fract(f - 0.5) - 0.5) / max(fwidth(f), 1e-4));
@@ -105,6 +122,10 @@ function makeSurfaceMaterial(
   vec3 findCol = (vFinding.x * uWarn + vFinding.y * uViol + vFinding.z * uCrit) / max(flagged, 1e-3);
   diffuseColor.rgb *= 1.0 - 0.35 * uOverlay.y * (1.0 - flagged);
   diffuseColor.rgb = mix(diffuseColor.rgb, findCol, 0.88 * uOverlay.y * flagged);`,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          '#include <normal_fragment_maps>\n' + ROCK_DETAIL_NORMAL,
         )
   }
   m.customProgramCacheKey = () => `terrain-surface-${map ? 'map' : 'tint'}`
@@ -277,6 +298,8 @@ export function Terrain({
     () => (morphTo?.orthophoto ? orthoTexture(morphTo.orthophoto, maxAnisotropy) : null),
     [morphTo, maxAnisotropy],
   )
+  // Close-range rock detail: the pixels are shared by the page, the texture belongs to this canvas.
+  const detail = useMemo(() => detailTexture(), [])
   const materials = useMemo(() => {
     const morphU = { value: 0 }
     // This surface owns its layer uniforms; the setter below is the only thing that writes them.
@@ -290,11 +313,11 @@ export function Terrain({
         uniforms.uContours.value = contours ? 1 : 0
         uniforms.uTint.value = tint ? 1 : 0
       },
-      surface: makeSurfaceMaterial(texture, texture2, morphU, uniforms),
+      surface: makeSurfaceMaterial(texture, texture2, detail, morphU, uniforms),
       skirt: makeSkirtMaterial(morphU),
       depth: makeDepthMaterial(morphU),
     }
-  }, [texture, texture2])
+  }, [texture, texture2, detail])
 
   useEffect(
     () => () => {
@@ -308,6 +331,7 @@ export function Terrain({
   // still in use whenever only the other survey changed, and force a re-upload.
   useEffect(() => () => texture?.dispose(), [texture])
   useEffect(() => () => texture2?.dispose(), [texture2])
+  useEffect(() => () => detail.dispose(), [detail])
   useEffect(
     () => () => {
       materials.surface.dispose()
