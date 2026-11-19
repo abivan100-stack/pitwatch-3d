@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the ramp builder fails softly when no ramp point survives (ticket #61)
+
+- `buildRamp` in `src/data/synthetic.ts` read the last ramp point to start the straight drop to the floor. If the fold check rejected the very first point, that read hit an empty list and threw inside the survey worker, failing the whole survey. It now returns no ramp in that case, and the stage samples as benches only. `Pit.ramp` was already optional, and `rampDistance` and `pitSurface` already handle a pit without one. Both shipped pits keep every ramp point, so they build exactly as before.
+- Test: a `pit ramp` case in `src/data/data.test.ts` builds a 20 m-wide pit. Its ramp centreline would sit 15 m inside one wall and 5 m from the other, so the fold check rejects the first point. The case expects no ramp and a finite surface inside the pit. Without the fix it fails with `TypeError: Cannot read properties of undefined (reading 'x')`.
+- Checks: `npm run verify` passes (208 unit tests in 25 files), with the compliance snapshot and the synthetic-terrain tests unchanged. As agreed, local browser runs were kept short; this changes only data generation for a case no shipped pit reaches, and CI runs the full browser suite on the PR.
+
 ### 2026-11-19: only what is drawn can be clicked on the 3D map (ticket #55)
 
 - **Hidden terrain.** `Terrain` passes no `onClick` while it is not shown. R3F keeps an object in its click list only while it has a handler, and neither R3F nor three skips invisible objects, so the hidden mesh used to read and measure ground that was not drawn and also blocked clicks to the badges. Switching Terrain back on restores the handler.

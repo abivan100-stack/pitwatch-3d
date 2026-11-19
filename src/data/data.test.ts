@@ -13,11 +13,12 @@ import {
   GRID,
   LEASE,
   PIT_ZONE,
+  PLATEAU_RL,
   SAFETY_BUFFER_M,
 } from './fixtures/scenario'
 import { fbm, valueNoise } from './noise'
 import { gaussian, mulberry32 } from './rng'
-import { benchDepth, insidePit, pitsOf, preparePit } from './synthetic'
+import { benchDepth, insidePit, pitsOf, pitSurface, preparePit } from './synthetic'
 import { SyntheticTerrainProvider } from './SyntheticTerrainProvider'
 
 const PLANTED_ENCROACHMENT = CHANGES.encroachment
@@ -63,6 +64,26 @@ describe('bench profile', () => {
     expect(benchDepth(FACE_RUN_M)).toBe(h) // top of the first berm
     expect(benchDepth(step - 1)).toBe(h) // still on the berm
     expect(benchDepth(step + FACE_RUN_M)).toBe(2 * h)
+  })
+})
+
+describe('pit ramp', () => {
+  it('builds a pit too narrow for its ramp, with no ramp, instead of throwing', () => {
+    // 20 m wide: the ramp centreline sits half a ramp width (15 m) inside the wall, which is
+    // only 5 m from the far wall, so the fold check rejects the very first point.
+    const stage = {
+      outline: [
+        { x: 1000, y: 1000 },
+        { x: 1400, y: 1000 },
+        { x: 1400, y: 1020 },
+        { x: 1000, y: 1020 },
+      ],
+      floorRL: PLATEAU_RL - 30,
+    }
+    const pit = preparePit(stage, { x: 1000, y: 1010 })
+    expect(pit.ramp).toBeUndefined()
+    // The stage still samples as benches.
+    expect(Number.isFinite(pitSurface({ x: 1200, y: 1010 }, pit))).toBe(true)
   })
 })
 
