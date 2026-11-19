@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: stale coordinate announcements clear when the selection changes (#57)
+
+- The coordinate form resets its fields and live status together when a terrain pick, tool switch, or Clear supersedes its current selection. Successful typed submissions still announce their coordinates, including off-grid readings.
+- The browser regression failed before the fix because a real terrain click changed the fields but left the off-grid announcement. It also covers switching tools in both directions and clearing the point.
+- Local verification passed 202 unit tests and the 81-case browser suite before #56 merged. The existing terrain retry test passed on retry. After updating to the merged main branch, all nine keyboard tests passed. The Inspector was checked at 1440, 1100 and 800 px.
+
 ### 2026-11-19: the mobile navigation drawer owns keyboard input (#56)
 
 - The map ignores keyboard events while the navigation drawer is open and skips events already handled by another control. Escape closes the drawer and returns focus to Menu. A second Escape on the map clears the measurement.
