@@ -22,7 +22,7 @@ import { useTerrain } from '../../state/terrain'
 import { GLYPH, RULE_NAMES, toneOf } from '../findings'
 import { formatDate } from '../format'
 import { ProvenanceTag } from '../ProvenanceTag'
-import { navigate, ROUTE_HREF } from '../route'
+import { navigateToFinding, ROUTE_HREF } from '../route'
 
 const SCALE_BAR_M = 500
 const CONTOUR_INTERVAL_M = 15
@@ -38,7 +38,6 @@ export function SitePlan() {
   const limits = useTerrain((s) => s.limits)
   const findings = useTerrain((s) => s.findings)
   const selectedFinding = useAppStore((s) => s.selectedFinding)
-  const selectFinding = useAppStore((s) => s.selectFinding)
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgWidth, setSvgWidth] = useState(0)
 
@@ -106,10 +105,7 @@ export function SitePlan() {
   )
   if (!change || !limits || !current || !mine || !grid) return null
   const svgY = (y: number) => top - y
-  const open = (finding: ComplianceFinding) => {
-    selectFinding(finding.id, finding.centroid)
-    navigate('monitor')
-  }
+  const open = (finding: ComplianceFinding) => navigateToFinding(finding.id)
   const onKey = (event: KeyboardEvent<SVGGElement>, finding: ComplianceFinding) => {
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()

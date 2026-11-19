@@ -7,7 +7,7 @@ import { useTerrain } from '../../state/terrain'
 import { savePdfReport } from '../reportPdf'
 import { countText, GLYPH, RULE_NAMES, toneOf } from '../findings'
 import { SeverityLegend, ThresholdNote } from '../panels/FindingsPanel'
-import { findingLink, navigate } from '../route'
+import { findingLink, navigateToFinding } from '../route'
 import { Page } from '../shell/AppShell'
 import { LoadGate } from '../shell/LoadGate'
 import { ProvenanceTag } from '../ProvenanceTag'
@@ -207,7 +207,6 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
   const tone = toneOf(f)
   const Glyph = GLYPH[tone]
   const selected = useAppStore((s) => s.selectedFinding === f.id)
-  const selectFinding = useAppStore((s) => s.selectFinding)
   const [copied, setCopied] = useState(false)
 
   const copyLink = async () => {
@@ -247,14 +246,7 @@ function FindingRow({ f }: { f: ComplianceFinding }) {
         ))}
       </dl>
       <div className="frow-go">
-        <button
-          type="button"
-          className="btn"
-          onClick={() => {
-            selectFinding(f.id, f.centroid)
-            navigate('monitor')
-          }}
-        >
+        <button type="button" className="btn" onClick={() => navigateToFinding(f.id)}>
           Show on map
         </button>
         <button type="button" className="frow-copy no-print" onClick={() => void copyLink()}>

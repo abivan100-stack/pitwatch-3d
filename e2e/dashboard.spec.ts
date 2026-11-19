@@ -110,20 +110,25 @@ test('on a phone the menu button opens the navigation drawer and Escape closes i
   await expect(nav).toBeHidden()
 })
 
-test('leaving the map forgets the fly-to, so the next visit opens with the intro', async ({
+test('leaving a linked finding preserves its Overview highlight and resets the unlinked map', async ({
   page,
 }) => {
   await page.goto('/#/findings')
   await page.locator('li.frow').first().getByRole('button', { name: 'Show on map' }).click()
   await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
 
+  const scale = page.locator('.map-chip', { hasText: 'at centre' })
+  await expect(scale).toHaveText(/^(?:20|50) m at centre$/)
+
   const nav = page.getByRole('navigation', { name: 'Dashboard' })
   await nav.getByRole('link', { name: 'Overview' }).click()
-  await nav.getByRole('link', { name: '3D map' }).click()
-  await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('li.attention[data-selected]')).toContainText('R1-1')
 
-  // The selection (what the viewer chose) survives; only the camera request is dropped.
-  await expect(page.locator('#details-tabpanel li.finding[data-selected]')).toHaveCount(1)
+  await nav.getByRole('link', { name: '3D map' }).click()
+  await expect(page).toHaveURL(/#\/monitor$/)
+  await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
+  await expect(scale).toHaveText(/^(?:100|200|500) m at centre$/)
+  await expect(page.locator('#details-tabpanel li.finding[data-selected]')).toHaveCount(0)
 })
 
 test('the findings can be downloaded as a CSV that says it is simulated', async ({ page }) => {

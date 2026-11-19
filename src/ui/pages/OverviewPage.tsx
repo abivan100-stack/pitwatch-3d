@@ -13,7 +13,7 @@ import { ArrowRightIcon } from '../icons'
 import { Row } from '../panels/parts'
 import { SitePlan } from '../panels/SitePlan'
 import { ProvenanceTag } from '../ProvenanceTag'
-import { navigate, ROUTE_HREF } from '../route'
+import { navigateToFinding, ROUTE_HREF } from '../route'
 import { LoadGate } from '../shell/LoadGate'
 import { Page } from '../shell/AppShell'
 import { useCountUp } from '../useCountUp'
@@ -200,7 +200,6 @@ function AttentionRow({ f }: { f: ComplianceFinding }) {
   const tone = toneOf(f)
   const Glyph = GLYPH[tone]
   const selected = useAppStore((s) => s.selectedFinding === f.id)
-  const selectFinding = useAppStore((s) => s.selectFinding)
 
   return (
     <li className={`attention tone-${tone}`} data-selected={selected || undefined}>
@@ -218,10 +217,7 @@ function AttentionRow({ f }: { f: ComplianceFinding }) {
       <button
         type="button"
         className="btn shrink-0 self-start"
-        onClick={() => {
-          selectFinding(f.id, f.centroid)
-          navigate('monitor')
-        }}
+        onClick={() => navigateToFinding(f.id)}
       >
         Show on map
       </button>

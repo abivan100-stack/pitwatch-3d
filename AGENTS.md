@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: shared links stay in sync with the selected finding (#58)
+
+- Overview and Findings controls open the map at the selected finding's address. A map selection replaces the current history entry. Back and Forward restore the finding from the address, or clear the selection when the address has no valid finding.
+- The hash parser accepts the extra literal question mark in the reported link and preserves encoded query values. Copy link uses the same address format as navigation.
+- The parser regression and both browser history regressions failed before the fix.
+- Local verification passed 207 unit tests. The full browser run passed 86 checks and identified an old dashboard assertion that a plain map address would keep the previous selection. The updated regression passed and verifies that Overview retains the finding highlight and the unlinked map resets to the default camera framing. Browser checks passed at 1440, 1100 and 800 px.
+
 ### 2026-11-19: the mobile navigation drawer owns keyboard input (#56)
 
 - The map ignores keyboard events while the navigation drawer is open and skips events already handled by another control. Escape closes the drawer and returns focus to Menu. A second Escape on the map clears the measurement.

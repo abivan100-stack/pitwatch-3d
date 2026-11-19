@@ -4,7 +4,6 @@ import { useAppStore } from '../../state/store'
 import { useTerrain } from '../../state/terrain'
 import { countText, GLYPH, RULE_NAMES, toneOf } from '../findings'
 import { CriticalGlyph, ViolationGlyph, WarningGlyph } from '../icons'
-import { navigate } from '../route'
 import { EmptyNote, Section } from './parts'
 
 const LEGEND = [
@@ -83,10 +82,7 @@ export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 
         <button
           type="button"
           className="shrink-0 self-start text-[12px] font-semibold text-accent underline underline-offset-2"
-          onClick={() => {
-            selectFinding(f.id, f.centroid)
-            navigate('monitor')
-          }}
+          onClick={() => selectFinding(f.id, f.centroid)}
         >
           Show on map
         </button>
