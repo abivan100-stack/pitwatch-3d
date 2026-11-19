@@ -11,7 +11,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
-Two remotes: this clone has both `origin` (the fork, `Raghav2012Code/pitwatch`) and `upstream` (the parent). `gh` picks a default from the remotes and it is not reliably the fork — on 2026-10-29 it resolved to `upstream` and two tickets were opened on the parent's tracker. Run `gh repo set-default Raghav2012Code/pitwatch` once per clone, and pass `--repo Raghav2012Code/pitwatch` on anything that writes. Issues and specs belong in the fork; the parent's tracker is not ours to write to.
+One remote: `origin` is `abivan100-stack/pitwatch-3d`, and issues and specs live there. The former fork `Raghav2012Code/pitwatch` is not used. Run `gh repo set-default abivan100-stack/pitwatch-3d` once per clone, and pass `--repo abivan100-stack/pitwatch-3d` on anything that writes, so `gh` never guesses.
 
 ## Pull requests as a triage surface
 
