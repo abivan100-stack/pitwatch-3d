@@ -77,37 +77,54 @@ export function Resolution() {
   return (
     <section aria-labelledby="resolution-title" className="rule-section mt-14">
       <div>
-        <div className="grid gap-3 lg:grid-cols-2 lg:items-end lg:gap-12">
+        <div className="grid gap-3 lg:grid-cols-2 lg:items-start lg:gap-12">
           <h2 id="resolution-title" className="section-title">
             Why survey resolution matters
           </h2>
           <p className="text-[15px] leading-7 text-ink-dim">
-            A compliance check is only as sharp as the survey behind it. Free global elevation data
-            is too coarse to check a 10 m bench. Mine-scale surveys are not.
+            A check is only as sharp as the survey behind it, and free global elevation data is too
+            coarse to see a 10 m bench.
           </p>
         </div>
 
-        <ul className="mt-8 grid gap-6 md:grid-cols-3">
+        <p className="res-key mt-6" data-testid="res-key">
+          <span>
+            <svg viewBox="0 0 28 8" aria-hidden="true">
+              <line x1="0" y1="4" x2="28" y2="4" className="res-truth" />
+            </svg>
+            Faint: the real ground
+          </span>
+          <span>
+            <svg viewBox="0 0 28 8" aria-hidden="true">
+              <line x1="0" y1="4" x2="28" y2="4" className="res-line" />
+            </svg>
+            Bold: what each survey records
+          </span>
+        </p>
+
+        <ul className="mt-4 grid gap-6 md:grid-cols-3">
           {PANELS.map((p) => (
             <li key={p.title} className="res-panel">
+              <p className="res-axis" aria-hidden="true">
+                ↑ Height
+              </p>
               <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" aria-hidden="true">
                 <path d={truth} className="res-truth" />
                 <path d={p.path} className="res-line" />
               </svg>
-              <div className="pt-4">
+              <p className="res-axis justify-end" aria-hidden="true">
+                Distance across the pit →
+              </p>
+              <div className="pt-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <h3 className="cond text-[20px] font-semibold text-ink">{p.title}</h3>
-                  <span className="font-mono text-[12px] text-oxide">{p.cell}</span>
+                  <span className="font-mono text-[13px] text-oxide">{p.cell}</span>
                 </div>
                 <p className="mt-1.5 text-[14px] leading-6 text-ink-dim">{p.text}</p>
               </div>
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-[12.5px] text-ink-faint">
-          Illustration: a cross-section of an idealised pit. The faint line is the real ground; the
-          bold line is what each survey records.
-        </p>
       </div>
     </section>
   )
