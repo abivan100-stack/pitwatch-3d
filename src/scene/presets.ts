@@ -35,9 +35,11 @@ export function presetPose(kind: ViewPreset | 'intro', pit: Vec2, floorY: number
  * The same pose after the vertical scale is multiplied by `k`: the aim point stays on the same
  * ground feature (its height scales) and the camera keeps its height above the aim point. Linear
  * in the pose, so rescaling both ends of a flight also rescales every point between them.
+ * @param lift height of the aim point above that ground, which does not scale (a finding view
+ *             aims at a pin, and pins keep their height at any exaggeration)
  */
-export function rescalePose(p: Pose, k: number): Pose {
-  const ty = p.target[1] * k
+export function rescalePose(p: Pose, k: number, lift = 0): Pose {
+  const ty = (p.target[1] - lift) * k + lift
   return {
     position: [p.position[0], p.position[1] + ty - p.target[1], p.position[2]],
     target: [p.target[0], ty, p.target[2]],
@@ -90,6 +92,27 @@ export function scaleBar(mpp: number, maxPx = 120): { metres: number; px: number
   return { metres, px: metres / mpp }
 }
 
-/** Smoothstep-like ease for camera flights. */
+/** Smoothstep-like ease for the preset camera flights. */
 export const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+/** Decelerating ease for finding flights: the camera moves at once and settles gently. */
+export const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+
+/** Shortest finding flight, ms. */
+export const FLIGHT_MIN_MS = 600
+/**
+ * Longest finding flight, ms. Below 1 s so the move still ends within 1 s of the click once the
+ * frame that starts it has run.
+ */
+export const FLIGHT_MAX_MS = 900
+
+/**
+ * Duration of a finding flight: 600 ms plus 1 ms per 5 m that the camera or its aim point
+ * travels, whichever moves further, up to 900 ms.
+ */
+export function flightMs(from: Pose, to: Pose): number {
+  const d = (a: V3, b: V3) => Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+  const travel = Math.max(d(from.position, to.position), d(from.target, to.target))
+  return Math.min(FLIGHT_MAX_MS, FLIGHT_MIN_MS + travel / 5)
+}

@@ -103,12 +103,14 @@ describe('picking and measuring', () => {
   it('selects a finding, opens its tab and asks the camera to fly there', () => {
     s().setActiveTab('inspector')
     const before = s().focus?.n ?? 0
-    s().selectFinding('R1-1', p2)
+    s().selectFinding('R1-1')
     expect(s().selectedFinding).toBe('R1-1')
     expect(s().activeTab).toBe('findings')
-    expect(s().focus).toEqual({ p: p2, n: before + 1 })
+    expect(s().focus).toEqual({ id: 'R1-1', n: before + 1 })
     s().selectFinding(null)
     expect(s().selectedFinding).toBeNull()
+    // Clearing the selection is not a camera request.
+    expect(s().focus).toEqual({ id: 'R1-1', n: before + 1 })
   })
 
   it('restores the survey, layers, and detail access needed to inspect a finding', () => {
@@ -121,7 +123,7 @@ describe('picking and measuring', () => {
       activeTab: 'inspector',
     })
 
-    useAppStore.getState().selectFinding('R2-1', p2)
+    useAppStore.getState().selectFinding('R2-1')
     const selected = useAppStore.getState()
 
     expect(selected.selectedFinding).toBe('R2-1')
@@ -135,7 +137,7 @@ describe('picking and measuring', () => {
 
   it('forgets camera requests when the map closes', () => {
     s().requestView('top')
-    s().selectFinding('R1-1', p2)
+    s().selectFinding('R1-1')
     s().setDrawerOpen(true)
     s().leaveMap()
     expect(s().focus).toBeNull()
