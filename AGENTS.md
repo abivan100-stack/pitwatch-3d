@@ -50,6 +50,14 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: printed figures agree with the verdict (#54)
+
+- The Inspector prints the interpolated point change to two decimals, matching the precision of the cell threshold.
+- The Uncertainty calculator starts at two decimal places and adds digits when rounding would hide a difference between the slider value and a boundary. A mathematical tie stays at the boundary despite binary roundoff. The default noise band and R1/R3 threshold still read 0.14 m and 0.64 m.
+- The browser regression failed before the fix at 11.32 m. It also covers 11.80 m, values that round to the same cent as a boundary, and an exact tie. The keyboard test checks the Inspector's point change precision.
+
+- Verification passed with 202 unit tests and 80 Playwright tests. The existing map-resize check passed on retry. At 1440, 1100 and 800 px, both views fit without browser page errors, including the calculator's six-decimal comparison. An exhaustive check of 251,001 survey-error pairs matched the exact ordering at adjacent slider positions.
+
 ### 2026-11-19: Inspector verdict uses the same cell as its findings (#53)
 
 - The Inspector reads the engine's change classification and finding IDs from the same cell. The point change still shows the interpolated elevation difference and its propagated vertical uncertainty. The verdict names the cell centre and its threshold. A point outside the sampled grid shows no cell verdict or finding links.

@@ -87,7 +87,7 @@ function Point() {
         />
         <Row
           label="Point change"
-          value={r.dh === null ? '—' : `${signed(r.dh)} ± ${n(r.dhSigma, 2)} m`}
+          value={r.dh === null ? '—' : `${signed(r.dh, 2)} ± ${n(r.dhSigma, 2)} m`}
           mono
         />
         <Row label="Slope" value={r.slopeDeg === null ? '—' : `${n(r.slopeDeg)}°`} mono />
