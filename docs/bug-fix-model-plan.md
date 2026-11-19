@@ -2,26 +2,27 @@
 
 Spec: #52. Report: `docs/bug-check-2026-11-19.md`.
 
-The builder uses the model and effort in the table, one fresh session per ticket. Every ticket is then reviewed by a new **Opus 5.5** session at **high** effort that has not seen the build.
+Codex and Claude each own five tickets. Each ticket uses a fresh builder session at the listed effort. Every ticket is then reviewed by a new **Opus 5.5** session at **high** effort that has not seen the build.
 
-| Ticket | What it fixes                                                    | Builder    | Effort | Why                                                                                              |
-| ------ | ---------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------ |
-| #53    | Inspector change verdict agrees with the findings it lists       | Opus 5.5   | high   | Changes what the compliance reading reports; must keep the snapshot and all five findings intact |
-| #55    | Only what is drawn can be clicked (hidden terrain, badge clicks) | Opus 5.5   | xhigh  | R3F click order and propagation; badge-over-terrain priority is the hardest fix in the set       |
-| #60    | Camera flight ends at the new depth when exaggeration changes    | Opus 5.5   | high   | Flight state and rescale interact frame by frame; easy to fix the symptom, not the cause         |
-| #62    | Terrain textures disposed only when replaced or unmounted        | Opus 5.5   | medium | Small diff, but a wrong lifetime leaks GPU memory or disposes a live texture. Start after #55    |
-| #58    | A shared link always matches the selected finding                | Sonnet 5.5 | high   | History push vs replace, plus the map following hash changes; several paths to keep consistent   |
-| #54    | Printed figures agree with the verdict beside them               | Sonnet 5.5 | medium | Formatting change with exact boundary values given in the ticket                                 |
-| #56    | Map shortcuts stay out of the way while the phone drawer is open | Sonnet 5.5 | medium | Clear cause; needs a browser check below `lg`                                                    |
-| #59    | Landing date bar labels the in-between model as an illustration  | Sonnet 5.5 | medium | Copy change, but the test has to sample the bar mid-tween                                        |
-| #61    | Ramp builder fails softly when no ramp point survives            | Sonnet 5.5 | medium | Guard plus unit test; the compliance snapshot must not move                                      |
-| #57    | Coordinate form status clears when the point changes             | Sonnet 5.5 | low    | One-line cause, one browser check                                                                |
+| Ticket | What it fixes                                                    | Builder             | Effort | Why                                                                                                 |
+| ------ | ---------------------------------------------------------------- | ------------------- | ------ | --------------------------------------------------------------------------------------------------- |
+| #53    | Inspector change verdict agrees with the findings it lists       | Codex               | high   | Changes what the compliance reading reports and must keep the snapshot and all five findings intact |
+| #54    | Printed figures agree with the verdict beside them               | Codex               | medium | Check the exact boundary values given in the ticket                                                 |
+| #56    | Map shortcuts stay out of the way while the phone drawer is open | Codex               | medium | Verify that Escape preserves the measurement and shortcuts are inactive while the drawer is open    |
+| #57    | Coordinate form status clears when the point changes             | Codex               | low    | Clear stale status while preserving the announcement for typed submissions                          |
+| #58    | A shared link always matches the selected finding                | Codex               | high   | Keep browser history, hash parsing and selected findings in sync                                    |
+| #55    | Only what is drawn can be clicked (hidden terrain, badge clicks) | Claude (Opus 5.5)   | xhigh  | Check R3F click order and propagation where badges appear in front of terrain                       |
+| #60    | Camera flight ends at the new depth when exaggeration changes    | Claude (Opus 5.5)   | high   | Verify the final camera target when exaggeration changes mid-flight                                 |
+| #62    | Terrain textures disposed only when replaced or unmounted        | Claude (Opus 5.5)   | medium | Check that textures stay live while in use and are cleaned up on unmount. Start after #55.          |
+| #59    | Landing date bar labels the in-between model as an illustration  | Claude (Sonnet 5.5) | medium | Check the wording during the transition and at both endpoints                                       |
+| #61    | Ramp builder fails softly when no ramp point survives            | Claude (Sonnet 5.5) | medium | Cover the empty ramp case and verify that the compliance snapshot stays unchanged                   |
 
 ## Order
 
-1. Start tickets one at a time, or two at most in separate worktrees. Browser tests time out on a loaded machine.
-2. Run #62 only after #55 is merged.
-3. Finish with one full `npm run verify && npm run test:e2e` on an idle machine, then the 1440, 1100 and 800 px browser check.
+1. Codex starts with #53, then takes #54, #56, #57 and #58 in that order.
+2. Claude starts with #55. Continue with #60, then #62 once #55 is merged, followed by #59 and #61.
+3. Start tickets one at a time, or two at most in separate worktrees. Browser tests time out on a loaded machine.
+4. Finish with one full `npm run verify && npm run test:e2e` on an idle machine, then the 1440, 1100 and 800 px browser check.
 
 ## Reviewer checklist (Opus 5.5, high effort)
 
