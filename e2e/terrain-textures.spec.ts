@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// Terrain textures are disposed when the terrain unmounts (#62). R3F releases a canvas's WebGL
+// Terrain textures are disposed when the terrain unmounts (#62). This guards unmount disposal
+// after each texture got its own effect; the morph-only case has no UI path (see the log). R3F releases a canvas's WebGL
 // context on unmount, which frees its GPU memory without deleting each texture, so the check is
 // per context: before the map's context goes, every texture filled from a pixel array (the
 // aerial images; shadow maps get no pixels and badges upload a canvas) must have been deleted by
@@ -74,8 +75,15 @@ const probe = (page: Page) =>
 async function openMap(page: Page) {
   await page.evaluate(() => (location.hash = '#/monitor'))
   await expect(page.getByRole('group', { name: 'Camera view' })).toBeVisible({ timeout: 60_000 })
+  // Wait until the landing canvas is gone and the map's own context holds both aerial images.
   await expect
-    .poll(async () => (await probe(page)).find((c) => !c.lost)?.data ?? 0)
+    .poll(
+      async () => {
+        const live = (await probe(page)).filter((c) => !c.lost)
+        return live.length === 1 ? live[0].data : 0
+      },
+      { timeout: 30_000 },
+    )
     .toBeGreaterThanOrEqual(2)
 }
 
@@ -106,10 +114,11 @@ test('leaving the map disposes its aerial-image textures, and visits do not pile
     await openHome(page)
   }
 
-  const maps = (await probe(page)).filter((c) => c.lost && c.data >= 2)
-  expect(maps.length).toBeGreaterThanOrEqual(3)
-  // Both aerial images (current and baseline survey) were deleted before each context went.
-  for (const m of maps) expect(m.dataLive).toBe(0)
-  // Each visit holds the same number of textures as the last one.
+  // Every released context that drew the terrain (three map visits and the landing pages
+  // between them) deleted both aerial images, current and baseline, before it went.
+  const released = (await probe(page)).filter((c) => c.lost && c.data >= 2)
+  expect(released.length).toBeGreaterThanOrEqual(3)
+  for (const c of released) expect(c.dataLive).toBe(0)
+  // Each map visit draws with the same set of textures as the last one.
   expect(new Set(mapLive).size).toBe(1)
 })
