@@ -261,3 +261,35 @@ test('the Findings page, the Overview, the map and a shared link frame a finding
     }
   }
 })
+
+test('panel legend is compact and last; the Findings page keeps the full legend', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/#/monitor')
+  const panel = page.locator('#details-tabpanel')
+  await expect(panel.locator('li.finding')).toHaveCount(5, { timeout: 60_000 })
+  const lines = panel.locator('.sev-line')
+  await expect(lines).toHaveCount(3)
+  const isLast = await panel.evaluate((el) => {
+    const secs = [...el.querySelectorAll('section')]
+    return secs[secs.length - 1]?.querySelector('.sev-compact') !== null
+  })
+  expect(isLast).toBe(true)
+  // Small but readable: text exactly 12 px, glyphs at least 14 px.
+  const sizes = await lines.evaluateAll((els) =>
+    els.map((e) => parseFloat(getComputedStyle(e).fontSize)),
+  )
+  expect(sizes).toEqual([12, 12, 12])
+  const glyphs = await lines.evaluateAll((els) =>
+    els.map((e) => e.querySelector('svg')!.getBoundingClientRect().width),
+  )
+  expect(glyphs.every((w) => w >= 14)).toBe(true)
+  const h = await panel.locator('.sev-compact').evaluate((e) => e.getBoundingClientRect().height)
+  expect(h).toBeLessThanOrEqual(120)
+
+  await page.goto('/#/findings')
+  await expect(page.locator('.sev-row')).toHaveCount(3)
+  await expect(page.locator('.sev-line')).toHaveCount(0)
+})
