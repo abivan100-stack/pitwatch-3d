@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: the dashboard's SIMULATED DATA badge is quieter, label kept (issue #66)
+
+- `.stamp` in `src/index.css` loses its border, tinted background, padding, radius and bold weight. It is now plain mono text at the landing `.sim-note` size and colour (`--color-ink-faint`, already AA on the paper tokens), with the dot kept. The header markup, the exact label and the `title` tooltip are unchanged, and the text is not `aria-hidden`. `.sim-note` is untouched.
+- This deliberately undoes the 2026-10-30 choice to make the stamp match the status chip: the two no longer read as a pair.
+- Tests: `e2e/badge.spec.ts` now also runs at 1100 px and, on the dashboard, asserts no border, a transparent background, no `aria-hidden` and no horizontal overflow. Revert proof: with the `index.css` change stashed, the check fails (`border-top-width` expected 0px, received 1px); restored, it passes.
+- Checks: badge (4) and a11y (9) browser specs pass on port 4202, with axe clean on every dashboard page. Overflow is asserted at 390, 800, 1100 and 1440 px; no separate screenshot review was done. `npm run verify` under load timed out 5 terrain-generation unit tests unrelated to this change (see PR).
+
 ### 2026-11-19: two fixes recovered from unmerged October branches
 
 - A branch cleanup found two Codex commits from 2026-10-24 that never reached `main` and still applied: `8c77504` from `codex/issue-21-colors` and `99e5133` from `codex/issue-21-findings-copy`. Both are cherry-picked here with `-x`. The other two unmerged branches added nothing: `codex/issue-36-e2e` is already in `main`, and `codex/issue-21-homepage` only merged these two plus a test fix and a log entry that are both obsolete. All four branches were then deleted.

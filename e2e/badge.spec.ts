@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 // The honesty marker is a project rule, not decoration: it has to be on screen at every width,
 // on both screens. Phones previously dropped it entirely, and the home corner stacked its badge
 // beside the CTA where the floating brand would have overlapped it.
-const WIDTHS = [390, 800, 1440]
+const WIDTHS = [390, 800, 1100, 1440]
 
 for (const width of WIDTHS) {
   test(`the simulated-data note and badge are visible at ${width}px`, async ({ page }) => {
@@ -28,6 +28,12 @@ for (const width of WIDTHS) {
     }
 
     await page.goto('/#/monitor')
-    await expect(page.locator('.stamp', { hasText: 'SIMULATED DATA' })).toBeVisible()
+    const stamp = page.locator('.stamp', { hasText: 'SIMULATED DATA' })
+    await expect(stamp).toBeVisible()
+    // Quiet text, not a chip: no border, no tinted fill, still readable by screen readers.
+    await expect(stamp).toHaveCSS('border-top-width', '0px')
+    await expect(stamp).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(stamp).not.toHaveAttribute('aria-hidden', 'true')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 }
