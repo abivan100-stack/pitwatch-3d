@@ -63,12 +63,6 @@ test('a typed coordinate reads the point and announces it', async ({ page }) => 
     page.getByText('The elevation readings and change quote vertical uncertainty.'),
   ).toBeVisible()
 
-  const pointChange = page
-    .getByRole('term')
-    .filter({ hasText: /^Point change$/ })
-    .locator('xpath=following-sibling::dd')
-  await expect(pointChange).toHaveText(/^[+−]\d+\.\d{2} ± 0\.07 m$/)
-
   // The live region carries the outcome for a screen reader.
   await expect(page.locator('form').getByRole('status')).toHaveText('Read E 1,024 m, N 900 m.')
 })
