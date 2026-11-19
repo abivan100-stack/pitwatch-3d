@@ -115,6 +115,8 @@ for (const { width, height } of SIZES) {
       page.getByRole('group', { name: 'Camera view' }),
       page.getByRole('button', { name: /^Compass/ }),
       page.getByRole('group', { name: 'Click tool' }),
+      // The tool buttons and their status chip (it holds the measurement and Clear).
+      page.getByRole('group', { name: 'Click tool' }).locator('xpath=..'),
       page.getByRole('navigation', { name: 'Map', exact: true }),
     ]
     const check = async (state: string) => {
@@ -144,5 +146,43 @@ for (const { width, height } of SIZES) {
     const open = (await toggle(key).getAttribute('aria-expanded')) === 'true'
     await expect(key.locator('.card')).toBeVisible({ visible: open })
     await check('toggled')
+  })
+}
+
+// With every layer on, the key is at its tallest. On a short screen it must still stop below the
+// tool stack, scrolling inside instead of covering the measurement chip and its Clear button.
+for (const { width, height } of [
+  { width: 1100, height: 700 },
+  { width: 1280, height: 700 },
+  { width: 1440, height: 900 },
+]) {
+  test(`with every layer on, the open key clears the tool stack at ${width} x ${height}`, async ({
+    page,
+  }) => {
+    const key = await openMap(page, width, height)
+    const map = page.getByRole('navigation', { name: 'Map', exact: true })
+    if (!(await map.isVisible())) await page.keyboard.press('[')
+    for (const name of [
+      'Elevation tint',
+      'Contours',
+      'Safety buffer',
+      'Permitted zones',
+      'Change since baseline',
+    ]) {
+      const s = map.getByRole('switch', { name })
+      if ((await s.getAttribute('aria-checked')) !== 'true') await s.click()
+      await expect(s).toHaveAttribute('aria-checked', 'true')
+    }
+    if ((await toggle(key).getAttribute('aria-expanded')) !== 'true') await toggle(key).click()
+    const card = key.locator('.card')
+    await expect(card).toBeVisible()
+    const tools = (await page
+      .getByRole('group', { name: 'Click tool' })
+      .locator('xpath=..')
+      .boundingBox())!
+    const box = (await card.boundingBox())!
+    // The cap leaves room for the tool stack at its tallest (status chip with a measurement).
+    expect(box.y, 'key top below the tool stack').toBeGreaterThanOrEqual(tools.y + tools.height)
+    expect(box.y, 'key top leaves the measurement chip room').toBeGreaterThanOrEqual(200)
   })
 }

@@ -261,10 +261,10 @@ export function MapKey() {
         <div
           id={id}
           data-open={open ? '' : undefined}
-          className="map-key-body pointer-events-auto w-[260px] max-w-full"
+          className="map-key-body w-[260px] max-w-full"
         >
           <div className="map-key-inner">
-            <div className="card mb-2 flex flex-col gap-2 px-3 py-2.5">
+            <div className="map-key-card card pointer-events-auto mb-2 flex flex-col gap-2 px-3 py-2.5">
               {tint && (
                 <div>
                   <div

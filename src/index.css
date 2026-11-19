@@ -2012,6 +2012,24 @@ body {
     min-height: 0;
     overflow: hidden;
   }
+  /* The card grows upward from above the timeline. Cap it so it stops below the click-tool stack
+     (60 px header, the tools and their status chip up to 140 px into the stage, a 12 px gap), and
+     scroll inside it beyond that. The offsets follow the section's bottom: 6rem, 8.5rem below xl,
+     10.75rem below sm, plus the 30 px Key button and the card's 8 px margin. */
+  .map-key-card {
+    max-height: max(120px, calc(100dvh - 346px));
+    overflow-y: auto;
+  }
+  @media (width < 80rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 386px));
+    }
+  }
+  @media (width < 40rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 422px));
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .map-key-body {
       transition: none !important;
