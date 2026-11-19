@@ -1,10 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
+import { APRON_FADE_M, apronGrid, apronHeights } from '../data/apron'
+import { SEED } from '../data/fixtures/scenario'
 import type { Orthophoto, TerrainSurvey } from '../domain/types'
 import { useAppStore } from '../state/store'
 import type { TerrainMarks } from './marks'
-import { drawnOnTop } from './overlayGeometry'
+import { clickOnDecoration, drawnOnTop } from './overlayGeometry'
 import { OVERLAY, ROCK, SOIL_PROFILE } from './palette'
 import {
   ROCK_DETAIL_COLOR,
@@ -13,7 +15,7 @@ import {
   detailTexture,
   detailTile,
 } from './rockDetail'
-import { BASE_RL, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
+import { BASE_RL, buildApronArrays, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
 import { makeSurfaceUniforms, type SurfaceUniforms } from './surfaceUniforms'
 
 /*
@@ -177,6 +179,55 @@ function makeSkirtMaterial(morph: Uniform<number>) {
   return m
 }
 
+/**
+ * The ground around the block. It fades to transparent with distance from the block's edge, so the
+ * far ground dissolves into the page's own backdrop and never ends in a cut. It casts no shadow
+ * (see sun.ts), so it needs no depth material. `half` is half the block's side, scene units.
+ */
+function makeApronMaterial(half: number) {
+  const m = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.96,
+    metalness: 0,
+    transparent: true,
+  })
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uHalf = { value: half }
+    shader.uniforms.uFade = { value: new THREE.Vector2(APRON_FADE_M.from, APRON_FADE_M.to) }
+    shader.vertexShader =
+      'varying float vApronD;\nuniform float uHalf;\n' +
+      shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        // Distance from the block's square outline, so a corner fades round, not square.
+        '#include <begin_vertex>\n  vApronD = length(max(abs(position.xz) - vec2(uHalf), 0.0));',
+      )
+    shader.fragmentShader =
+      'varying float vApronD;\nuniform vec2 uFade;\n' +
+      shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        '#include <color_fragment>\n  diffuseColor.a *= 1.0 - smoothstep(uFade.x, uFade.y, vApronD);',
+      )
+  }
+  m.customProgramCacheKey = () => 'terrain-apron'
+  return m
+}
+
+/**
+ * The apron's arrays are the slow part (natural ground at every lattice vertex), and the landing
+ * page and the map each mount a Terrain, so the result is kept for the page.
+ */
+const apronCache = new Map<string, ReturnType<typeof buildApronArrays>>()
+function apronFor(g: TerrainSurvey['grid']) {
+  const key = `${g.cols}x${g.rows}@${g.cellSize}:${g.originXY.x},${g.originXY.y}`
+  let hit = apronCache.get(key)
+  if (!hit) {
+    const a = apronGrid(g)
+    hit = buildApronArrays(a, apronHeights(a, SEED))
+    apronCache.set(key, hit)
+  }
+  return hit
+}
+
 /** Shadow-map material that follows the morph, so shadows match the blended surface. */
 function makeDepthMaterial(morph: Uniform<number>) {
   const m = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking })
@@ -319,6 +370,17 @@ export function Terrain({
       depth: makeDepthMaterial(morphU),
     }
   }, [texture, texture2, detail])
+  // The apron depends on the block's grid alone, not on either survey, the marks or the morph, so
+  // it is built (and disposed) when the grid changes, not each time one of those does.
+  const grid = survey.grid
+  const apronGeometry = useMemo(() => {
+    const ground = apronFor(grid)
+    return geometryFrom(ground.positions, ground.index, { color: [ground.colors, 3] })
+  }, [grid])
+  const half = ((grid.cols - 1) * grid.cellSize) / 2
+  const apronMaterial = useMemo(() => makeApronMaterial(half), [half])
+  useEffect(() => () => apronGeometry.dispose(), [apronGeometry])
+  useEffect(() => () => apronMaterial.dispose(), [apronMaterial])
 
   useEffect(
     () => () => {
@@ -398,6 +460,15 @@ export function Terrain({
         }
       />
       <mesh geometry={geometry.skirt} material={materials.skirt} receiveShadow />
+      {/* Decorative ground outside the survey. It is drawn, so it is also a click target that
+          reads nothing: otherwise a click where it stands in front of the surveyed ground would
+          pick that ground behind it. Badges drawn over everything still win, as on the terrain. */}
+      <mesh
+        geometry={apronGeometry}
+        material={apronMaterial}
+        receiveShadow
+        onClick={onPick && shown ? clickOnDecoration : undefined}
+      />
     </group>
   )
 }

@@ -9,6 +9,7 @@ import { toneOf } from './marks'
 import { OVERLAY, TONE_COLOR } from './palette'
 import { leaseLine, onGround, PIN_HEIGHT } from './overlayGeometry'
 import { PickLayer } from './PickLayer'
+import { SurveyEdge } from './SurveyEdge'
 import { useScreenHeight } from './useScreenSize'
 
 /** Badge size on screen, pixels tall. */
@@ -170,6 +171,7 @@ export function Overlays({ survey }: { survey: TerrainSurvey }) {
 
   return (
     <>
+      <SurveyEdge survey={survey} ex={ex} />
       {layers.lease && lease && <Line points={lease} color={OVERLAY.lease} lineWidth={2.5} />}
       {layers.buffer && buffer && buffer.length > 0 && (
         <Line

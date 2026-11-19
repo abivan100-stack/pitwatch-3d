@@ -1,6 +1,6 @@
 import type { Object3D } from 'three'
 import type { ComplianceFinding, GridSpec, Polygon, TerrainSurvey, Vec2 } from '../domain/types'
-import { centerOfIndex, sampleBilinear } from '../geo/grid'
+import { centerOfIndex, extent, sampleBilinear } from '../geo/grid'
 import { focusPose, type Pose } from './presets'
 import { BASE_RL, toScene } from './terrainGeometry'
 
@@ -63,6 +63,31 @@ export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number) {
     }
   }
   return pts
+}
+
+/** The edge of the surveyed area: where the survey ends and the decorative apron begins. */
+export function surveyEdgeLine(survey: TerrainSurvey, ex: number) {
+  const { min, max } = extent(survey.grid)
+  return leaseLine(survey, [min, { x: max.x, y: min.y }, max, { x: min.x, y: max.y }], ex)
+}
+
+/** The part of an R3F click event the decoration handler reads. */
+interface ClickLike {
+  delta: number
+  intersections: { object: Object3D }[]
+  stopPropagation(): void
+}
+
+/**
+ * Click handler for ground that is drawn but was never surveyed (the apron). A click on it reads
+ * nothing, and it must not fall through to the surveyed ground behind it: only what is drawn at
+ * the pointer can be clicked. A drag is a camera move, and a badge drawn over everything wins the
+ * click as it does over the terrain, so neither is stopped here.
+ */
+export function clickOnDecoration(e: ClickLike) {
+  if (e.delta > 4) return
+  if (e.intersections.some((i) => drawnOnTop(i.object))) return
+  e.stopPropagation()
 }
 
 /**

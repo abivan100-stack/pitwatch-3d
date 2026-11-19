@@ -37,6 +37,13 @@ export const SOIL_PROFILE = {
 export const ROCK = { stain: '#e3d5cb' } as const
 
 /**
+ * Ground around the surveyed block (the apron): dry scrub in the low ground, paler grass and soil
+ * on the rises, close to the mean of the simulated aerial image's open ground, so the apron reads as
+ * more of the same landscape and not as a second material.
+ */
+export const APRON = { low: '#6e6e48', high: '#8e8460' } as const
+
+/**
  * Overlay colours on the terrain: cut and fill for the change map, and the finding tones
  * (same hues as the --color-warn / --color-violation / --color-critical tokens).
  */
@@ -48,6 +55,8 @@ export const OVERLAY = {
   critical: '#8c3bb0',
   /** Lease boundary and buffer lines. */
   lease: '#fbfaf6',
+  /** Hairline along the edge of the surveyed area (same as the --color-ink token). */
+  surveyEdge: '#23262b',
   /** Picked point and measure line (same as --color-accent). */
   accent: '#1f5f86',
   /** Pin badge: paper fill, ink text (same as --color-ink). */
