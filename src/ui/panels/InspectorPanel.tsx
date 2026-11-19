@@ -103,8 +103,8 @@ function Point() {
         Position is the survey&apos;s plan coordinate ±{n(r.horizontalSigma, 2)} m (1σ, simulated
         survey). The lease side and the buffer edge are read with a {cfg.k}σ band. The compliance
         engine classifies whole {n(current!.grid.cellSize)} m cells by their centre and does not use
-        this band, so a finding can cover a point whose side is unconfirmed. Elevation, change and
-        slope carry the vertical ±.
+        this band, so a finding can cover a point whose side is unconfirmed. The elevation readings
+        and change quote vertical uncertainty.
       </p>
       <dl className="mt-2 border-t border-line pt-2">
         <Row
@@ -194,7 +194,7 @@ function Measurement() {
     () => profile?.points.map((p) => (zone ? pointInPolygon(p, zone.polygon) : false)) ?? [],
     [profile, zone],
   )
-  if (!current) return null
+  if (!current || !baseline) return null
   const sigma = current.verticalUncertainty
   const horizontal = current.horizontalUncertainty
   const dzSigma = Math.SQRT2 * sigma // two independent point readings
@@ -237,7 +237,8 @@ function Measurement() {
               profile={profile}
               floor={zone?.approvedFloorElevation ?? null}
               inPit={inPit}
-              sigma={sigma}
+              currentSigma={sigma}
+              baselineSigma={baseline.verticalUncertainty}
             />
             {profile.limited && (
               <p className="mt-1.5 text-[11.5px] leading-4 text-ink-faint">
@@ -249,10 +250,10 @@ function Measurement() {
         </>
       )}
       <p className="mt-2 text-[11.5px] leading-4 text-ink-faint">
-        Measured on the current survey. Distances carry the horizontal ±{n(horizontal, 2)} m per
-        endpoint, treated as independent errors: a conservative bound, since points from one survey
-        usually err together. Elevation change carries the vertical ±{n(sigma, 2)} m. Slope distance
-        and grade combine both.
+        Measured on the current survey, treating endpoint errors as independent. Horizontal distance
+        uses ±{n(horizontal, 2)} m per endpoint. Elevation change combines two vertical readings of
+        ±{n(sigma, 2)} m each to give ±{n(dzSigma, 2)} m. Slope distance and grade combine
+        horizontal and vertical uncertainty.
       </p>
       <button
         type="button"

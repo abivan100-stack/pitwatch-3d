@@ -50,6 +50,11 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: Inspector and profile agree on survey uncertainty (fork ticket #41)
+
+- The measurement footer distinguishes each endpoint's vertical uncertainty from the propagated elevation-change uncertainty. The selected-point note describes the elevation readings and change, and the profile identifies each survey's vertical uncertainty separately from the horizontal distance.
+- Both targeted keyboard browser checks passed. The measurement check gives the baseline a different uncertainty at the survey-provider boundary and verifies both trace labels and the elevation-change row and footer.
+
 ### 2026-11-19: Inspector shows centimetre precision at the lease edge (fork ticket #40)
 
 - The Position and Lease rows display local coordinates and boundary distance to two decimal places. The keyboard check distinguishes points 0.29 m inside and 0.42 m outside the lease and confirms that the exact vertex remains unconfirmed within the 0.20 m band.

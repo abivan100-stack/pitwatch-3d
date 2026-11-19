@@ -28,13 +28,15 @@ export function ProfileChart({
   profile,
   floor,
   inPit,
-  sigma,
+  currentSigma,
+  baselineSigma,
 }: {
   profile: Profile
   /** Approved floor RL, drawn only over samples where `inPit` is true. */
   floor: number | null
   inPit: boolean[]
-  sigma: number
+  currentSigma: number
+  baselineSigma: number
 }) {
   const [now, base] = profile.series
   const values = [...now, ...base, ...(floor !== null && inPit.some(Boolean) ? [floor] : [])]
@@ -105,10 +107,11 @@ export function ProfileChart({
       </svg>
       <figcaption className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-ink-dim">
         <span className="flex items-center gap-1.5">
-          <i className="inline-block h-0.5 w-4 bg-accent" /> Current, ± {sigma.toFixed(2)} m
+          <i className="inline-block h-0.5 w-4 bg-accent" /> Current, ±{currentSigma.toFixed(2)} m
         </span>
         <span className="flex items-center gap-1.5">
-          <i className="inline-block h-0 w-4 border-t-2 border-dashed border-ink-faint" /> Baseline
+          <i className="inline-block h-0 w-4 border-t-2 border-dashed border-ink-faint" /> Baseline,
+          ±{baselineSigma.toFixed(2)} m
         </span>
         {floor !== null && inPit.some(Boolean) && (
           <span className="flex items-center gap-1.5">
@@ -118,8 +121,10 @@ export function ProfileChart({
         )}
       </figcaption>
       <p className="mt-1 text-[11.5px] leading-4 text-ink-faint">
-        Metres RL against metres along the line. The vertical scale is fitted to the data, so slopes
-        look steeper than they are.
+        The vertical axis shows elevation in metres RL. The legend gives each survey’s vertical
+        uncertainty. The horizontal axis shows plan distance along the line. See the Horizontal row
+        for the uncertainty of the full A-to-B distance. The vertical scale is fitted to the data,
+        so slopes look steeper than they are.
       </p>
     </figure>
   )

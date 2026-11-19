@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import type { TerrainSurvey } from '../src/domain/types.js'
 
 // Choosing a point used to need a mouse: the 3D canvas only emits a pick on a pointer click.
 // These tests drive the new Inspector coordinate form with the keyboard only. `locator.focus()`
@@ -58,12 +59,28 @@ test('a typed coordinate reads the point and announces it', async ({ page }) => 
   await expect(
     page.locator('#details-tabpanel dd').filter({ hasText: 'E 1,024.00 m, N 900.00 m' }),
   ).toBeVisible()
+  await expect(
+    page.getByText('The elevation readings and change quote vertical uncertainty.'),
+  ).toBeVisible()
 
   // The live region carries the outcome for a screen reader.
   await expect(page.locator('form').getByRole('status')).toHaveText('Read E 1,024 m, N 900 m.')
 })
 
 test('typed coordinates set measure A and B and produce a distance', async ({ page }) => {
+  // Give the baseline a distinct uncertainty at the survey-provider boundary so a legend that
+  // accidentally reuses the current survey's value cannot pass.
+  await page.addInitScript(() => {
+    const SurveyWorker = window.Worker
+    window.Worker = class extends SurveyWorker {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options)
+        this.addEventListener('message', ({ data }: MessageEvent<{ survey?: TerrainSurvey }>) => {
+          if (data.survey?.id === 'baseline') data.survey.verticalUncertainty = 0.08
+        })
+      }
+    }
+  })
   await openMonitor(page)
 
   // `m` toggles the tool from the page, not from a pointer.
@@ -93,6 +110,16 @@ test('typed coordinates set measure A and B and produce a distance', async ({ pa
       .locator('dd')
       .first(),
   ).toContainText('±')
+  const elevationChange = page
+    .getByText('Elevation change', { exact: true })
+    .locator('xpath=following-sibling::dd')
+  await expect(elevationChange).toContainText('± 0.07 m')
+  await expect(page.getByText(/Elevation change combines two vertical readings/)).toContainText(
+    '±0.05 m each to give ±0.07 m',
+  )
+  const profileLegend = page.locator('#details-tabpanel figcaption')
+  await expect(profileLegend).toContainText('Current, ±0.05 m')
+  await expect(profileLegend).toContainText('Baseline, ±0.08 m')
 })
 
 test('a point reading quotes horizontal error and refuses an unconfirmable side', async ({
