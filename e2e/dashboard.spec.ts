@@ -219,7 +219,7 @@ test('the R2 findings PDF fits the printable column and says it is simulated', a
 
   const shown = await page
     .locator('li.frow', { hasText: 'R2-1' })
-    .locator('details p')
+    .locator('.fd-body p')
     .first()
     .textContent()
   expect(shown).toBeTruthy()

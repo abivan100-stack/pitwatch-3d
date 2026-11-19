@@ -16,7 +16,7 @@ PitWatch supports risk-based inspection planning. It does not replace a site vis
   - **Findings** (`#/findings`): every finding as a ruled row with its figures, filters by status and rule, the explanation on demand, Show on map, **Copy link**, **Download CSV** (every row marked simulated), **Download PDF** (a plan of the lease with each finding, every page marked simulated) and a clean **Print report** view.
   - **Permit rules** (`#/rules`), **Uncertainty** (`#/uncertainty`: combined survey σ, the noise band and the threshold the rules report beyond, plus the resolution comparison) and **About the data** (`#/about`, with the keyboard shortcuts).
 - **3D map** (`#/monitor`):
-  - 3D terrain of the current survey with a simulated aerial image draped over it. The block sides show a soil profile.
+  - 3D terrain of the current survey with a simulated aerial image (1,280 px, about 1.6 m per pixel) draped over it: banded pit walls that change with slope and aspect, berms with a damp toe and a wear track, a rutted haul ramp, a floor of wet and dry patches with spoil at the toes, and a sump with a visible water edge. Close to the camera the shader adds rock jointing and gullies on the walls and grain on flat ground; none of it changes an elevation. The block sides show a soil profile.
   - Optional elevation tint, with colours spread so the plateau's relief shows, and optional 5 m contours.
   - Vertical exaggeration from 1× to 3×.
   - Oblique, top and pit camera views, a compass and a live scale bar.
@@ -158,7 +158,7 @@ src/
   data/         seeded RNG and noise, scenario fixtures, synthetic terrain, aerial image, providers
   geo/          grid maths, point-in-polygon, distances, area and volume, lat/lon display
   compliance/   change detection, R1–R3, connected components, severity, explanations
-  scene/        R3F terrain, shaders (aerial/tint blend, contours, soil profile), camera rig
+  scene/        R3F terrain, shaders (aerial/tint blend, rock detail, contours, soil profile), camera rig
   state/        Zustand stores: app UI state, loaded terrain and findings
   ui/           landing page, dashboard shell and pages, site plan, panels, map HUD
   workers/      terrain generation off the main thread

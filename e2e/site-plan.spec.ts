@@ -52,22 +52,13 @@ test('the phone site plan fits and its pins can be tapped', async ({ browser }) 
   }
 })
 
-test('the short-screen map keeps exaggeration reachable and the key stays user-controlled', async ({
-  page,
-}) => {
+test('the short-screen map keeps exaggeration reachable', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/#/monitor')
   const panel = page.getByRole('navigation', { name: 'Map', exact: true })
   const slider = panel.getByLabel('Vertical exaggeration')
   await expect(slider).toBeVisible({ timeout: 60_000 })
   await expect(slider).toBeInViewport()
-  const key = panel.locator('details')
-  await expect(key).not.toHaveAttribute('open')
-  await key.locator('summary').click()
-  await expect(key).toHaveAttribute('open')
   await slider.fill('2')
   await expect(slider).toHaveValue('2')
-  await expect(key).toHaveAttribute('open')
-  await key.locator('summary').click()
-  await expect(key).not.toHaveAttribute('open')
 })

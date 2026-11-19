@@ -7,7 +7,7 @@ import { useAppStore } from '../state/store'
 import { useTerrain } from '../state/terrain'
 import { toneOf } from './marks'
 import { OVERLAY, TONE_COLOR } from './palette'
-import { leaseLine, onGround } from './overlayGeometry'
+import { leaseLine, onGround, PIN_HEIGHT } from './overlayGeometry'
 import { PickLayer } from './PickLayer'
 import { useScreenHeight } from './useScreenSize'
 
@@ -94,7 +94,7 @@ function FindingPin({
 }) {
   const tone = toneOf(f)
   const [x, y, z] = onGround(survey, f.centroid, ex, 0)
-  const height = 90
+  const height = PIN_HEIGHT
   const selected = useAppStore((s) => s.selectedFinding === f.id)
   const selectFinding = useAppStore((s) => s.selectFinding)
   const map = useMemo(() => badgeTexture(tone, f.id), [tone, f.id])
@@ -114,7 +114,7 @@ function FindingPin({
         onClick={(e) => {
           if (e.delta > 4) return
           e.stopPropagation()
-          selectFinding(f.id, f.centroid)
+          selectFinding(f.id)
         }}
         onPointerOver={(e) => setCursor(e.nativeEvent, 'pointer')}
         onPointerOut={(e) => setCursor(e.nativeEvent, '')}

@@ -30,6 +30,13 @@ export const SOIL_PROFILE = {
 } as const
 
 /**
+ * Close-range rock detail on the terrain surface (see rockDetail.ts). `stain` multiplies the
+ * ground in a gully: darker and redder, as iron-stained water leaves it. Between gullies the
+ * shader moves the other way from it, so the ribs read as washed rock.
+ */
+export const ROCK = { stain: '#e3d5cb' } as const
+
+/**
  * Overlay colours on the terrain: cut and fill for the change map, and the finding tones
  * (same hues as the --color-warn / --color-violation / --color-critical tokens).
  */

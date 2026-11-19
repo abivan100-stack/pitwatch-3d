@@ -140,15 +140,10 @@ body {
     gap: 7px;
     white-space: nowrap;
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 11.5px;
     letter-spacing: 0.06em;
     line-height: 1.4;
-    color: var(--color-warn);
-    padding: 4px 10px;
-    border-radius: 3px;
-    border: 1px solid color-mix(in srgb, var(--color-warn) 38%, transparent);
-    background: color-mix(in srgb, var(--color-warn) 5%, var(--color-panel));
+    color: var(--color-ink-faint);
   }
 
   /* The landing page's quiet note that the values are simulated. */
@@ -599,6 +594,24 @@ body {
     border-left: 3px solid var(--tone);
     background: color-mix(in srgb, var(--tone) 7%, transparent);
     color: var(--tone);
+  }
+  .sev-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 2px 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tone);
+  }
+  .sev-line > svg {
+    margin-top: 1px;
+  }
+  .sev-line b {
+    font-weight: 600;
+  }
+  .sev-meaning {
+    color: var(--color-ink-dim);
   }
   .sev-warn {
     --tone: var(--color-warn);
@@ -1297,7 +1310,8 @@ body {
   }
   .frow-figures {
     display: flex;
-    gap: 28px;
+    flex-wrap: wrap;
+    gap: 10px 28px;
     grid-column: 1;
   }
   .frow-figures dt {
@@ -1343,12 +1357,13 @@ body {
   }
   @media (width >= 64rem) {
     .frow {
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
     }
     .frow-figures {
       display: grid;
-      grid-template-columns: repeat(3, 7.5rem);
+      grid-template-columns: repeat(3, 6rem) 4rem 9rem;
+      gap: 20px;
       grid-column: 2;
     }
     .frow-go {
@@ -1367,9 +1382,143 @@ body {
       justify-self: start;
       gap: 16px;
     }
+  }
+  @media (width < 40rem) {
     .frow-figures {
-      gap: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 20px;
     }
+  }
+
+  /* Findings page: the Details disclosure. The body animates open with a grid-row transition. */
+  .fd {
+    grid-column: 1 / -1;
+    font-size: 13px;
+  }
+  .fd-btn {
+    font-weight: 600;
+    color: var(--color-accent);
+    cursor: pointer;
+  }
+  .fd-btn::after {
+    content: '';
+    display: inline-block;
+    margin-left: 8px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s;
+  }
+  .fd-btn[aria-expanded='true']::after {
+    transform: translateY(1px) rotate(-135deg);
+  }
+  .fd-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+  }
+  .fd-wrap[data-open] {
+    grid-template-rows: 1fr;
+  }
+  .fd-body {
+    min-height: 0;
+    overflow: hidden;
+    line-height: 1.55;
+    color: var(--color-ink-dim);
+  }
+  .fd-wrap:not([data-open]) .fd-body {
+    visibility: hidden;
+    transition: visibility 0s 0.25s;
+  }
+  .fd-body > p {
+    max-width: 46rem;
+    margin-top: 8px;
+  }
+  .fd-grid {
+    display: grid;
+    gap: 18px 32px;
+    margin-top: 14px;
+    padding-bottom: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  }
+  .fd-grid h4 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+    border-bottom: 1px solid var(--color-line-strong);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .fd-grid p,
+  .fd-grid li {
+    margin-top: 4px;
+  }
+  .fd-grid ul {
+    list-style: disc;
+    padding-left: 18px;
+  }
+  .fd-row {
+    padding: 3px 0;
+  }
+  .fd-row dt {
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fd-row dd {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+  .fd-plan svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 16rem;
+    background: var(--color-backdrop);
+  }
+  .fd-plan figcaption {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fd-ring {
+    fill: none;
+    stroke: var(--tone);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* Findings page: totals for the shown findings. */
+  .fsum dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 10px 24px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-line-strong);
+  }
+  .fsum dt {
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+  .fsum dd {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--color-ink);
+  }
+  .fsum p {
+    font-size: 12.5px;
+    color: var(--color-ink-dim);
+  }
+  .fsum a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .rule-list {
@@ -1480,22 +1629,13 @@ body {
     border-bottom: 1.5px solid var(--color-ink);
     background: repeating-linear-gradient(
       to right,
-      transparent 0 calc(10% - 1px),
-      var(--color-line) calc(10% - 1px) 10%
+      transparent 0 calc(25% - 1px),
+      var(--color-line) calc(25% - 1px) 25%
     );
   }
   .noise-band {
     position: absolute;
     inset: 0 auto 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 8px;
-    overflow: hidden;
-    font-size: 11.5px;
-    font-style: italic;
-    white-space: nowrap;
-    color: var(--color-ink-dim);
     background: repeating-linear-gradient(
       -45deg,
       color-mix(in srgb, var(--color-ink) 9%, transparent) 0 4px,
@@ -1503,6 +1643,66 @@ body {
     );
     border-right: 1.5px dashed var(--color-ink-dim);
     transition: width 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  /* Three labelled flags above the axis, one row each, so values that are close together
+     (0.14, 0.40, 0.64 m on a 12 m axis) never print over one another. A flag sits at its
+     marker's x and slides left by the same share of its own width, so it always spans that x
+     and stays inside the chart. */
+  .noise-chart {
+    margin: 0;
+  }
+  .noise-flags {
+    position: relative;
+    height: 84px;
+  }
+  .noise-flag {
+    position: absolute;
+    z-index: 1;
+    padding: 2px 6px;
+    font-size: 13px;
+    line-height: 20px;
+    white-space: nowrap;
+    color: var(--color-ink-dim);
+    background: var(--color-bg);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 4px;
+    transition:
+      left 0.45s cubic-bezier(0.2, 0.7, 0.2, 1),
+      translate 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .noise-flag strong {
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .noise-flag.real strong {
+    color: var(--color-violation);
+  }
+  .noise-leader {
+    position: absolute;
+    bottom: 0;
+    width: 1px;
+    translate: -0.5px 0;
+    background: var(--color-ink-dim);
+    transition: left 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .noise-ticks {
+    position: relative;
+    height: 22px;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-ink-dim);
+  }
+  .noise-ticks span {
+    position: absolute;
+    white-space: nowrap;
+    translate: -50% 0;
+  }
+  .noise-ticks span:first-child {
+    translate: 0 0;
+  }
+  .noise-ticks span:last-child {
+    translate: -100% 0;
   }
   .noise-marker {
     position: absolute;
@@ -1520,7 +1720,7 @@ body {
   .noise-marker.real {
     background: var(--color-violation);
   }
-  /* The R1/R3 reporting threshold: a second, sharper line than the noise band. */
+  /* The reporting threshold: a second, sharper line than the noise limit. */
   .noise-limit {
     position: absolute;
     top: -10px;
@@ -1531,9 +1731,121 @@ body {
     transition: left 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
+  /* Example surveys: two options, the selected one filled. */
+  .noise-seg {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid var(--color-line-strong);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .noise-seg-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--color-ink);
+    background: var(--color-panel);
+    cursor: pointer;
+  }
+  .noise-seg-btn + .noise-seg-btn {
+    border-left: 1px solid var(--color-line-strong);
+  }
+  .noise-seg-btn:hover {
+    background: var(--color-panel-2);
+  }
+  .noise-seg-btn[aria-pressed='true'] {
+    color: var(--color-panel);
+    background: var(--color-accent);
+  }
+  .noise-seg-note {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-ink-dim);
+  }
+  .noise-seg-btn[aria-pressed='true'] .noise-seg-note {
+    color: var(--color-panel);
+  }
+  .noise-seg-btn:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -4px;
+  }
+  @media (max-width: 30rem) {
+    .noise-seg {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .noise-seg-btn + .noise-seg-btn {
+      border-left: 0;
+      border-top: 1px solid var(--color-line-strong);
+    }
+  }
+
+  /* The depth-rule answer folds away; the question stays visible. */
+  .noise-note {
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .noise-note > summary {
+    display: block;
+    padding: 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink);
+    cursor: pointer;
+    list-style: none;
+  }
+  .noise-note > summary::-webkit-details-marker {
+    display: none;
+  }
+  .noise-note > summary::after {
+    content: '+';
+    float: right;
+    font-family: var(--font-mono);
+    color: var(--color-ink-dim);
+  }
+  .noise-note[open] > summary::after {
+    content: '−';
+  }
+  .noise-note > summary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .noise-note > p {
+    padding-bottom: 14px;
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--color-ink-dim);
+  }
+
   /* Resolution panels: one cross-section per way of measuring. */
   .res-panel {
     padding-top: 4px;
+  }
+  .res-axis {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-ink-dim);
+  }
+  .res-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-ink-dim);
+  }
+  .res-key svg {
+    display: inline-block;
+    width: 28px;
+    height: 8px;
+    margin-right: 8px;
+    vertical-align: middle;
   }
   .res-truth {
     fill: none;
@@ -1878,24 +2190,46 @@ body {
     }
   }
 
-  /* The map card's key folds away; its summary reads as the card's other section titles. */
-  .key-details > summary {
-    display: block;
-    padding: 12px 16px;
-    cursor: pointer;
-    list-style: none;
+  /* The stage key opens upward: the body grows from 0 to its height over 200 ms. */
+  .map-key-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+      grid-template-rows 0.2s ease-out,
+      visibility 0s 0.2s;
   }
-  .key-details > summary::-webkit-details-marker {
-    display: none;
+  .map-key-body[data-open] {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 0.2s ease-out;
   }
-  .key-details > summary::after {
-    content: '+';
-    float: right;
-    font-family: var(--font-mono);
-    color: var(--color-ink-faint);
+  .map-key-inner {
+    min-height: 0;
+    overflow: hidden;
   }
-  .key-details[open] > summary::after {
-    content: '−';
+  /* The card grows upward from above the timeline. Cap it so it stops below the click-tool stack
+     (60 px header, the tools and their status chip up to 140 px into the stage, a 12 px gap), and
+     scroll inside it beyond that. The offsets follow the section's bottom: 6rem, 8.5rem below xl,
+     10.75rem below sm, plus the 30 px Key button and the card's 8 px margin. */
+  .map-key-card {
+    max-height: max(120px, calc(100dvh - 346px));
+    overflow-y: auto;
+  }
+  @media (width < 80rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 386px));
+    }
+  }
+  @media (width < 40rem) {
+    .map-key-card {
+      max-height: max(120px, calc(100dvh - 422px));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .map-key-body {
+      transition: none !important;
+    }
   }
 }
 
@@ -2655,8 +2989,11 @@ body {
   .frow {
     break-inside: avoid;
   }
-  .frow-more > :not(summary) {
-    display: block !important;
+  .fd-wrap {
+    grid-template-rows: 1fr !important;
+  }
+  .fd-body {
+    visibility: visible !important;
   }
   .frow-go {
     display: none !important;

@@ -3,7 +3,7 @@ import { useAppStore } from '../state/store'
 import { useTerrain } from '../state/terrain'
 import { Relief } from './schematic'
 import { Timeline } from './Timeline'
-import { ScaleBar, SceneStatus, ToolControls, ViewControls } from './viewport/MapHud'
+import { MapKey, ScaleBar, SceneStatus, ToolControls, ViewControls } from './viewport/MapHud'
 import { SceneErrorBoundary } from './viewport/SceneErrorBoundary'
 
 // three.js is large; fetch it only when the monitor actually shows the model.
@@ -80,6 +80,7 @@ export function Viewport() {
             <ViewControls />
             <ScaleBar />
             <ToolControls />
+            <MapKey />
           </>
         )}
         <Timeline />
