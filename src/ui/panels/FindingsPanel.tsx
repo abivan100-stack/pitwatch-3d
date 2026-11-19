@@ -82,7 +82,7 @@ export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 
         <button
           type="button"
           className="shrink-0 self-start text-[12px] font-semibold text-accent underline underline-offset-2"
-          onClick={() => selectFinding(f.id, f.centroid)}
+          onClick={() => selectFinding(f.id)}
         >
           Show on map
         </button>
@@ -106,9 +106,28 @@ export function ThresholdNote() {
 }
 
 /** What the three severity shapes mean. */
-export function SeverityLegend({ className = 'space-y-2' }: { className?: string }) {
+export function SeverityLegend({
+  className,
+  compact = false,
+}: {
+  className?: string
+  compact?: boolean
+}) {
+  if (compact)
+    return (
+      <ul className={className ? `sev-compact ${className}` : 'sev-compact'}>
+        {LEGEND.map(({ Glyph, name, tone, meaning }) => (
+          <li key={name} className={`sev-line ${tone}`}>
+            <Glyph className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              <b>{name}</b> <span className="sev-meaning">{meaning}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
   return (
-    <ul className={className}>
+    <ul className={className ?? 'space-y-2'}>
       {LEGEND.map(({ Glyph, name, tone, meaning }) => (
         <li key={name} className={`sev-row ${tone}`}>
           <Glyph className="mt-0.5 h-[18px] w-[18px] shrink-0" />
@@ -147,7 +166,7 @@ export function FindingsPanel() {
       </Section>
       <div className="divider" />
       <Section title="How findings are marked">
-        <SeverityLegend />
+        <SeverityLegend compact />
       </Section>
     </>
   )

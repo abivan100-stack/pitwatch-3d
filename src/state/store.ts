@@ -40,8 +40,8 @@ interface AppState {
   measureA: Vec2 | null
   measureB: Vec2 | null
   selectedFinding: string | null
-  /** Latest fly-to request (local metres); `n` changes on every request. */
-  focus: { p: Vec2; n: number } | null
+  /** Latest request to fly to a finding; `n` changes on every request so repeats still fire. */
+  focus: { id: string; n: number } | null
   /** Latest camera request; `n` changes on every request so repeats still fire. */
   view: { kind: ViewRequest; n: number }
   setActiveTab: (tab: PanelTab) => void
@@ -62,8 +62,8 @@ interface AppState {
   /** A click on the terrain: reads a point, or sets the next measure endpoint. */
   pickPoint: (p: Vec2) => void
   clearPicks: () => void
-  /** Selects a finding (or none), opens the Findings tab and optionally flies to it. */
-  selectFinding: (id: string | null, at?: Vec2) => void
+  /** Selects a finding, opens the Findings tab and flies the camera to it; `null` clears it. */
+  selectFinding: (id: string | null) => void
   /** Forget camera requests when the map closes, so the next visit opens with the intro shot. */
   leaveMap: () => void
 }
@@ -121,7 +121,7 @@ export const useAppStore = create<AppState>((set) => ({
         : { measureA: p, measureB: null, activeTab: 'inspector' }
     }),
   clearPicks: () => set({ picked: null, measureA: null, measureB: null }),
-  selectFinding: (id, at) =>
+  selectFinding: (id) =>
     set((s) => ({
       selectedFinding: id,
       ...(id
@@ -136,7 +136,7 @@ export const useAppStore = create<AppState>((set) => ({
             layers: { ...s.layers, terrain: true, findings: true },
           }
         : {}),
-      ...(at ? { focus: { p: at, n: (s.focus?.n ?? 0) + 1 } } : {}),
+      ...(id ? { focus: { id, n: (s.focus?.n ?? 0) + 1 } } : {}),
     })),
   leaveMap: () => set({ focus: null, view: { kind: 'intro', n: 0 }, drawerOpen: false }),
 }))
