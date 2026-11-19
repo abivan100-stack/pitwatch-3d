@@ -108,6 +108,28 @@ test('the number line stays 0 to 12 m while the sliders and presets move', async
   await stateAt(0.4)
 })
 
+test('a limit past the end of the fixed 0 to 12 m line says it is beyond the scale', async ({
+  page,
+}) => {
+  await page.goto('/#/uncertainty')
+  const calc = calculator(page)
+  // Both wobbles at their 5 m maximum: σ = 7.07 m, noise limit 14.14 m, threshold 14.64 m.
+  await calc.getByLabel('Baseline survey wobble (σ1)').fill('5')
+  await calc.getByLabel('Current survey wobble (σ2)').fill('5')
+  await expect(flag(page, 'Noise limit')).toContainText('beyond the 12 m scale')
+  await expect(flag(page, 'Reporting threshold')).toContainText('beyond the 12 m scale')
+  await expect(calc.getByRole('img', { name: /Number line/ })).toHaveAttribute(
+    'aria-label',
+    /reporting threshold [\d.]+ m \(beyond the 12 m scale\)/,
+  )
+  // A value inside the line does not carry the note.
+  await calc.getByLabel('Measured change in ground height').fill('6')
+  await expect(flag(page, 'Your change')).not.toContainText('beyond')
+  await calc.getByLabel('Baseline survey wobble (σ1)').fill('0.05')
+  await calc.getByLabel('Current survey wobble (σ2)').fill('0.05')
+  await expect(flag(page, 'Reporting threshold')).not.toContainText('beyond')
+})
+
 test('the verdict is announced when its category changes, not on every step', async ({ page }) => {
   await page.goto('/#/uncertainty')
   const calc = calculator(page)
@@ -139,7 +161,9 @@ test('the verdict is announced when its category changes, not on every step', as
 
   // 0.7 m clears 0.64 m: the category changes, and so does the live region.
   await change.press('ArrowRight')
-  await expect(category(page)).toHaveText('Reportable under R1 and R3.')
+  await expect(category(page)).toHaveText(
+    'Reportable under the lease-boundary and dumping rules (R1 and R3).',
+  )
   expect(await changes()).toBeGreaterThan(0)
 })
 
@@ -205,7 +229,9 @@ test('printed comparisons preserve the order at both boundaries', async ({ page 
 
   // 12 m clears 11.81 m, so the verdict and its numbers move with the slider.
   await change.fill('12')
-  await expect(category(page)).toHaveText('Reportable under R1 and R3.')
+  await expect(category(page)).toHaveText(
+    'Reportable under the lease-boundary and dumping rules (R1 and R3).',
+  )
   await expect(sentence(page)).toContainText('12.00 m clears the 11.81 m reporting threshold')
 
   // A reachable gap smaller than 0.001 m: both would round to 11.90 m at two decimals.

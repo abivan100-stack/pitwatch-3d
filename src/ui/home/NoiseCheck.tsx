@@ -54,6 +54,9 @@ export function NoiseCheck() {
   }
   const compared = (value: number) => m(value, digits)
   const pct = (v: number) => Math.min(100, (v / AXIS_MAX) * 100)
+  // A value past the end of the fixed line is drawn at its end, so it says so instead of
+  // appearing to sit on the 12 m tick.
+  const beyond = (v: number) => (v > AXIS_MAX ? ` (beyond the ${AXIS_MAX} m scale)` : '')
 
   // Fixed rows, so a flag changes height never. Each flag spans its marker's x (see .noise-flag).
   const flags = [
@@ -80,7 +83,7 @@ export function NoiseCheck() {
             <figure
               className="noise-chart"
               role="img"
-              aria-label={`Number line from 0 to ${AXIS_MAX} metres. Noise limit ${compared(noiseBand)}, reporting threshold ${compared(reportableFrom)}, your change ${compared(size)}.`}
+              aria-label={`Number line from 0 to ${AXIS_MAX} metres. Noise limit ${compared(noiseBand)}${beyond(noiseBand)}, reporting threshold ${compared(reportableFrom)}${beyond(reportableFrom)}, your change ${compared(size)}${beyond(size)}.`}
             >
               <div className="noise-flags" aria-hidden="true">
                 {flags.map((f, row) => (
@@ -98,6 +101,7 @@ export function NoiseCheck() {
                       }}
                     >
                       {f.text} <strong>{compared(f.value)}</strong>
+                      {beyond(f.value)}
                     </div>
                   </div>
                 ))}
@@ -138,7 +142,8 @@ export function NoiseCheck() {
               >
                 {verdict === 'noise' && 'Could be survey noise.'}
                 {verdict === 'between' && 'Distinguishable from the noise, not reportable.'}
-                {verdict === 'reportable' && 'Reportable under R1 and R3.'}
+                {verdict === 'reportable' &&
+                  'Reportable under the lease-boundary and dumping rules (R1 and R3).'}
               </p>
               <p className="mt-1 text-[14px] leading-6 text-ink-dim">
                 {verdict === 'noise' && (
