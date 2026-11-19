@@ -16,6 +16,7 @@ export interface PdfReportInput {
 const PAGE = { w: 210, h: 297, margin: 16 }
 const INK = PRINT_INK.ink
 const FAINT = PRINT_INK.faint
+const BODY_FONT_SIZE = 10
 /** Body line spacing on the page, and how far below a heading's baseline the body starts. */
 const LINE_HEIGHT = 4.6
 const BODY_OFFSET = 11
@@ -120,6 +121,7 @@ export async function savePdfReport(input: PdfReportInput): Promise<void> {
   const pageTop = PAGE.margin + 4
   const pageBottom = PAGE.h - 16
   for (const f of findings) {
+    doc.setFont('NotoSans', 'normal').setFontSize(BODY_FONT_SIZE)
     const body = doc.splitTextToSize(pdfText(f.explanation), inner) as string[]
     const pagination = paginateBlock({ y, lines: body.length, pageTop, pageBottom })
     if (pagination.startNewPage) {
@@ -128,7 +130,7 @@ export async function savePdfReport(input: PdfReportInput): Promise<void> {
     }
     doc.setFont('NotoSans', 'bold').setFontSize(12).setTextColor(INK)
     doc.text(pdfText(`${f.id}  ${RULE_NAMES[f.ruleId]}`), PAGE.margin, y)
-    doc.setFont('NotoSans', 'normal').setFontSize(10).setTextColor(FAINT)
+    doc.setFont('NotoSans', 'normal').setFontSize(BODY_FONT_SIZE).setTextColor(FAINT)
     doc.text(
       pdfText(
         `${f.status}, ${f.severity}. Area ${Math.round(f.areaM2).toLocaleString('en-GB')} m², volume ${Math.round(f.volumeM3).toLocaleString('en-GB')} m³, max excess ${f.maxExceedance.toFixed(2)} m, centre E ${Math.round(f.centroid.x)} N ${Math.round(f.centroid.y)}.`,
@@ -136,7 +138,7 @@ export async function savePdfReport(input: PdfReportInput): Promise<void> {
       PAGE.margin,
       y + 5.5,
     )
-    doc.setTextColor(INK).setFontSize(10)
+    doc.setTextColor(INK)
     let drawn = 0
     let bodyY = y + BODY_OFFSET
     for (const [pageIndex, count] of pagination.pages.entries()) {
@@ -145,7 +147,7 @@ export async function savePdfReport(input: PdfReportInput): Promise<void> {
         doc.addPage()
         doc.setFont('NotoSans', 'bold').setFontSize(10).setTextColor(INK)
         doc.text(pdfText(`${f.id}  ${RULE_NAMES[f.ruleId]} (continued)`), PAGE.margin, pageTop)
-        doc.setFont('NotoSans', 'normal').setFontSize(10)
+        doc.setFont('NotoSans', 'normal').setFontSize(BODY_FONT_SIZE)
         bodyY = pageTop + CONTINUED_OFFSET
       }
       for (let line = 0; line < count; line++) {

@@ -50,6 +50,11 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-19: Findings PDF wraps at the printed body size (fork ticket #39)
+
+- The report wraps each explanation in the same font and size it uses to draw the body. The R2-only browser check uses the PDF's embedded glyph advances and text positions to catch lines beyond the printable column and still compares the decoded explanation with the Findings page.
+- Targeted checks pass: 15 PDF unit tests and the R2-only browser export. A temporary long explanation produced three pages with complete text, continuation headings, numbered footers and body text within the margins. The fixture was reverted.
+
 ### 2026-11-18: PR #51 review fixes, and the first-visit tour removed
 
 - **Lease side at 2σ.** `leaseVerdict` used a 1σ band while every other significance test uses `K = 2`; it now takes `k` (default `K`, `readPoint` passes `cfg.k`) and the reading carries `horizontalBand` (k·σ = 0.20 m). The Inspector quotes the band and its coverage factor.

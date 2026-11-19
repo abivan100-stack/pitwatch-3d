@@ -142,9 +142,14 @@ test('the findings can be downloaded as a CSV that says it is simulated', async 
   for (const line of lines.slice(1)) expect(line.endsWith(',simulated')).toBe(true)
 })
 
-test('the findings can be downloaded as a PDF that says it is simulated', async ({ page }) => {
+test('the R2 findings PDF fits the printable column and says it is simulated', async ({ page }) => {
   await page.goto('/#/findings')
   await expect(page.locator('li.frow')).toHaveCount(5, { timeout: 60_000 })
+  await page
+    .getByRole('group', { name: 'Show findings by rule' })
+    .getByRole('button', { name: 'R2', exact: true })
+    .click()
+  await expect(page.locator('li.frow').first()).toContainText('R2-1')
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
@@ -186,19 +191,19 @@ test('the findings can be downloaded as a PDF that says it is simulated', async 
   }
   expect(glyphs.size).toBeGreaterThan(0)
 
-  const drawn: string[] = []
-  for (const m of contentText.matchAll(/<([0-9a-fA-F]+)>\s*Tj/g)) {
-    const hex = m[1]!
-    let text = ''
-    for (let i = 0; i < hex.length; i += 4) {
-      text += glyphs.get(hex.slice(i, i + 4).toLowerCase()) ?? '\uFFFD'
-    }
-    drawn.push(text)
-  }
+  const drawn = [
+    ...contentText.matchAll(
+      /BT\s*\/(F\d+) ([\d.]+) Tf(?:[^\r\n]*\r?\n){3}([\d.]+) [\d.]+ Td\s*<([0-9a-f]+)> Tj\s*ET/gi,
+    ),
+  ].map(([, font, size, x, hex]) => {
+    const ids = hex!.toLowerCase().match(/.{4}/g) ?? []
+    const text = ids.map((id) => glyphs.get(id) ?? '\uFFFD').join('')
+    return { font, size: Number(size), x: Number(x), ids, text }
+  })
   expect(drawn.length).toBeGreaterThan(10)
 
   // The real glyphs, not the old spelled-out "+/- m2 (2 sigma)".
-  const all = drawn.join(' ')
+  const all = drawn.map(({ text }) => text).join(' ')
   expect(all).toContain('±')
   expect(all).toContain('m²')
   expect(all).toContain('m³')
@@ -208,12 +213,54 @@ test('the findings can be downloaded as a PDF that says it is simulated', async 
   expect(all).not.toContain('sigma')
   expect(all).not.toContain('\uFFFD')
 
-  // The drawn explanation must equal what the page shows, so one dropped character fails the test.
   const shown = await page
-    .locator('li.frow', { hasText: 'R1-1' })
+    .locator('li.frow', { hasText: 'R2-1' })
     .locator('details p')
     .first()
     .textContent()
   expect(shown).toBeTruthy()
-  expect(all.replace(/\s+/g, ' ')).toContain(shown!.replace(/\s+/g, ' '))
+  const expected = shown!.replace(/\s+/g, ' ').trim()
+
+  // Match geometry to the actual explanation. If a line moves, it still gets checked.
+  const start = drawn.findIndex(({ text }) => expected === text || expected.startsWith(text + ' '))
+  expect(start).toBeGreaterThanOrEqual(0)
+  const explanation = []
+  let decoded = ''
+  for (const line of drawn.slice(start)) {
+    explanation.push(line)
+    decoded = (decoded + ' ' + line.text).trim()
+    if (decoded.length >= expected.length) break
+  }
+  expect(decoded).toBe(expected)
+
+  // Read embedded CID advances. The writer emits simple /W pairs and one unspaced Tj per block.
+  const object = (id: string | undefined) => {
+    expect(id).toBeTruthy()
+    return (
+      raw.match(new RegExp('(?:^|\\n)' + id + ' 0 obj\\s+([\\s\\S]*?)\\r?\\nendobj'))?.[1] ?? ''
+    )
+  }
+  const regularFont = explanation[0]!.font
+  const font = object(raw.match(new RegExp('/' + regularFont + ' (\\d+) 0 R'))?.[1])
+  const widths = object(font.match(/\/DescendantFonts \[(\d+) 0 R\]/)?.[1]).match(
+    /\/W \[([^\r\n]+)\]/,
+  )?.[1]
+  expect(widths).toBeTruthy()
+  const advances = new Map(
+    [...widths!.matchAll(/(\d+)\s*\[\s*(\d+)\s*\]/g)].map(([, cid, width]) => [
+      Number(cid),
+      Number(width),
+    ]),
+  )
+  const toPoints = (mm: number) => (mm * 72) / 25.4
+  for (const line of explanation) {
+    expect(line.font).toBe(regularFont)
+    const advance = line.ids.reduce((sum, id) => {
+      const width = advances.get(Number.parseInt(id, 16))
+      expect(width).toBeDefined()
+      return sum + width!
+    }, 0)
+    expect(line.x).toBeGreaterThanOrEqual(toPoints(16) - 0.01)
+    expect(line.x + (advance * line.size) / 1000).toBeLessThanOrEqual(toPoints(210 - 16))
+  }
 })
