@@ -33,9 +33,10 @@ const ELEVATION_VARYING = {
   body:
     MORPH_POSITION +
     '\n  vElev = transformed.y + uBase;\n  vChange = aChange;\n  vFinding = aFinding;' +
-    // For the rock detail: plan metres (east, north) and height of this survey, unexaggerated, so
-    // the detail stays fixed to the ground during a morph; and the shown normal, for the slope.
-    '\n  vRockP = vec3(position.x, -position.z, position.y);\n  vSlopeN = objectNormal;',
+    // For the rock detail: plan metres (east, north) and the shown (morphed) height, unexaggerated,
+    // so on either survey the detail sits on the ground actually drawn and agrees with the shown
+    // normal used for the slope. It can only slide during the short tween between the two.
+    '\n  vRockP = vec3(transformed.x, -transformed.z, transformed.y);\n  vSlopeN = objectNormal;',
 }
 
 type Uniform<T> = { value: T }
