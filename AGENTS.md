@@ -57,11 +57,25 @@ Newest first.
 - The parser regression and both browser history regressions failed before the fix.
 - Local verification passed 207 unit tests. The full browser run passed 86 checks and identified an old dashboard assertion that a plain map address would keep the previous selection. The updated regression passed and verifies that Overview retains the finding highlight and the unlinked map resets to the default camera framing. Browser checks passed at 1440, 1100 and 800 px.
 
-### 2026-11-19: the mobile navigation drawer owns keyboard input (#56)
+### 2026-11-19: stale coordinate announcements clear when the selection changes (#57)
 
-- The map ignores keyboard events while the navigation drawer is open and skips events already handled by another control. Escape closes the drawer and returns focus to Menu. A second Escape on the map clears the measurement.
-- Widening to the desktop layout closes the mobile drawer and releases its focus trap. Browser regressions cover measurement preservation, blocked map shortcuts, and restored shortcuts after resizing. Both tests failed before the fix.
-- `npm run verify` passed all 202 unit tests, and Playwright passed all 82 browser tests. Browser checks at 1440, 1100 and 800 px confirmed that desktop shortcuts work and the mobile menu blocks tool, fullscreen and camera actions until it closes.
+- The coordinate form resets its fields and live status together when a terrain pick, tool switch, or Clear supersedes its current selection. Successful typed submissions still announce their coordinates, including off-grid readings.
+- The browser regression failed before the fix because a real terrain click changed the fields but left the off-grid announcement. It also covers switching tools in both directions and clearing the point.
+- Local verification passed 202 unit tests and the 81-case browser suite before #56 merged. The existing terrain retry test passed on retry. After updating to the merged main branch, all nine keyboard tests passed. The Inspector was checked at 1440, 1100 and 800 px.
+
+### 2026-11-19: only what is drawn can be clicked on the 3D map (ticket #55)
+
+- **Hidden terrain.** `Terrain` passes no `onClick` while it is not shown. R3F keeps an object in its click list only while it has a handler, and neither R3F nor three skips invisible objects, so the hidden mesh used to read and measure ground that was not drawn and also blocked clicks to the badges. Switching Terrain back on restores the handler.
+- **Badges drawn through a wall.** Finding badges skip the depth test, so they show through pit walls, but the wall in front took the click and stopped it. The terrain handler now returns without stopping the event when any hit under the pointer is `drawnOnTop` (new in `src/scene/overlayGeometry.ts`: an object whose material skips the depth test), so R3F's dispatch carries on to the badge. This is a single shared path: the map's `Terrain` is the only object with an `onPick`, the home scene passes none, and the PickLayer sprites have no handlers.
+- Tests: a `drawnOnTop` unit test, plus new `e2e/terrain-picking.spec.ts`. With Findings off, a drag at the Top preset reads nothing and a click reads the point. With Terrain off, the same click and two Measure clicks set nothing. At 3× and the Pit preset, R2-1's badge sits behind the near wall; with Findings off a click there reads the wall, and with Findings on the same click selects R2-1. The test locates badges by comparing canvas screenshots with Findings on and off, and keeps only points where the canvas is the top element. Both browser tests failed with the `Terrain.tsx` change reverted and pass with it. At 1.5× no visible badge is behind a wall, which is why the test uses 3×.
+- Known edge, not fixed: a press up to 4 px outside a badge that is released inside it does nothing (the terrain yields, and R3F gives the badge only clicks that started on it). This produces no wrong reading. The badge's transparent corners also count as the badge.
+- Checks: `npm run verify` passes (201 unit tests in 25 files). The full `npm run test:e2e` run passed 79 of 81 checks. `map-width` "follows the window across lg" and `terrain-resolution` timed out waiting for the page under three workers; both passed on a rerun with `--workers=1`, along with the new spec. The 3D map at 1440, 1100 and 800 px showed no horizontal overflow and no console errors. Reviewed by a separate Opus 5.5 session at high effort: no correctness finding; its suggested wall-under-the-badge guard is in the test.
+
+### 2026-11-19: the landing date bar calls the in-between model an illustration (ticket #59)
+
+- During the 900 ms tween between Baseline and Current, the date bar read "<date>, day N of 281", although the model at that moment is a blend of the two surveys, not a survey. New pure `storyClockLabel` in `src/ui/format.ts` keeps both ends exactly as before ("281 days between surveys" at the baseline, "22 Aug 2026, day 281 of 281" at the current survey) and reads "Illustration between surveys" whenever 0.001 < t < 1. `tweenStory` ends exactly on 0 or 1, so the end texts are reached. No motion was added, and under reduced motion the tween jumps, so only the end texts appear.
+- Tests: a `storyClockLabel` unit test, and new `e2e/story-clock.spec.ts`. The browser check slows page time (`performance.now` and animation-frame timestamps) to 1/20 speed so the tween has in-between frames even under software WebGL. It records every readout from Findings back to Baseline and expects only the two end texts and the illustration. With `StoryClock.tsx` reverted it fails, because the bar never shows the illustration text; with the change it passes.
+- Checks: `npm run verify` passes (203 unit tests in 25 files). Not the full browser run: at the owner's request testing was kept short. The new spec plus the landing-page specs (`home`, `landing-terrain`, `a11y`, `badge`, 24 checks at 390, 800 and 1440 px) pass.
 
 ### 2026-11-19: a camera flight ends at the new depth when exaggeration changes mid-flight (ticket #60)
 
@@ -74,6 +88,12 @@ Newest first.
   - a change with no flight.
 - Proof: with the `CameraRig.tsx` change reverted, the under-way check fails (34% of pixels differ); with it, all three pass. The one-task check failed (38%) against the draft that kept the old effect order.
 - Checks: `npm run verify` passes (205 unit tests in 25 files). Full `npm run test:e2e`: 81 of 82 passed; `map-width` "follows the window across lg" failed under three workers, as on 2026-11-19 for #55, and passed with `--workers=1` along with the new spec. 3D map at 1440, 1100 and 800 px after a Pit flight: no horizontal overflow, no console errors. A separate Opus 5.5 high-effort review found no bug; its two test risks (a settle check shorter than one software frame, and a flight-start poll that could fire on the button's pressed style) are fixed: the canvas must stay unchanged for 2.5 s, and the poll watches only the middle of the stage.
+
+### 2026-11-19: the mobile navigation drawer owns keyboard input (#56)
+
+- The map ignores keyboard events while the navigation drawer is open and skips events already handled by another control. Escape closes the drawer and returns focus to Menu. A second Escape on the map clears the measurement.
+- Widening to the desktop layout closes the mobile drawer and releases its focus trap. Browser regressions cover measurement preservation, blocked map shortcuts, and restored shortcuts after resizing. Both tests failed before the fix.
+- `npm run verify` passed all 202 unit tests, and Playwright passed all 82 browser tests. Browser checks at 1440, 1100 and 800 px confirmed that desktop shortcuts work and the mobile menu blocks tool, fullscreen and camera actions until it closes.
 
 ### 2026-11-19: printed figures agree with the verdict (#54)
 
