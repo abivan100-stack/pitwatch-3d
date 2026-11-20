@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   cellIndicesToSvgPath,
   cellMaskToSvgPath,
+  chainSegments,
   elevationContoursToSvgPaths,
+  indexContourInterval,
   polygonInteriorPoint,
+  polylinesToSvgPath,
 } from './sitePlan'
 import { pointInPolygon } from './polygon'
 
@@ -215,5 +218,50 @@ describe('polygonInteriorPoint', () => {
         { x: 2, y: 2 },
       ]),
     ).toBeNull()
+  })
+})
+
+describe('indexContourInterval', () => {
+  it('draws at most four levels across the relief, with the finest round step that fits', () => {
+    // 238 to 470 m RL: 50 m would draw five lines (250 to 450), 60 m draws four.
+    expect(indexContourInterval(238, 470)).toBe(60)
+    expect(indexContourInterval(0, 90)).toBe(25)
+    expect(indexContourInterval(0, 1000, 2)).toBe(500)
+  })
+})
+
+describe('chainSegments', () => {
+  const p = (x: number, y: number) => ({ x, y })
+
+  it('joins unordered segments end to end into one polyline', () => {
+    // A square outline given as four segments in scrambled order and direction.
+    const lines = chainSegments([
+      p(1, 1),
+      p(0, 1),
+      p(0, 0),
+      p(1, 0),
+      p(1, 0),
+      p(1, 1),
+      p(0, 1),
+      p(0, 0),
+    ])
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toHaveLength(5)
+  })
+
+  it('keeps separate lines separate', () => {
+    expect(chainSegments([p(0, 0), p(1, 0), p(5, 5), p(6, 5)])).toHaveLength(2)
+  })
+
+  it('writes one move per line', () => {
+    expect(
+      polylinesToSvgPath(
+        [
+          [p(0, 0), p(2, 1)],
+          [p(5, 5), p(6, 5)],
+        ],
+        10,
+      ),
+    ).toBe('M0 10L2 9M5 5L6 5')
   })
 })

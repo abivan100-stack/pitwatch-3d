@@ -140,9 +140,6 @@ const TYPE: Record<RuleId, Record<FindingStatus, ComplianceFinding['type']>> = {
 
 const num = (v: number, digits = 0) =>
   v.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits })
-/** Round a volume to a sensible precision for the sentence (it is an estimate). */
-const roughVolume = (v: number) =>
-  num(v < 1000 ? Math.round(v / 10) * 10 : Math.round(v / 100) * 100)
 
 interface ExplainInput {
   ruleId: RuleId
@@ -161,21 +158,23 @@ interface ExplainInput {
 /** Plain-English reason for a finding: the rule and the numbers behind it. */
 export function explain(f: ExplainInput): string {
   const area = `${num(f.areaM2)} m²`
+  // The same whole-cubic-metre rounding the Overview figures use, so one finding shows one number.
+  const volume = num(f.volumeM3)
   const pm = `± ${num(f.band, 2)} m (${f.k}σ)`
   switch (f.ruleId) {
     case 'R1':
       return f.status === 'violation'
-        ? `Excavated ${area} outside the lease boundary; deepest cut ${num(f.maxExceedance, 1)} m ${pm}. About ${roughVolume(f.volumeM3)} m³ removed.`
+        ? `Excavated ${area} outside the lease boundary; deepest cut ${num(f.maxExceedance, 1)} m ${pm}. ${volume} m³ removed.`
         : `Excavated ${area} inside the ${num(f.limits.safetyBufferMetres)} m safety buffer, within the lease; deepest cut ${num(f.maxExceedance, 1)} m ${pm}.`
     case 'R2': {
       // The zone this finding is in. Falls back to the first zone for callers that pass no zone.
       const floor = num(f.pitZoneFloor ?? f.limits.pitZones[0]?.approvedFloorElevation ?? 0)
       return f.status === 'violation'
-        ? `Ground is up to ${num(f.maxExceedance, 1)} m below the approved floor (RL ${floor} m) over ${area}, more than the survey uncertainty of ${pm}. About ${roughVolume(f.volumeM3)} m³ below the floor.`
-        : `Ground is up to ${num(f.maxExceedance, 2)} m below the approved floor (RL ${floor} m) over ${area}. That is within the survey uncertainty of ${pm}, so it cannot be confirmed.`
+        ? `Ground is up to ${num(f.maxExceedance, 1)} m ${pm} below the approved floor (RL ${floor} m) over ${area}, more than the survey uncertainty. ${volume} m³ below the floor.`
+        : `Ground is up to ${num(f.maxExceedance, 2)} m ${pm} below the approved floor (RL ${floor} m) over ${area}. That is within the survey uncertainty, so it cannot be confirmed.`
     }
     case 'R3':
-      return `Filled ${area} outside the designated dump zones; highest rise ${num(f.maxExceedance, 1)} m ${pm}. About ${roughVolume(f.volumeM3)} m³ placed.`
+      return `Filled ${area} outside the designated dump zones; highest rise ${num(f.maxExceedance, 1)} m ${pm}. ${volume} m³ placed.`
   }
 }
 

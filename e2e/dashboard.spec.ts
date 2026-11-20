@@ -38,16 +38,15 @@ test('the sidebar counts the findings and the home link leaves the dashboard', a
 test('the overview reports the engine result and the figures behind it', async ({ page }) => {
   await page.goto('/#/overview')
   await expect(
-    page.getByRole('heading', { level: 2, name: '2 violations, 3 warnings' }),
+    page.getByRole('heading', { level: 2, name: /^2 violations and 3 warnings\./ }),
   ).toBeVisible({ timeout: 60_000 })
 
   const figures = page.locator('dl[aria-label="Headline figures"]')
   await expect(figures).toContainText('281 days')
   await expect(figures).toContainText('m³')
 
-  // R1 to R3 each report a result.
-  for (const rule of ['Lease boundary and buffer', 'Approved pit floor', 'Permitted dump zones'])
-    await expect(page.locator('.rule-result', { hasText: rule })).toBeVisible()
+  // The rule-by-rule result lives on the Permit rules page, not on the Overview.
+  await expect(page.locator('.rule-result')).toHaveCount(0)
 })
 
 test('Show on map from the findings page lands on the map with that finding selected', async ({

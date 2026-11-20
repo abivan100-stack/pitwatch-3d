@@ -36,6 +36,7 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
     await expect(plan).toBeVisible()
     await expect(plan.locator('.plan-change')).toHaveCount(2)
     await expect(plan.locator('.plan-contour')).not.toHaveCount(0)
+    expect(await plan.locator('.plan-contour').count()).toBeLessThanOrEqual(4)
     await expect(plan.locator('.plan-finding-area')).toHaveCount(FINDING_IDS.length)
     await expect(plan.locator('image')).toHaveCount(0)
 
@@ -43,9 +44,11 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
     expect(labels.map((label) => label.trim()).sort()).toEqual([...FINDING_IDS].sort())
     const markerBoxes: Box[] = []
     for (const id of FINDING_IDS) {
-      const area = plan.locator(`[aria-label="${id} affected area"]`)
+      const area = plan.locator(`.plan-finding-area[data-finding="${id}"]`)
       await expect(area).toHaveAttribute('d', /.+/)
-      const button = plan.getByRole('button', { name: new RegExp(`^${id},`) })
+      // The outline is the plan's button; the badge beside it is the pointer target.
+      await expect(plan.getByRole('button', { name: new RegExp(`^${id},`) })).toHaveCount(1)
+      const button = plan.locator(`.plan-pin[data-finding="${id}"]`)
       await expect(button).toBeVisible()
       const hitBox = await button.locator('.plan-pin-hit').boundingBox()
       expect(hitBox, `${id} hit circle should have a box at ${width}px`).not.toBeNull()
@@ -75,9 +78,18 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
         `${id} badge is drawn on its evidence at ${width}px (leaders may move it at most 108px)`,
       ).toBeLessThanOrEqual(110)
 
-      const markerBox = await button.boundingBox()
-      expect(markerBox, `${id} marker and ID should have a box at ${width}px`).not.toBeNull()
-      markerBoxes.push(markerBox!)
+      // The badge and its id chip. (The button also holds the finding's outline, which may
+      // legitimately overlap a neighbour's: R1-1 and R1-2 share ground at the east edge.)
+      const chipBox = await button.locator('.plan-pin-label-bg').boundingBox()
+      expect(chipBox, `${id} marker and ID should have a box at ${width}px`).not.toBeNull()
+      const left = Math.min(hitBox!.x, chipBox!.x)
+      const topEdge = Math.min(hitBox!.y, chipBox!.y)
+      markerBoxes.push({
+        x: left,
+        y: topEdge,
+        width: Math.max(hitBox!.x + hitBox!.width, chipBox!.x + chipBox!.width) - left,
+        height: Math.max(hitBox!.y + hitBox!.height, chipBox!.y + chipBox!.height) - topEdge,
+      })
     }
     for (let i = 0; i < markerBoxes.length; i++) {
       for (let j = i + 1; j < markerBoxes.length; j++) {
@@ -89,12 +101,12 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
     }
 
     const title = page.locator('.plan-title-block')
-    await expect(title).toContainText('Venthar Ridge Iron Pit')
     await expect(title).toContainText('Current survey')
     await expect(title).toContainText('2026')
     await expect(title.locator('.prov-derived')).toBeVisible()
-    await expect(title.locator('.plan-north-block')).toContainText('North')
-    await expect(title.locator('.plan-scale-block')).toContainText('500 m')
+    const footer = page.locator('.plan-footer')
+    await expect(footer.locator('.plan-north-block')).toContainText('North')
+    await expect(footer.locator('.plan-scale-block')).toContainText('500 m')
 
     const scaleRatio = await page.evaluate(() => {
       const svg = document.querySelector<SVGSVGElement>('svg.site-plan')
@@ -115,21 +127,20 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
     )
     expect(hasHorizontalOverflow, `document overflows at ${width}px`).toBe(false)
 
+    // One label for each of the four permitted zones, set beside the zone.
     const observedBoxes: Box[] = []
-    for (const selector of ['.plan-observed-cut-label', '.plan-observed-fill-label']) {
-      const labels = await plan.locator(selector).all()
-      expect(labels.length, `${selector} should exist at ${width}px`).toBeGreaterThan(0)
-      for (const label of labels) {
-        await expect(label).toBeVisible()
-        const labelBox = await label.boundingBox()
-        expect(labelBox, `${selector} should have a box at ${width}px`).not.toBeNull()
-        observedBoxes.push(labelBox!)
-        for (const [index, markerBox] of markerBoxes.entries()) {
-          expect(
-            boxesOverlap(labelBox!, markerBox),
-            `${selector} overlaps marker/ID ${FINDING_IDS[index]} at ${width}px: ${JSON.stringify({ labelBox, markerBox })}`,
-          ).toBe(false)
-        }
+    const zoneLabels = await plan.locator('.plan-zone-label').all()
+    expect(zoneLabels.length, `one label per permitted zone at ${width}px`).toBe(4)
+    for (const label of zoneLabels) {
+      await expect(label).toBeVisible()
+      const labelBox = await label.boundingBox()
+      expect(labelBox, `a zone label should have a box at ${width}px`).not.toBeNull()
+      observedBoxes.push(labelBox!)
+      for (const [index, markerBox] of markerBoxes.entries()) {
+        expect(
+          boxesOverlap(labelBox!, markerBox),
+          `a zone label overlaps marker/ID ${FINDING_IDS[index]} at ${width}px: ${JSON.stringify({ labelBox, markerBox })}`,
+        ).toBe(false)
       }
     }
 
@@ -150,9 +161,30 @@ test('the site plan is a labelled, data-backed vector map at supported widths', 
       ).toBe(false)
     }
 
+    // No label sits on a fill: probe the label's box from the page, so every point hit-tested
+    // lists the shapes under it (the fills are painted shapes, so they take part).
+    for (const label of zoneLabels) {
+      await label.scrollIntoViewIfNeeded()
+      const covered = await label.evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        const hit: string[] = []
+        for (let i = 0; i <= 6; i++) {
+          for (let j = 0; j <= 2; j++) {
+            const x = r.left + (r.width * i) / 6
+            const y = r.top + (r.height * (j + 0.5)) / 3
+            for (const under of document.elementsFromPoint(x, y)) {
+              if (under.matches('.plan-change, .plan-finding-area'))
+                hit.push(under.getAttribute('class')!)
+            }
+          }
+        }
+        return { zone: el.getAttribute('data-zone'), hit }
+      })
+      expect(covered.hit, `zone label ${covered.zone} sits on a fill at ${width}px`).toEqual([])
+    }
+
     const transitionDuration = await plan
-      .getByRole('button', { name: /^R1-1,/ })
-      .locator('.plan-pin-disc')
+      .locator('.plan-pin[data-finding="R1-1"] .plan-pin-disc')
       .evaluate((circle) => getComputedStyle(circle).transitionDuration)
     expect(
       transitionDuration.split(',').every((duration) => Number.parseFloat(duration) <= 0.00002),

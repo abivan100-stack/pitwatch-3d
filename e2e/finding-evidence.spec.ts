@@ -64,7 +64,8 @@ test('Show on map restores the current terrain, finding layer, and selected evid
   const plan = page.getByRole('group', { name: /Plan of the mine from above/ })
   await expect(plan.getByRole('button', { name: /^R2-1,/ })).toHaveAttribute('aria-pressed', 'true')
 
-  await plan.getByRole('button', { name: /^R1-3,/ }).click()
+  // A click lands on the badge: the finding button also holds its outline, whose box centre can be open ground.
+  await plan.locator('.plan-pin[data-finding="R1-3"] .plan-pin-hit').click()
   await expect(page).toHaveURL(/#\/monitor(\?finding=[\w-]+)?$/)
   await expect(page.locator('#details-tabpanel li.finding[data-selected]')).toContainText('R1-3')
   await nav.getByRole('link', { name: 'Findings' }).click()
