@@ -160,7 +160,7 @@ export function HomePage() {
       <main id="content" tabIndex={-1}>
         <section className="hero">
           <div className="hero-copy">
-            <h1 className="cond hero-title">See where a simulated mine breaks its permit.</h1>
+            <h1 className="cond hero-title">See where a mine breaks its permit.</h1>
             <p className="mt-6 max-w-[34rem] text-[18px] leading-8 text-ink-dim max-sm:hidden">
               PitWatch compares two drone surveys of an open-pit mine in 3D and checks every change
               against the lease: the boundary, the approved depth and the permitted dump zones.

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { ComplianceFinding } from '../../domain/types'
+import { useMemo, useState, type ReactNode } from 'react'
+import type { ComplianceFinding, Provenance } from '../../domain/types'
 import { answerLine } from '../../compliance/answer'
 import { combinedSigma, K } from '../../compliance/uncertainty'
 import { pitFloorRows } from '../../compliance/zone'
@@ -12,7 +12,6 @@ import { useTerrain } from '../../state/terrain'
 import { GLYPH, RULE_NAMES, toneOf, worstTone } from '../findings'
 import { daysBetween, formatDate, formatLat, formatLon } from '../format'
 import { ArrowRightIcon } from '../icons'
-import { Row } from '../panels/parts'
 import { SitePlan } from '../panels/SitePlan'
 import { ProvenanceTag } from '../ProvenanceTag'
 import { navigateToFinding, ROUTE_HREF } from '../route'
@@ -224,74 +223,125 @@ function AttentionRow({
   )
 }
 
-/** The survey, surface and lease facts: reference material, so folded away until wanted. */
+/** Display names for the permit's zones: the same ones the site plan labels them with. */
+const ZONE_NAME = new Map(MINE.approvedZones.map((z) => [z.id, z.name]))
+
+/** The survey, permit and surface facts: reference material, so folded away until wanted. */
 function Details() {
   const survey = useTerrain((s) => s.surveys.current)
   const limits = useTerrain((s) => s.limits)
   const [baseline, current] = SURVEY_EPOCHS
-  const interval = baseline && current ? daysBetween(baseline.date, current.date) : 0
   const range = useMemo(() => survey && elevationRange(survey.elevations), [survey])
   const sigma = survey?.verticalUncertainty
   const m = MINE_INFO
+  const level = (v: number | undefined) =>
+    v !== undefined && sigma !== undefined ? `${v.toFixed(1)} ± ${sigma.toFixed(2)} m RL` : '—'
+  // pitFloorRows keeps the floor values; the zone's display name replaces its id.
+  const floors = limits
+    ? pitFloorRows(limits.pitZones).map((row, i) => {
+        const id = limits.pitZones[i]!.id
+        return { name: ZONE_NAME.get(id) ?? id, value: row.value }
+      })
+    : []
 
   return (
     <details className="details-fold mt-8">
       <summary>Survey and permit details</summary>
-      <dl className="mt-2 grid gap-x-12 md:grid-cols-2">
-        <Row label="Baseline survey" value={baseline ? formatDate(baseline.date) : '—'} mono />
-        <Row label="Current survey" value={current ? formatDate(current.date) : '—'} mono />
-        <Row label="Interval" value={`${interval} days`} provenance="derived" />
-        <Row label="Method" value={baseline?.method ?? '—'} provenance="simulated" />
-        <Row label="Operator" value={m.operator} provenance="simulated" />
-        <Row
-          label="Lease area"
-          value={limits ? `${(polygonArea(limits.leaseBoundary) / 10_000).toFixed(1)} ha` : '—'}
-          provenance="derived"
-        />
-        <Row
-          label="Safety buffer"
-          value={limits ? `${limits.safetyBufferMetres} m` : '—'}
-          provenance="simulated"
-        />
-        {limits ? (
-          pitFloorRows(limits.pitZones).map((row) => (
-            <Row key={row.label} label={row.label} value={row.value} mono provenance="simulated" />
-          ))
-        ) : (
-          <Row label="Approved floor" value="—" mono />
-        )}
-        <Row
-          label="Lowest point"
-          value={
-            range && sigma !== undefined
-              ? `${range.min.toFixed(1)} ± ${sigma.toFixed(2)} m RL`
-              : '—'
-          }
-          mono
-          provenance="derived"
-        />
-        <Row
-          label="Highest point"
-          value={
-            range && sigma !== undefined
-              ? `${range.max.toFixed(1)} ± ${sigma.toFixed(2)} m RL`
-              : '—'
-          }
-          mono
-          provenance="derived"
-        />
-        <Row label="Survey grid" value={MINE.metadata.grid} provenance="simulated" />
-        <Row
-          label="Grid origin"
-          value={`${formatLat(m.originLatLon.lat)}, ${formatLon(m.originLatLon.lon)}`}
-          mono
-          provenance="simulated"
-        />
-      </dl>
-      <p className="mt-3 text-[12.5px] leading-5 text-ink-faint">
+      <div className="fact-groups">
+        <FactGroup title="Surveys">
+          <Fact label="Baseline" mono provenance="simulated">
+            {baseline ? formatDate(baseline.date) : '—'}
+          </Fact>
+          <Fact label="Current" mono provenance="simulated">
+            {current ? formatDate(current.date) : '—'}
+          </Fact>
+          <Fact label="Method" provenance="simulated">
+            {/* The tag beside it already says simulated. */}
+            {baseline?.method.replace(/ \(simulated\)$/, '') ?? '—'}
+          </Fact>
+          <Fact label="Grid" provenance="simulated">
+            {MINE.metadata.grid}
+          </Fact>
+          <Fact label="Grid origin" mono provenance="simulated">
+            {formatLat(m.originLatLon.lat)}, {formatLon(m.originLatLon.lon)}
+          </Fact>
+        </FactGroup>
+        <FactGroup title="Permit">
+          <Fact label="Operator" provenance="simulated">
+            {m.operator}
+          </Fact>
+          <Fact label="Lease area" provenance="derived">
+            {limits ? `${(polygonArea(limits.leaseBoundary) / 10_000).toFixed(1)} ha` : '—'}
+          </Fact>
+          <Fact label="Safety buffer" provenance="simulated">
+            {limits ? `${limits.safetyBufferMetres} m` : '—'}
+          </Fact>
+          {/* One row, one line per pit; each floor carries its own tag. */}
+          <Fact label="Approved floor">
+            <span className="fact-lines">
+              {floors.map((f) => (
+                <span key={f.name} className="fact-line">
+                  <span className="text-ink-dim">{f.name}</span>
+                  <span className="fact-value">{f.value}</span>
+                  <ProvenanceTag value="simulated" />
+                </span>
+              ))}
+            </span>
+          </Fact>
+        </FactGroup>
+        <FactGroup title="Surface">
+          <Fact label="Lowest point" provenance="derived">
+            {level(range?.min)}
+          </Fact>
+          <Fact label="Highest point" provenance="derived">
+            {level(range?.max)}
+          </Fact>
+        </FactGroup>
+      </div>
+      <p className="mt-4 text-[13px] leading-5 text-ink-faint">
         The ground around the surveyed area on the 3D model is decorative, simulated scenery. It is
         not measured, and no figure on this page uses it.
       </p>
     </details>
+  )
+}
+
+function FactGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="fact-group">
+      <h3>{title}</h3>
+      <dl>{children}</dl>
+    </section>
+  )
+}
+
+/** One fact on one line: label, value, and the value's provenance tag right after it. */
+function Fact({
+  label,
+  mono,
+  provenance,
+  children,
+}: {
+  label: string
+  /** Dates and coordinates only. */
+  mono?: boolean
+  /** Omit only when the children carry their own tagged values. */
+  provenance?: Provenance
+  children: ReactNode
+}) {
+  return (
+    <div className="fact">
+      <dt>{label}</dt>
+      <dd>
+        {provenance ? (
+          <>
+            <span className={mono ? 'fact-value font-mono' : 'fact-value'}>{children}</span>
+            <ProvenanceTag value={provenance} />
+          </>
+        ) : (
+          children
+        )}
+      </dd>
+    </div>
   )
 }

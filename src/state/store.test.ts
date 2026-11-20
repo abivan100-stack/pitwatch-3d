@@ -9,15 +9,6 @@ describe('app store', () => {
     expect(useAppStore.getState().activeTab).toBe('findings')
   })
 
-  it('keeps the Findings tab density for the session, comfortable by default', () => {
-    const s = useAppStore.getState
-    expect(s().findingsDensity).toBe('comfortable')
-    s().setFindingsDensity('compact')
-    expect(s().findingsDensity).toBe('compact')
-    s().setFindingsDensity('comfortable')
-    expect(s().findingsDensity).toBe('comfortable')
-  })
-
   it('remembers the sidebar choice and the phone menu separately', () => {
     const s = useAppStore.getState
     expect([s().sidebar, s().menuOpen]).toEqual(['rail', false])

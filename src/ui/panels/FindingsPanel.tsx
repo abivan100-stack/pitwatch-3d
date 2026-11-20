@@ -31,19 +31,11 @@ const n = (v: number, digits = 0) =>
   v.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits })
 
 /**
- * One finding as a compact ruled row, the same anatomy as the Findings page: severity glyph and
- * rule, the three figures in line, the explanation on demand. `level` is the heading level of
- * its title.
+ * One finding as a three-line row: glyph, rule and id; status with the three figures; the
+ * explanation on demand beside "Show on map". The figure labels are read out but not drawn: the
+ * key above the list names them once. `level` is the heading level of its title.
  */
-export function FindingCard({
-  f,
-  level = 4,
-  compact = false,
-}: {
-  f: ComplianceFinding
-  level?: 3 | 4
-  compact?: boolean
-}) {
+export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 | 4 }) {
   const Title = `h${level}` as const
   const tone = toneOf(f)
   const Glyph = GLYPH[tone]
@@ -54,43 +46,36 @@ export function FindingCard({
       className={`finding tone-${tone}`}
       aria-current={selected || undefined}
       data-selected={selected || undefined}
-      data-density={compact ? 'compact' : undefined}
     >
-      <div className="flex items-start gap-2.5">
-        <Glyph className="mt-0.5 h-[18px] w-[18px] shrink-0 text-(--tone)" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <Title className="text-[13.5px] font-semibold text-ink">{RULE_NAMES[f.ruleId]}</Title>
-            <span className="font-mono text-[11px] text-ink-faint">{f.id}</span>
-          </div>
-          <div className="text-[12px] text-(--tone)">
-            {f.status === 'violation' ? 'Violation' : 'Warning'}, {f.severity} severity
-          </div>
-        </div>
+      <div className="flex items-center gap-2">
+        <Glyph className="h-4 w-4 shrink-0 text-(--tone)" />
+        <Title className="min-w-0 flex-1 text-[13px] leading-[18px] font-semibold text-ink">
+          {RULE_NAMES[f.ruleId]}
+        </Title>
+        <span className="font-mono text-[12px] text-ink-faint">{f.id}</span>
       </div>
-      <dl className="finding-figures">
-        {[
-          ['Area', `${n(f.areaM2)} m²`],
-          ['Volume', `${n(f.volumeM3)} m³`],
-          ['Max excess', `${n(f.maxExceedance, 1)} m`],
-        ].map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-[11px] text-ink-faint">{label}</dt>
-            <dd className="font-mono text-[12px] text-ink">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="finding-actions mt-1.5 flex items-center justify-between gap-2">
+      <div className="finding-facts">
+        <span className="font-semibold text-(--tone)">
+          {f.status === 'violation' ? 'Violation' : 'Warning'} · {f.severity}
+        </span>
+        <span className="finding-figures">
+          <span className="sr-only">Area </span>
+          {n(f.areaM2)} m² · <span className="sr-only">Volume </span>
+          {n(f.volumeM3)} m³ · <span className="sr-only">Max excess </span>
+          {n(f.maxExceedance, 1)} m max
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-2">
         <details className="frow-more">
           <summary>Why it was flagged</summary>
           <p>{f.explanation}</p>
-          <p className="mt-2 font-mono text-[11px] text-ink-faint">
+          <p className="mt-2 font-mono text-[12px] text-ink-faint">
             Centre E {n(f.centroid.x)} m, N {n(f.centroid.y)} m
           </p>
         </details>
         <button
           type="button"
-          className="shrink-0 self-start text-[12px] font-semibold text-accent underline underline-offset-2"
+          className="shrink-0 self-start font-semibold text-accent underline underline-offset-2"
           onClick={() => selectFinding(f.id)}
         >
           Show on map
@@ -153,38 +138,26 @@ export function SeverityLegend({
 export function FindingsPanel() {
   const ready = useTerrain((s) => s.status === 'ready')
   const findings = useTerrain((s) => s.findings)
-  const density = useAppStore((s) => s.findingsDensity)
-  const setDensity = useAppStore((s) => s.setFindingsDensity)
-  const compact = density === 'compact'
 
   return (
     <>
       <Section
         title={ready ? countText(findings) : 'Findings'}
         provenance={ready ? 'derived' : undefined}
-        action={
-          ready && findings.length > 0 ? (
-            <button
-              type="button"
-              className="density-toggle"
-              aria-pressed={compact}
-              onClick={() => setDensity(compact ? 'comfortable' : 'compact')}
-            >
-              Compact
-            </button>
-          ) : undefined
-        }
       >
         {!ready ? (
           <EmptyNote>Findings appear once both surveys have loaded.</EmptyNote>
         ) : findings.length === 0 ? (
           <EmptyNote>No change between the surveys breaks a permit rule.</EmptyNote>
         ) : (
-          <ul className="finding-list">
-            {findings.map((f) => (
-              <FindingCard key={f.id} f={f} compact={compact} />
-            ))}
-          </ul>
+          <>
+            <p className="finding-key">Area · volume · max excess</p>
+            <ul className="finding-list">
+              {findings.map((f) => (
+                <FindingCard key={f.id} f={f} />
+              ))}
+            </ul>
+          </>
         )}
         {ready && (
           <details className="threshold-more">
