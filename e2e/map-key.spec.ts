@@ -59,6 +59,7 @@ test('the key rows follow the active layers', async ({ page }) => {
   await expect(key.getByText('Violation', { exact: true })).toHaveCount(0)
   await expect(key.getByText('Warning', { exact: true })).toHaveCount(0)
 
+  for (const b of await map.getByRole('button', { name: /\d+ more/ }).all()) await b.click()
   await map.getByRole('switch', { name: 'Lease boundary' }).click()
   await expect(key.getByText('Lease boundary')).toHaveCount(0)
   await map.getByRole('switch', { name: 'Lease boundary' }).click()
@@ -162,6 +163,7 @@ for (const { width, height } of [
     const key = await openMap(page, width, height)
     const map = page.getByRole('navigation', { name: 'Map', exact: true })
     if (!(await map.isVisible())) await page.keyboard.press('[')
+    for (const b of await map.getByRole('button', { name: /\d+ more/ }).all()) await b.click()
     for (const name of [
       'Elevation tint',
       'Contours',
