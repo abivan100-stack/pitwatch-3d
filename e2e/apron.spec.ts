@@ -106,9 +106,9 @@ test('the key says where the surveyed area ends', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/#/monitor')
   const key = page.getByRole('region', { name: 'Map key' })
-  await expect(key.getByText('Surveyed area (simulated)', { exact: true })).toBeVisible({
-    timeout: 60_000,
-  })
+  // The key is closed on arrival.
+  await key.getByRole('button', { name: 'Map key', exact: true }).click({ timeout: 60_000 })
+  await expect(key.getByText('Surveyed area (simulated)', { exact: true })).toBeVisible()
 })
 
 test('a click or a typed point on the apron is read as outside the survey', async ({ page }) => {
