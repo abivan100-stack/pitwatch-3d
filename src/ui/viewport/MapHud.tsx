@@ -256,7 +256,7 @@ export function MapKey() {
         <div
           id={id}
           data-open={open ? '' : undefined}
-          className="map-key-body w-[232px] max-w-full"
+          className="map-key-body w-[240px] max-w-full"
         >
           <div className="map-key-inner">
             <div className="map-key-card card pointer-events-auto mb-2 px-3 py-2">
