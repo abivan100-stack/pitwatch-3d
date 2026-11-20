@@ -58,6 +58,10 @@ Newest first.
 - **Tests.** `e2e/findings-density.spec.ts` is replaced by one check at 1440 × 900 and 1440 × 800: no compact or density button, the threshold note closed, status and figures in text on each row, every row at most 76 px and inside the panel.
 - **Checks.** `npm run typecheck`, `npm run lint` and `npm run format:check` pass; `store.test.ts` passes. Browser, one worker on port 4801: `findings-density` (2) and `finding-evidence` (5) pass. Screenshots before and after at 1440 × 900 and 390 × 844 were taken for the owner's sign-off. Not run locally: the full suite, the axe scan of the map route and a figure-by-figure comparison against the Findings page; CI runs the first two.
 
+### 2026-11-20: the landing headline drops "simulated"
+
+- The headline reads "See where a mine breaks its permit.", at the owner's request. The page's "Simulated data" note, the dashboard's SIMULATED DATA badge and every provenance tag are unchanged, so the data is still marked simulated. The headline checks in `e2e/uncertainty.spec.ts` follow it.
+
 ### 2026-11-20: the About page is concise (issue #69)
 
 - **Five sections.** How a result is made (step 2 links to Permit rules instead of repeating the threshold), This mine is fictional (one paragraph holding the synthetic and seeded, simulated aerial image, decorative ground from #77, and "violation and warning are its labels" statements, with a link to Findings), Where each value comes from (the four provenance tags), What each data source can show (one line each, "1 of 3" as text) and Keyboard shortcuts. "What is in this app" is gone, as is the meter. `source-card` and `fit-meter` CSS were used only here and are removed.

@@ -353,7 +353,7 @@ test('the resolution section aligns its heading, keys the lines and labels the a
 
 test('no page claims a real permit was broken', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('See where a simulated mine')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('See where a mine')
   // Pins cover findings from all three rules, including warnings, rather than lease breaches alone.
   const findingsCaption = page.locator('.hero-controls')
   await expect(findingsCaption).toContainText(
