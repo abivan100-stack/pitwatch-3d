@@ -1,4 +1,11 @@
-import type { ComponentType, CSSProperties, SVGProps } from 'react'
+import {
+  useId,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type ReactNode,
+  type SVGProps,
+} from 'react'
 import { useAppStore, type LayerId } from '../state/store'
 import { useTerrain } from '../state/terrain'
 import {
@@ -53,22 +60,71 @@ function LayerSwitch({ id, label, Icon, i }: (typeof LAYERS)[number] & { i: numb
   )
 }
 
-/** Every layer switch, in the two groups the Map card has always used. */
-export function LayerSwitches() {
+/**
+ * A button that opens a block below it with a 200 ms height transition (`.fold`). The body is
+ * `visibility: hidden` once closed, so its controls leave the tab order and the accessibility
+ * tree; focus stays on the button.
+ */
+export function Fold({ label, children }: { label: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
   return (
     <>
-      <h2 className="panel-title px-1">Layers</h2>
-      <ul role="list" className="stagger mt-1.5 flex flex-col gap-0.5">
-        {LAYERS.map((l, i) => (
-          <LayerSwitch key={l.id} {...l} i={i} />
-        ))}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        className="fold-btn"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="fold-caret" aria-hidden="true" />
+        {label}
+      </button>
+      <div id={id} className="fold" data-open={open ? '' : undefined}>
+        <div className="fold-inner">{children}</div>
+      </div>
+    </>
+  )
+}
+
+/** One primary switch, then the rest behind a button that counts them and how many are on. */
+function Group({
+  title,
+  primary,
+  more,
+  first,
+}: {
+  title: string
+  primary: (typeof LAYERS)[number]
+  more: typeof LAYERS
+  first?: boolean
+}) {
+  const hiddenOn = useAppStore((s) => more.filter((l) => s.layers[l.id]).length)
+  return (
+    <>
+      <h2 className={`panel-title px-1 ${first ? '' : 'mt-2.5'}`}>{title}</h2>
+      <ul role="list" className="mt-1 flex flex-col gap-px">
+        <LayerSwitch {...primary} i={0} />
       </ul>
-      <h2 className="panel-title mt-3 px-1">Permit and change</h2>
-      <ul role="list" className="mt-1.5 flex flex-col gap-0.5">
-        {OVERLAYS.map((l, i) => (
-          <LayerSwitch key={l.id} {...l} i={i + LAYERS.length} />
-        ))}
-      </ul>
+      <Fold label={`${more.length} more${hiddenOn ? ` · ${hiddenOn} on` : ''}`}>
+        <ul role="list" className="flex flex-col gap-px">
+          {more.map((l, i) => (
+            <LayerSwitch key={l.id} {...l} i={i + 1} />
+          ))}
+        </ul>
+      </Fold>
+    </>
+  )
+}
+
+/** The layer switches in the two groups the Map card has always used, folded to one primary each. */
+export function LayerSwitches() {
+  const [terrain, ...layers] = LAYERS
+  const findings = OVERLAYS[OVERLAYS.length - 1]
+  return (
+    <>
+      <Group title="Layers" primary={terrain} more={layers} first />
+      <Group title="Permit and change" primary={findings} more={OVERLAYS.slice(0, -1)} />
     </>
   )
 }

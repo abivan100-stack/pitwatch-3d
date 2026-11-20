@@ -1,130 +1,111 @@
 # PitWatch 3D
 
-**Live demo: [pitwatch-3d.vercel.app](https://pitwatch-3d.vercel.app)** (landing page), or [open the dashboard](https://pitwatch-3d.vercel.app/#/overview)
+**Live site: [pitwatch-3d.vercel.app](https://pitwatch-3d.vercel.app)**, or go straight to the [dashboard](https://pitwatch-3d.vercel.app/#/overview).
 
-A browser dashboard that helps a mining inspector check an open-pit mine against its permit from two terrain surveys. It shows the mine as a 3D model, measures what changed between a baseline and a current survey, and runs transparent rules that flag digging outside the lease, digging below the approved floor and dumping outside permitted zones.
+PitWatch is a web app for checking an open-pit mine against its permit. It compares two terrain surveys of the same mine, taken months apart, and shows what changed on a 3D model. A small set of rules then flags ground dug outside the lease, dug below the approved pit floor, or dumped outside the permitted zones. Each flag comes with the numbers behind it, so an inspector can decide where to look first.
 
-PitWatch supports risk-based inspection planning. It does not replace a site visit and does not prove a legal breach.
+It is a planning aid. It does not replace a site visit and it does not prove a legal breach.
 
-> **Simulated data.** Venthar Ridge Iron Pit, Ardent Ore Works and every survey here are fictional. The terrain, the aerial images and the planted changes are generated from a fixed seed. The app shows a permanent SIMULATED DATA badge and tags every value with where it came from.
+> **Simulated data.** The mine (Venthar Ridge Iron Pit), its operator (Ardent Ore Works), the permit and both surveys are fictional. The terrain, the aerial images and the changes are generated from a fixed seed, so everyone sees the same mine. The app says so on every page.
 
-## What it does today
+## What you can do
 
-- **Landing page** (`#/`): the live 3D model, in smooth-shaded, tone-mapped light, with one before/after slider (Baseline at one end, Current at the other; between them the model is a blend and says so) and two switches, **Show change** (rust where rock was removed, blue where it was added) and **Show permit findings** (the lease line as a tube on the ground, and a ring and a tag with the finding's severity shape and id for each finding). A scale bar and a north arrow turn with it. Drag turns and tilts it, the wheel or a pinch zooms (the wheel once the model has focus), a double click or **Reset view** returns to the framed view, and two buttons turn it on a phone. With the model focused, the arrow keys turn it, + and - zoom and 0 resets. No scrolling story; a short section on the three permit rules follows.
-- **Dashboard** with a sidebar (a slim icon rail on the 3D map, a drawer on phones):
-  - **Overview** (`#/overview`): one answer line (counts and where the most serious finding is), a site plan with its key, the three most serious findings beside it, three headline figures, and a closed disclosure of the survey and permit details. An interactive site plan draws the lease, permitted zones, changed cells and finding outlines and badges from the same data as the 3D map; select an outline or badge with a pointer, touch, Enter or Space to open its finding on the map. The permit-rule results are on the Permit rules page.
-  - **Findings** (`#/findings`): every finding as a ruled row with its figures, filters by status and rule, the explanation on demand, Show on map, **Copy link**, **Download CSV** (every row marked simulated), **Download PDF** (a plan of the lease with each finding, every page marked simulated) and a clean **Print report** view.
-  - **Permit rules** (`#/rules`), **Uncertainty** (`#/uncertainty`: combined survey σ, the noise band and the threshold the rules report beyond, plus the resolution comparison) and **About the data** (`#/about`, with the keyboard shortcuts).
-- **3D map** (`#/monitor`):
-  - 3D terrain of the current survey with a simulated aerial image (1,280 px, about 1.6 m per pixel) draped over it: banded pit walls that change with slope and aspect, berms with a damp toe and a wear track, a rutted haul ramp, a floor of wet and dry patches with spoil at the toes, and a sump with a visible water edge. Close to the camera the shader adds rock jointing and gullies on the walls and grain on flat ground; none of it changes an elevation. The block sides show a soil profile. Around the surveyed block lies decorative, simulated ground (the same natural-ground function on a 32 m lattice, 3 km out, fading into the page) so the model does not float; a thin line and the key entry "Surveyed area (simulated)" mark where the survey ends. The apron is never measured: it takes no click, and no finding, reading, measurement or export uses it.
-  - Optional elevation tint, with colours spread so the plateau's relief shows, and optional 5 m contours.
-  - Vertical exaggeration from 1× to 3×.
-  - Oblique, top and pit camera views, a compass and a live scale bar.
-  - Click the terrain with the Inspect tool to read a point (elevation ± uncertainty, change, slope, lease and pit-floor status, findings there), or switch to Measure for distances, grade and an elevation profile of current against baseline. Without a mouse, type an easting and northing in the Inspector tab instead.
-  - A survey slider on the timeline switches the map between the baseline and current surveys. Findings can be opened from their pins and flown to from the Findings tab.
-  - Overlay layers: lease boundary, safety buffer, pit and dump zone outlines, measured change (excavated and filled, only beyond the reporting threshold of 0.5 m plus twice the combined survey σ) and finding markers, all drawn from the engine output.
-  - Header compliance status, and a details panel with a Findings tab (every finding with its explanation and figures) and an Inspector tab.
-  - A link such as `#/monitor?finding=R2-1` opens the map on that finding, and the address follows whichever finding is selected, so what is on screen can be shared.
-  - Selecting a finding restores the current survey, terrain and finding markers, frames the chosen pin and opens the Findings tab. Selection stays synchronized with the Overview. On phones, the details drawer closes to reveal the terrain and retains the selected finding when reopened.
-  - On phones the details drawer opens on the findings, with the layer switches and vertical exaggeration under a Map layers disclosure below them. On larger screens, the Map card holds these controls; its key can be folded to leave more room.
-- **Compliance engine** (`src/compliance/`): change detection, rules R1–R3, clustering into findings, severity and plain-English explanations. All of it is pure TypeScript and unit-tested.
+**Landing page (`#/`).** A live 3D model of the simulated mine. A before/after slider moves it from the Baseline survey to the Current one; in between, the model is a blend of the two, and the caption says it is an illustration, not a survey. Two switches add layers on the current survey: **Show change** colours rock removed in rust and rock added in blue, and **Show permit findings** draws the lease line on the ground and rings each finding with a tag showing its id and severity shape. A scale bar and north arrow keep it readable.
 
-The original M1-M8 milestones are complete, and so is every item on the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md): it is kept as the record of how that work was planned, not as a list of open work. All five follow-up tickets (#33–#37) were delivered on 2026-11-01 (the #36 tour was removed again on 2026-11-17), and the palette lint guard (#32) shipped on 2026-10-29. The parent it tracks has none open.
+To move the model, drag to turn and tilt it, and pinch or use the mouse wheel to zoom (click the model first so the page does not scroll). Double click or **Reset view** puts it back. Phones also get two turn buttons. With the model focused, the arrow keys turn it, `+` and `-` zoom, and `0` resets.
 
-## Try the inspection workflow
+Below the model, a worked example follows one finding, R1-1, from the two survey heights to the verdict, with every figure taken from the engine. A short ledger then lists what the engine tests and what it found for each rule.
 
-1. Open the landing page, slide between **Baseline** and **Current**, and switch on **Show change** and **Show permit findings** to see how the two simulated surveys lead to the engine results.
-2. Open **Overview** to read the answer line and locate the five findings on the site plan.
-3. Select a site-plan pin or choose **Show on map** on a finding. The map restores the evidence layers and frames the selected result.
-4. Open **Inspector** to read a terrain point, or enter its easting and northing. Switch to **Measure** and choose two points to compare distance, grade and the survey profiles.
-5. Visit **Permit rules**, **Uncertainty** and **About the data** to inspect the thresholds, uncertainty assumptions and source limitations behind the result.
+**Dashboard.** A sidebar leads to six pages:
 
-## Data honesty
+- **Overview** (`#/overview`): one sentence that answers "is anything wrong, and where?", a site plan of the lease with every finding marked, the three most serious findings and three headline figures.
+- **3D map** (`#/monitor`): the full model. Switch layers on and off (lease, safety buffer, zones, change, findings, contours, elevation tint), exaggerate the height up to 3×, and jump between Oblique, Top and Pit views. Click a point to read its height, change and lease status, or measure the distance, grade and profile between two points. You can also type a coordinate instead of clicking.
+- **Findings** (`#/findings`): every finding with its figures and the evidence behind it, filters by status and rule, and **Show on map**, **Copy link**, **Download CSV**, **Download PDF** and **Print report**.
+- **Permit rules** (`#/rules`): the three rules in plain words, with the live result for each.
+- **Uncertainty** (`#/uncertainty`): try the noise test yourself with sliders, and see how survey resolution changes what can be detected.
+- **About the data** (`#/about`): where each kind of value comes from, what real data sources can and cannot show, and the keyboard shortcuts.
 
-- Every displayed value carries a provenance tag: `measured`, `derived`, `simulated` or `unverified`.
-- Elevations are shown as value ± vertical uncertainty (σ).
-- No alert is hand-written. Every finding comes from the rule engine running on the two surveys.
-- The About the data page explains what different sources can show:
-  - satellite imagery shows the surface, not depth;
-  - global DEMs (Copernicus GLO-30, SRTM, about 30 m cells, metres of vertical error) are too coarse for bench-scale change;
-  - drone, LiDAR or DGPS surveys are what mine-scale monitoring needs.
+A link such as `#/monitor?finding=R2-1` opens the map on that finding, so a view can be shared.
 
-## The rules
+## Run it locally
 
-Let σ be the uncertainty of the difference between the surveys, σ = √(σ1² + σ2²), and k = 2.
-
-| Rule        | Checks                                     | Violation                             | Warning                                             |
-| ----------- | ------------------------------------------ | ------------------------------------- | --------------------------------------------------- |
-| Change      | Δh = current − baseline per cell           |                                       |                                                     |
-| R1 Boundary | excavated cells (Δh < −(minChange + kσ))   | centre outside the lease              | inside the lease, within the safety buffer          |
-| R2 Depth    | current ground inside an approved pit zone | more than kσ below the approved floor | below the floor but within kσ (cannot be confirmed) |
-| R3 Dumping  | filled cells (Δh > +(minChange + kσ))      |                                       | outside every designated dump zone                  |
-
-Flagged cells are grouped into findings with 8-connected components. Each finding has an area, a volume (Σ|Δh| × cell area; for R2, volume below the floor), the largest exceedance, a centroid and a severity. Severity comes from thresholds on area, volume and exceedance:
-
-- a violation is critical or high;
-- a warning is medium or low.
-
-Each finding also gets an explanation such as:
-
-> Excavated 7,696 m² outside the lease boundary; deepest cut 52.5 m ± 0.14 m (2σ). 175,297 m³ removed.
-
-Every threshold (k, `minChangeM`, severity limits) lives in [`src/compliance/config.ts`](src/compliance/config.ts).
-
-The seeded scenario produces exactly these findings, locked by a snapshot test:
-
-| Id   | Finding                                                   | Status              |
-| ---- | --------------------------------------------------------- | ------------------- |
-| R1-1 | Pushback of the east wall past the lease edge             | violation, critical |
-| R2-1 | Sump dug about 4 m below the approved floor               | violation, high     |
-| R1-2 | The same pushback where it crosses the 20 m safety buffer | warning             |
-| R3-1 | Truck-tipped heaps outside the dump zone                  | warning             |
-| R1-3 | Shallow scrape inside the safety buffer                   | warning, low        |
-
-## Run it
-
-Requires npm and Node.js matching `^20.19.0 || >=22.12.0`, as declared in `package.json`. CI uses Node 22.
+You need Node.js `^20.19.0 || >=22.12.0` (CI uses Node 22) and npm.
 
 ```sh
 npm ci
-npm run dev          # http://localhost:5173
+npm run dev          # opens on http://localhost:5173
 ```
 
-| Command                           | What it does                                   |
-| --------------------------------- | ---------------------------------------------- |
-| `npm run dev`                     | Dev server with hot reload                     |
-| `npm run typecheck`               | TypeScript, strict                             |
-| `npm run lint`                    | ESLint                                         |
-| `npm test`                        | Vitest, once (`npm run test:watch` to watch)   |
-| `npm run test:e2e`                | Playwright checks against the production build |
-| `npm run verify`                  | Typecheck, lint, format check and unit tests   |
-| `npm run build`                   | Typecheck and production build into `dist/`    |
-| `npm run preview`                 | Serve the production build                     |
-| `npm run format` / `format:check` | Prettier                                       |
+The two surveys are built in your browser when the page opens, in two background workers, so the first load takes a few seconds. If it fails, **Try again** retries without a reload.
 
-The terrain (two 513 × 513 surveys at 4 m spacing plus their aerial images) is generated in Web Workers when the page opens: one worker per survey, running in parallel, so the wait is the slower survey rather than the sum. Generation time depends on the device. If loading fails, **Try again** retries in place.
+| Command            | What it does                                            |
+| ------------------ | ------------------------------------------------------- |
+| `npm run dev`      | Development server with hot reload                      |
+| `npm run verify`   | Typecheck, lint, format check and unit tests            |
+| `npm test`         | Unit tests once (`npm run test:watch` to keep watching) |
+| `npm run test:e2e` | Browser tests (Playwright) against a production build   |
+| `npm run build`    | Typecheck and build the site into `dist/`               |
+| `npm run preview`  | Serve the built site                                    |
+| `npm run format`   | Format every file with Prettier                         |
 
-The browser checks run against the production build, so run `npx playwright install chromium` once before the first `npm run test:e2e`. CI (GitHub Actions) runs `npm run verify`, the build and the Playwright suite on every push to `main` and every pull request, and uploads the report when a run fails.
-
-Run the full local checks with:
+Before the first `npm run test:e2e`, install the browser once with `npx playwright install chromium`. The full local check is:
 
 ```sh
 npm run verify && npm run test:e2e
 ```
 
-For the responsive browser review, start `npx vite --port 5179 --strictPort` and review the landing page, Overview and 3D map at 1440, 1100 and 800 px wide. Include a phone-width check for the navigation and details drawers.
+GitHub Actions runs `verify`, the build and the browser tests on every pull request and every push to `main`.
 
-## Deploy
+## How it works
 
-The app is a static site on Vercel. The GitHub repo is connected to the `pitwatch-3d` project, so every push to `main` builds and publishes [pitwatch-3d.vercel.app](https://pitwatch-3d.vercel.app). Build settings live in [`vercel.json`](vercel.json) (`npm run build`, output `dist/`). Routing uses the URL hash (`#/overview`, `#/monitor` and so on), so no rewrites are needed.
+The app has three parts, and data flows one way through them.
 
-To deploy by hand from a logged-in machine:
+1. **Data.** A seeded generator builds the mine: a baseline survey and a current survey, each a grid of 513 × 513 heights at 4 m spacing (about 2 km square), plus a simulated aerial photo for each. The changes an inspector should find are planted in the current survey. The surrounding ground outside the 2 km block is decoration only; nothing is measured on it.
+2. **Engine.** For every cell, the engine subtracts the baseline height from the current one, decides whether the change is bigger than the surveys' own error, groups flagged cells into findings and writes a plain-English explanation for each.
+3. **Interface.** The pages and the 3D model draw what the engine reports. No alert is written by hand.
 
-```sh
-npx vercel deploy --prod
-```
+### Honesty rules
 
-## Architecture
+- Every value carries a tag that says where it came from: `measured`, `derived`, `simulated` or `unverified`.
+- Heights and changes are shown with their ± uncertainty. σ (sigma) is a survey's own measurement error; here it is 0.05 m in height and 0.10 m in position, both simulated.
+- The dashboard shows a SIMULATED DATA label, and the landing page a "simulated data" note.
+- Every exported row (CSV) and page (PDF) is marked simulated.
+
+### When does a change count?
+
+Two surveys never agree exactly, even over untouched ground. So the engine combines the error of both surveys, σ = √(σ1² + σ2²), and uses k = 2 (about 95% confidence). A change is reported only if it is larger than **0.5 m + 2σ**. With the default 0.05 m surveys that is 0.64 m. The 0.5 m allowance keeps tyre ruts and grading out of the findings.
+
+### The three rules
+
+| Rule        | What it looks at                      | Violation                             | Warning                                                  |
+| ----------- | ------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| R1 Boundary | ground lowered beyond the threshold   | outside the lease                     | inside the lease but within the 20 m safety buffer       |
+| R2 Depth    | current ground inside an approved pit | more than 2σ below the approved floor | below the floor but within 2σ, so it cannot be confirmed |
+| R3 Dumping  | ground raised beyond the threshold    |                                       | outside every permitted dump zone                        |
+
+R2 compares the current ground with a fixed approved floor, so it uses the current survey's σ alone and has no 0.5 m allowance.
+
+Flagged cells that touch (including diagonally) form one finding. Each finding has an area, a volume, its largest exceedance, a centre and a severity: a violation is critical or high, a warning medium or low, depending on area, volume and exceedance limits. A typical explanation reads:
+
+> Excavated 7,696 m² outside the lease boundary; deepest cut 52.5 m ± 0.14 m (2σ). 175,297 m³ removed.
+
+Every threshold lives in [`src/compliance/config.ts`](src/compliance/config.ts).
+
+### What the simulated mine produces
+
+The seed always gives these five findings, and a snapshot test fails if any of them changes:
+
+| Id   | Finding                                                   | Status              |
+| ---- | --------------------------------------------------------- | ------------------- |
+| R1-1 | The east wall pushed back past the lease edge             | violation, critical |
+| R2-1 | A sump dug about 4 m below the approved floor             | violation, high     |
+| R1-2 | The same pushback where it crosses the 20 m safety buffer | warning, medium     |
+| R3-1 | Truck-tipped heaps outside the dump zone                  | warning, medium     |
+| R1-3 | A shallow scrape inside the safety buffer                 | warning, low        |
+
+## Reference
+
+### Architecture
 
 ```mermaid
 flowchart LR
@@ -133,59 +114,58 @@ flowchart LR
     S --> O[data/orthophoto<br/>simulated aerial image]
     S --> P[SyntheticTerrainProvider]
     O --> P
-    G[geo<br/>grid, polygon, lat/lon] --> S
+    G[geo<br/>grid, polygon, profile, plan layout] --> S
     G --> C
-    C[compliance<br/>change, rules, clustering, severity]
+    C[compliance<br/>change, rules, findings, explanations]
   end
-  P --> W[workers/terrain.worker]
+  P --> W[workers/terrain.worker<br/>one per survey]
   W --> WP[WorkerTerrainProvider<br/>implements TerrainProvider]
   WP --> T[state/terrain store]
   T -->|surveys, limits| C
   C -->|change, findings| T
-  T --> SC[scene<br/>three.js / R3F terrain]
-  T --> UI[ui<br/>landing, dashboard pages, map panels]
+  T --> SC[scene<br/>three.js / R3F model]
+  T --> UI[ui<br/>landing page, dashboard pages, panels]
   A[state/store<br/>layers, view, panels] --> SC
   A --> UI
 ```
 
-- `src/domain`, `src/data`, `src/geo` and `src/compliance` are pure TypeScript. ESLint blocks React, three.js and Zustand imports there, so the geometry and rules are testable on their own. The same lint pass rejects a hardcoded colour anywhere in `src` other than the palette, so the colour rule is enforced rather than remembered.
-- `TerrainProvider` (`getMine`, `listSurveys`, `getSurvey`, `getLimits`) is the seam for real data. A GeoTIFF DEM or surveyed-surface provider can replace the synthetic one without touching rendering or rules.
-- Coordinates are a local metric grid (X east, Y north, RL in metres). The fictional origin lat/lon is for display only; a real system would use a projected CRS such as UTM.
+- `src/domain`, `src/data`, `src/geo` and `src/compliance` are plain TypeScript with no React, three.js or Zustand. ESLint enforces this, so the rules and geometry can be tested on their own. Lint also rejects a hard-coded colour anywhere outside the palette.
+- `TerrainProvider` (`getMine`, `listSurveys`, `getSurvey`, `getLimits`) is where real data would plug in. A provider that reads real survey files could replace the synthetic one without touching the rules or the drawing.
+- Coordinates are local metres (X east, Y north, height as RL). The latitude and longitude shown are for display only; a real system would use a projected grid such as UTM.
+
+### Folders
 
 ```text
 src/
-  domain/       types: Mine, TerrainSurvey, PermittedLimits, ComplianceFinding, TerrainProvider
-  data/         seeded RNG and noise, scenario fixtures, synthetic terrain, aerial image, providers
-  geo/          grid maths, point-in-polygon, distances, area and volume, lat/lon display
-  compliance/   change detection, R1–R3, connected components, severity, explanations
-  scene/        R3F terrain, shaders (aerial/tint blend, rock detail, contours, soil profile), camera rig
-  state/        Zustand stores: app UI state, loaded terrain and findings
-  ui/           landing page, dashboard shell and pages, site plan, panels, map HUD
-  workers/      terrain generation off the main thread
+  domain/       shared types: Mine, TerrainSurvey, PermittedLimits, ComplianceFinding, TerrainProvider
+  data/         seeded noise, the scenario, synthetic terrain, aerial images, surrounding ground, providers
+  geo/          grid maths, polygons, distances, profiles, area and volume, site-plan layout
+  compliance/   change detection, rules R1–R3, findings, severity, explanations, reports
+  scene/        the 3D model, shaders, overlays and camera
+  state/        Zustand stores: interface state, loaded surveys and findings
+  ui/           landing page, dashboard shell and pages, panels, map controls, PDF export
+  workers/      survey generation off the main thread
+e2e/            Playwright browser tests
 ```
 
-## Stack
+### Stack
 
-Vite, React 19, TypeScript (strict), three.js with @react-three/fiber and drei, Tailwind CSS v4, Zustand, Vitest, ESLint and Prettier. There is no backend: everything runs in the browser.
+Vite, React 19, TypeScript (strict), three.js with @react-three/fiber and drei, Tailwind CSS v4, Zustand, jsPDF, Vitest, Playwright, ESLint and Prettier. There is no backend: everything runs in the browser.
 
-## Roadmap
+### Deploy
 
-|     | Milestone                                                                   | Status |
-| --- | --------------------------------------------------------------------------- | ------ |
-| M1  | App shell, tooling                                                          | done   |
-| M2  | Domain types, geo utilities, synthetic terrain                              | done   |
-| M3  | 3D terrain view                                                             | done   |
-| M4  | Compliance engine and scenario snapshot                                     | done   |
-| M5  | Overlays: lease boundary, buffer, change map, finding markers               | done   |
-| M6  | Panels: point picking, measure tool and profile chart, epoch slider, fly-to | done   |
-| M7  | Polish: accessibility, performance, share metadata                          | done   |
-| M8  | Deployment config (Vercel) and final checks                                 | done   |
+The site is static and hosted on Vercel. The repository is connected to the `pitwatch-3d` project, so every push to `main` publishes [pitwatch-3d.vercel.app](https://pitwatch-3d.vercel.app). Build settings are in [`vercel.json`](vercel.json) (`npm run build`, output `dist/`). Pages use the part of the address after `#`, so the host needs no rewrite rules. To deploy by hand from a logged-in machine, run `npx vercel deploy --prod`.
 
-## Limits and follow-up work
+### Known limits
 
-- This is a frontend demonstration using a fictional permit and synthetic surveys. There is no backend, real survey ingestion or regulatory certification.
-- Survey uncertainty is modelled in both directions: elevations and the change carry the vertical ± (0.05 m 1σ), and a point reading carries the horizontal ± (0.10 m 1σ) on its position. Where the 2σ horizontal band reaches the lease boundary or the safety-buffer edge, the Inspector says that side cannot be confirmed instead of claiming one; it also says the compliance engine classifies whole 4 m cells and does not use the band. Measured distances, slope distance and grade carry their propagated ±. A coordinate outside the survey grid can still be inspected for position and lease status, but has no elevation or change reading.
-- Below 1280 px the details panel starts closed so the model keeps the room; the header's Details button or `]` brings it back, and `[` toggles the Map card. Below 1024 px the Map card starts folded as well, giving the model the full stage; the header's Map panel button or `[` restores it. Until the visitor toggles a panel, both follow the window across those widths; after that, their choice sticks.
-- There is no first-visit tour: the one built for #36 was removed on 2026-11-17. The map explains itself with contextual hints (click or tap to read a point, then A and B to measure), the icon rail labels each icon on hover and keyboard focus, and the landing model carries a "Drag to turn" label and a description that follows the view.
+- Everything is simulated. There is no real survey import, no backend and no regulatory certification.
+- The engine judges whole 4 m cells by their centre. Near the lease line, the Inspector says when the 0.10 m position error means the side cannot be confirmed, but the engine does not use that band.
+- Frame rate has only been measured with software rendering, not on a real graphics card.
+- No licence has been chosen yet, so the License page says all rights are reserved. The Terms page is a draft without legal review.
+- The PDF report covers Latin and Greek letters; a name in another script prints `?`.
 
-See the [competition improvement plan](docs/competition-ui-ux-improvement-plan.md) for how the interface work was planned (all of it delivered), [STATUS.md](STATUS.md) for the current handoff, and [AGENTS.md](AGENTS.md) for the detailed update log and contributor workflow.
+## More
+
+- [STATUS.md](STATUS.md): the current state of the project.
+- [AGENTS.md](AGENTS.md): working rules, design notes and the full update log.
+- [docs/](docs): plans, bug checks and the tracker conventions in [docs/agents](docs/agents).
