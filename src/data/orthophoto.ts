@@ -114,6 +114,78 @@ const smooth = (a: number, b: number, x: number) => {
 }
 
 /**
+ * The noises natural ground is painted from, in local metres. The surveyed block's image and the
+ * ground painted around it (see apron.ts) read the same ones with the same seed, so vegetation,
+ * soil patches and tree crowns run across the survey's edge.
+ */
+export const naturalNoise = {
+  /** Vegetation density: broad patches a few hundred metres across. */
+  veg: (x: number, y: number, seed: number) => fbm(x / 260, y / 260, seed + 31, 3),
+  /** Soil blotches tens of metres across. */
+  blotch: (x: number, y: number, seed: number) => valueNoise(x / 28, y / 28, seed + 43),
+  grain: (x: number, y: number, seed: number) => valueNoise(x / 6, y / 6, seed + 41),
+  crown: (x: number, y: number, seed: number) => valueNoise(x / 3.2, y / 3.2, seed + 47),
+}
+
+const mixInto = (o: number[], c: RGB, t: number) => {
+  o[0] += (c[0] - o[0]) * t
+  o[1] += (c[1] - o[1]) * t
+  o[2] += (c[2] - o[2]) * t
+}
+
+/**
+ * Natural ground away from the workings, written into `o`: the dry creek bed, or scrub and dry
+ * grass on red soil, with scattered tree crowns and their shadows, and soil showing on the steeper
+ * slopes. `veg`, `blotch` and `grain` are `naturalNoise` at the point, `crownAt` is its crown
+ * noise, `toCreek` is `creekDistance` and `slope` is in degrees. Returns true on the creek bed.
+ */
+export function paintNaturalGround(
+  o: number[],
+  px: number,
+  py: number,
+  veg: number,
+  blotch: number,
+  grain: number,
+  toCreek: number,
+  slope: number,
+  crownAt: (x: number, y: number) => number,
+): boolean {
+  if (toCreek < 9 + 4 * blotch) {
+    // Dry creek bed: pale sand with darker gravel bars.
+    o[0] = SURFACE.creekSand[0]
+    o[1] = SURFACE.creekSand[1]
+    o[2] = SURFACE.creekSand[2]
+    mixInto(o, SURFACE.soil, 0.35 * grain)
+    return true
+  }
+  // Vegetation density from large-scale noise. Scrub dominates; soil shows through
+  // in thin patches; scattered tree crowns (2–3 px) where it is greener.
+  // Trees crowd the creek banks, where water lingers after rain.
+  const riparian = 1 - smooth(12, 70, toCreek)
+  const v = veg + 0.3 * (blotch - 0.5) + 0.9 * riparian
+  const crowns = crownAt(px, py)
+  o[0] = SURFACE.soil[0]
+  o[1] = SURFACE.soil[1]
+  o[2] = SURFACE.soil[2]
+  mixInto(o, SURFACE.grass, smooth(-0.62, -0.3, v))
+  mixInto(o, SURFACE.scrub, smooth(-0.15, 0.3, v) * 0.85)
+  const crownLevel = 0.74 - 0.12 * smooth(-0.2, 0.4, v) - 0.2 * riparian
+  if (crowns > crownLevel) {
+    mixInto(o, SURFACE.trees, 0.75)
+  } else if (crownAt(px - 2.6, py + 2.6) > crownLevel) {
+    // Shadow of a crown to the north-west (the sun's side), cast south-east.
+    mixInto(o, SURFACE.shadow, 0.5)
+  }
+  // Steeper natural slopes shed soil and show it.
+  mixInto(o, SURFACE.soil, smooth(8, 18, slope) * 0.4)
+  return false
+}
+
+/** Brightness baked into the image: darker in hollows and at the foot of slopes, with grain. */
+export const bakedShade = (hollow: number, grain: number) =>
+  Math.min(1.1, Math.max(0.72, 1 - hollow * 9)) * (0.93 + 0.12 * grain)
+
+/**
  * `valueNoise(x / scale, y / scale, seed)` for x and y between `lo` and `hi` metres, read from a
  * lattice hashed once. Same values; the image calls these for every one of its 4.2 M pixels.
  */
@@ -201,13 +273,13 @@ export function buildOrthophoto(
       hollow[i] =
         (at(c + 1, r) + at(c - 1, r) + at(c, r + 1) + at(c, r - 1) - 4 * at(c, r)) /
         (g.cellSize * g.cellSize)
-      veg[i] = fbm(p.x / 260, p.y / 260, seed + 31, 3)
+      veg[i] = naturalNoise.veg(p.x, p.y, seed)
       const inside = pits.map((k) => insidePit(p, k))
       pitIn[i] = Math.max(-500, ...inside)
       creek[i] = creekDistance(p, seed)
       ramp[i] = pitIn[i] > 0 ? Math.min(500, ...pits.map((k) => rampDistance(p, k))) : 500
       road[i] = distanceToRoads(p.x, p.y)
-      blotchF[i] = valueNoise(p.x / 28, p.y / 28, seed + 43)
+      blotchF[i] = naturalNoise.blotch(p.x, p.y, seed)
       // Where pits overlap, the one cut deepest here shapes the ground.
       let best = -1
       let bestZ = Infinity
@@ -237,6 +309,7 @@ export function buildOrthophoto(
   const crownAt = noiseTable(lo, hi, 3.2, seed + 47)
 
   // Current colour, mutated in place to avoid allocating per pixel.
+  const rgb = [0, 0, 0]
   let cr = 0
   let cg = 0
   let cb = 0
@@ -412,42 +485,25 @@ export function buildOrthophoto(
       } else {
         const toRoad = bil(road)
         const toCreek = bil(creek)
-        if (toCreek < 9 + 4 * blotch) {
-          // Dry creek bed: pale sand with darker gravel bars.
-          set(SURFACE.creekSand)
-          toward(SURFACE.soil, 0.35 * grain)
-        } else if (toRoad < 8) {
+        if (toRoad < 8 && toCreek >= 9 + 4 * blotch) {
           set(SURFACE.road)
           toward(SURFACE.cleared, 0.25 * grain)
           // Windrows: graded spoil heaped along both road edges.
           if (toRoad > 5.5) toward(SURFACE.soil, 0.45)
         } else {
-          // Vegetation density from large-scale noise. Scrub dominates; soil shows through
-          // in thin patches; scattered tree crowns (2–3 px) where it is greener.
-          // Trees crowd the creek banks, where water lingers after rain.
-          const riparian = 1 - smooth(12, 70, toCreek)
-          const v = bil(veg) + 0.3 * (blotch - 0.5) + 0.9 * riparian
-          const crowns = crownAt(px, py)
-          set(SURFACE.soil)
-          toward(SURFACE.grass, smooth(-0.62, -0.3, v))
-          toward(SURFACE.scrub, smooth(-0.15, 0.3, v) * 0.85)
-          const crownLevel = 0.74 - 0.12 * smooth(-0.2, 0.4, v) - 0.2 * riparian
-          if (crowns > crownLevel) {
-            toward(SURFACE.trees, 0.75)
-          } else if (crownAt(px - 2.6, py + 2.6) > crownLevel) {
-            // Shadow of a crown to the north-west (the sun's side), cast south-east.
-            toward(SURFACE.shadow, 0.5)
+          const bed = paintNaturalGround(rgb, px, py, bil(veg), blotch, grain, toCreek, s, crownAt)
+          cr = rgb[0]
+          cg = rgb[1]
+          cb = rgb[2]
+          if (!bed) {
+            // Cleared, compacted ground around the pit fades out irregularly.
+            const clearing = smooth(-70, -25, inPit + 30 * (blotch - 0.5) + 8 * (grain - 0.5))
+            toward(SURFACE.cleared, clearing * 0.9)
           }
-          // Steeper natural slopes shed soil and show it.
-          toward(SURFACE.soil, smooth(8, 18, s) * 0.4)
-          // Cleared, compacted ground around the pit fades out irregularly.
-          const clearing = smooth(-70, -25, inPit + 30 * (blotch - 0.5) + 8 * (grain - 0.5))
-          toward(SURFACE.cleared, clearing * 0.9)
         }
       }
 
-      const shade =
-        Math.min(1.1, Math.max(0.72, 1 - bil(hollow) * 9)) * (0.93 + 0.12 * grain) * local
+      const shade = bakedShade(bil(hollow), grain) * local
       const o = (j * size + i) * 4
       rgba[o] = Math.min(255, cr * shade)
       rgba[o + 1] = Math.min(255, cg * shade)

@@ -117,9 +117,6 @@ function LeaseTube({ points }: { points: V3[] }) {
   )
 }
 
-/** Metres the landing lowers the ground beside the block, so its stratified sides show. The map keeps the seamless ground. */
-const APRON_DROP_M = 45
-
 /** Half the diagonal of the 2048 m block: the circle its corners sweep while turning. */
 const SWEEP = Math.hypot(1024, 1024)
 /** Block thickness in scene units at 1.5× (ground to the base of the sides). */
@@ -260,7 +257,6 @@ export default function HomeScene({
         marks={marks}
         overlay={overlay}
         visible
-        apronDrop={APRON_DROP_M}
       />
       <SurveyEdge survey={current} ex={ex} />
       <group visible={showFindings && atCurrent}>

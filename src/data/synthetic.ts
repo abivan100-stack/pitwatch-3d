@@ -33,7 +33,7 @@ import { gaussian, mulberry32 } from './rng'
 const PIT_CENTRE = { x: 875, y: 1020 }
 const SATELLITE_CENTRE = { x: 910, y: 445 }
 
-function distanceToLine(p: Vec2, line: readonly (readonly [number, number])[]): number {
+export function distanceToLine(p: Vec2, line: readonly (readonly [number, number])[]): number {
   let d = Infinity
   for (let k = 1; k < line.length; k++) {
     const [ax, ay] = line[k - 1]
@@ -44,12 +44,16 @@ function distanceToLine(p: Vec2, line: readonly (readonly [number, number])[]): 
 }
 
 /** Distance to the dry creek bed. Warped so the channel meanders instead of running straight. */
-export function creekDistance(p: Vec2, seed: number): number {
+export function creekDistance(
+  p: Vec2,
+  seed: number,
+  course: readonly (readonly [number, number])[] = CREEK,
+): number {
   const q = {
     x: p.x + 55 * fbm(p.x / 260 + 7.7, p.y / 260, seed + 61, 3),
     y: p.y + 55 * fbm(p.x / 260, p.y / 260 - 5.1, seed + 67, 3),
   }
-  return distanceToLine(q, CREEK)
+  return distanceToLine(q, course)
 }
 
 /**

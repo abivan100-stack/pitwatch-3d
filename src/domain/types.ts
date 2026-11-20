@@ -101,6 +101,12 @@ export interface TerrainSurvey extends SurveyEpochInfo {
   /** 1σ horizontal position uncertainty of this survey, metres, in each plan axis. */
   horizontalUncertainty: number
   orthophoto?: Orthophoto
+  /**
+   * Aerial-style image of the unsurveyed ground around the grid, for the scenery the 3D model
+   * sits in (its extent is the apron lattice, see data/apron.ts). Decoration: nothing measures
+   * it. It does not change between surveys, so a provider sends it with one survey only.
+   */
+  surroundings?: Orthophoto
 }
 
 /* ---------- Permit ---------- */
