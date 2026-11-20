@@ -91,6 +91,12 @@ body {
   outline-offset: 2px;
 }
 
+/* A layer dropdown clips its overflow for the height transition, so a ring outside a switch
+   would be cut off: draw it inside the row instead. Unlayered, like the rule above. */
+.fold-inner .layer-row:focus-visible {
+  outline-offset: -2px;
+}
+
 @layer components {
   /* Condensed cut of Archivo for headings and figures. */
   .cond {
