@@ -11,7 +11,9 @@ import {
   FINDING_AIM_LIFT,
   findingAnchor,
   findingView,
+  groundRing,
   PIN_HEIGHT,
+  ringRadius,
 } from './overlayGeometry'
 import { hexToRgb, RAMP, rampAt, rampGradient, srgbToLinear } from './palette'
 import {
@@ -164,6 +166,29 @@ describe('focus view', () => {
     expect(position[1]).toBeGreaterThan(20)
     expect(position[2]).toBeGreaterThan(30)
     expect(headingOf(position, target)).toBeGreaterThan(270) // looking north-west
+  })
+})
+
+describe('finding ring', () => {
+  const survey = { grid, elevations: elev } as unknown as TerrainSurvey
+
+  it('is a closed loop on the ground, the stated distance from its centre in plan', () => {
+    const ring = groundRing(survey, { x: 12, y: 4 }, 3, 1.5)
+    expect(ring).toHaveLength(49)
+    expect(ring[48]).toEqual(ring[0])
+    const [cx, , cz] = toScene(grid, { x: 12, y: 4 }, 0)
+    for (const [x, y, z] of ring) {
+      expect(Math.hypot(x - cx, z - cz)).toBeCloseTo(3, 6)
+      // On the exaggerated surface, a little above it (heights run 400 to 450 here).
+      expect(y).toBeGreaterThan((400 - BASE_RL) * 1.5)
+      expect(y).toBeLessThan((450 - BASE_RL) * 1.5 + 4)
+    }
+  })
+
+  it('sizes the ring to the finding, kept readable for the smallest and the largest', () => {
+    expect(ringRadius(16)).toBe(30)
+    expect(ringRadius(3000)).toBeCloseTo(Math.sqrt(3000 / Math.PI) * 1.2, 6)
+    expect(ringRadius(1e6)).toBe(70)
   })
 })
 

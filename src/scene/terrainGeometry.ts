@@ -184,6 +184,16 @@ export function buildSkirtArrays(g: GridSpec, elevations: Float32Array) {
 }
 
 /**
+ * How far the apron is lowered `distance` metres out from the block's edge: the full `drop` at the
+ * edge, back to 0 at `ramp`, with the same smoothstep as the vertex shader in Terrain.tsx (keep
+ * the two in step).
+ */
+export function apronDropAt(distance: number, drop: number, ramp: number): number {
+  const t = Math.min(1, Math.max(0, distance / ramp))
+  return drop * (1 - t * t * (3 - 2 * t))
+}
+
+/**
  * The ground around the block: the apron lattice as an upward-facing mesh with the block's cells
  * left out, tinted from dry scrub in the low ground to paler soil on the rises. No uvs: the
  * aerial image covers the surveyed block only. Same axes as the block, so the two share an edge.

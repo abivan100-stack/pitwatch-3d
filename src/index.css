@@ -2504,15 +2504,29 @@ body {
     flex: 1;
     min-height: 280px;
   }
-  .hero-model > div,
-  .hero-model > canvas {
-    position: absolute !important;
+  .hero-model > .model-frame,
+  .hero-model > div.plan-status {
+    position: absolute;
     inset: 0;
+  }
+  /* The model itself: the one focusable thing in the picture. A sideways swipe turns it; a
+     vertical swipe scrolls the page. */
+  .model-frame {
+    touch-action: pan-y;
+    cursor: grab;
+    outline: none;
+  }
+  .model-frame:active {
+    cursor: grabbing;
+  }
+  .model-frame:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: -3px;
   }
   .model-hint {
     position: absolute;
-    top: 12px;
-    right: 14px;
+    bottom: 10px;
+    left: 14px;
     z-index: 2;
     padding: 3px 9px;
     border-radius: 999px;
@@ -2520,6 +2534,59 @@ body {
     color: var(--color-ink-faint);
     background: color-mix(in srgb, var(--color-panel) 80%, transparent);
     pointer-events: none;
+  }
+  @media (width < 40rem), (pointer: coarse) {
+    .model-hint {
+      display: none;
+    }
+  }
+  /* Scale bar and north arrow: small, top left, and never in the way of a drag. */
+  .model-scale {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 5px;
+    pointer-events: none;
+  }
+  .model-compass {
+    width: 30px;
+    height: 30px;
+    flex: none;
+  }
+  .model-turn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+  }
+  .model-btn {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: var(--color-ink-dim);
+    background: color-mix(in srgb, var(--color-panel) 90%, transparent);
+    border: 1px solid var(--color-line-strong);
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .model-btn:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  @media (pointer: coarse) {
+    .model-btn {
+      width: 44px;
+      height: 44px;
+    }
   }
   /* Narrow screens: tighter hero so the model and both calls to action share the first screens. */
   @media (width < 64rem) {
@@ -2552,13 +2619,9 @@ body {
     background: color-mix(in srgb, var(--color-panel) 94%, transparent);
     border-top: 1px solid var(--color-line);
   }
-  /* Phones: a compact caption and no second date readout, so the first screen holds the model. */
   @media (width < 40rem) {
     .hero-controls {
-      padding: 12px 14px 14px;
-    }
-    .hero-controls .story-clock {
-      display: none;
+      padding: 6px 14px 12px;
     }
     .hero-facts {
       display: grid;
@@ -2568,66 +2631,89 @@ body {
       grid-column: 1 / -1;
     }
   }
-  .seg-fill {
+  /* Before/after slider: Baseline at the left end, Current at the right. */
+  .before-after {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    box-shadow: none;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
   }
-  .seg-fill button {
+  .ba-end {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    padding: 8px 4px 9px;
+    min-width: 5.2rem;
+    padding: 2px 4px;
+    border-radius: 6px;
+    text-align: left;
+    color: var(--color-ink);
+  }
+  .ba-end-right {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .ba-end:hover .ba-name {
+    color: var(--color-accent);
+  }
+  .ba-name {
     font-size: 14px;
+    font-weight: 700;
+    font-stretch: 72%;
   }
-  .seg-step {
+  .ba-date {
     font-family: var(--font-mono);
-    font-size: 10.5px;
-    font-weight: 500;
-    opacity: 0.85;
-  }
-  .seg-sub {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-size: 11px;
-    font-weight: 500;
-    font-stretch: 100%;
+    color: var(--color-ink-faint);
+  }
+  .ba-range {
+    width: 100%;
   }
   @media (width < 40rem) {
-    .seg-sub {
-      font-size: 10px;
+    .ba-end {
+      min-width: 4.4rem;
+    }
+    .before-after {
+      gap: 6px;
     }
   }
-
-  .story-clock {
-    margin-top: 14px;
+  .model-toggles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 4px;
   }
-  .clock-marker {
-    position: absolute;
-    top: 2px;
-    left: 0;
-    width: 14px;
-    height: 14px;
-    translate: -50% 0;
-    rotate: 45deg;
-    background: var(--color-accent);
-    border: 2px solid var(--color-panel);
-    box-shadow: 0 0 0 1px var(--color-accent);
-    left: calc(var(--t, 0) * 100%);
+  .model-toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-ink-dim);
+    background: var(--color-panel-2);
+    border: 1px solid var(--color-line);
   }
-  .clock-fill {
-    height: 2px;
-    width: calc(var(--t, 0) * 100%);
-    background: var(--color-accent);
+  .model-toggle:hover {
+    color: var(--color-ink);
+    border-color: var(--color-line-strong);
   }
-  .clock-tick {
-    background: var(--color-ink-faint);
+  .model-toggle.on {
+    color: var(--color-ink);
+    border-color: var(--color-accent);
   }
-  .clock-tick.passed {
-    background: var(--color-accent);
+  @media (width < 26rem) {
+    .model-toggle {
+      font-size: 12.5px;
+      padding-inline: 8px;
+      gap: 6px;
+    }
+  }
+  .model-status {
+    margin-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--color-ink-dim);
   }
 
   .landing-section {

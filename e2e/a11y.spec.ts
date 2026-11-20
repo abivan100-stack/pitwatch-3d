@@ -22,6 +22,24 @@ test('home has no critical or serious accessibility violations', async ({ page }
   expect(await seriousViolations(page)).toEqual([])
 })
 
+// The home page with its model built: a focusable picture with a description, a slider, two
+// switches and the rotate buttons, at the width the layout is two columns and at a phone's.
+for (const width of [1440, 390]) {
+  test(`home with the model has no critical or serious violations at ${width} px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/')
+    await expect(
+      page.getByRole('img', { name: /^3D model of the simulated mine block/ }),
+    ).toBeVisible({ timeout: 60_000 })
+    await expect(page.locator('.hero-model canvas')).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByRole('slider', { name: /Survey shown/ })).toBeVisible()
+
+    expect(await seriousViolations(page)).toEqual([])
+  })
+}
+
 for (const route of ['terms', 'license', 'contact']) {
   test(`${route} has no critical or serious accessibility violations`, async ({ page }) => {
     await page.goto(`/#/${route}`)

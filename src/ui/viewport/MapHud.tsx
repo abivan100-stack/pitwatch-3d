@@ -19,15 +19,40 @@ const PRESETS: { id: ViewPreset; label: string }[] = [
   { id: 'pit', label: 'Pit' },
 ]
 
+type Readings = { heading: number; metresPerPixel: number }
+/** Anything with the camera store's shape: the map's, or the landing model's. */
+type ReadingsStore = Pick<typeof useCameraState, 'getState' | 'subscribe'>
+
+/** The compass rose; its needle turns with the camera's heading. Decorative: the caller names it. */
+export function CompassRose({ store = useCameraState }: { store?: ReadingsStore }) {
+  const needle = useRef<SVGGElement>(null)
+  useEffect(() => {
+    const draw = ({ heading }: Readings) =>
+      needle.current?.setAttribute('transform', `rotate(${-heading})`)
+    draw(store.getState())
+    return store.subscribe(draw)
+  }, [store])
+  return (
+    <svg viewBox="-20 -20 40 40" className="h-full w-full" aria-hidden="true">
+      <circle r="18.5" className="compass-ring" />
+      <g ref={needle}>
+        <path d="M0 -14 L5 2 L0 -1 L-5 2 Z" className="compass-north" />
+        <path d="M0 14 L5 -2 L0 1 L-5 -2 Z" className="compass-south" />
+        <text y="-6.5" className="compass-n" transform="translate(0 -9.5)">
+          N
+        </text>
+      </g>
+    </svg>
+  )
+}
+
 /** Preset camera views and a compass that turns with the camera (click to face north). */
 export function ViewControls() {
   const requestView = useAppStore((s) => s.requestView)
-  const needle = useRef<SVGGElement>(null)
   const button = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const draw = ({ heading }: { heading: number }) => {
-      needle.current?.setAttribute('transform', `rotate(${-heading})`)
       button.current?.setAttribute('title', `Heading ${Math.round(heading)}°. Click to face north.`)
     }
     draw(useCameraState.getState())
@@ -50,16 +75,7 @@ export function ViewControls() {
         aria-label="Compass. Click to face north"
         onClick={() => requestView('north')}
       >
-        <svg viewBox="-20 -20 40 40" className="h-full w-full" aria-hidden="true">
-          <circle r="18.5" className="compass-ring" />
-          <g ref={needle}>
-            <path d="M0 -14 L5 2 L0 -1 L-5 2 Z" className="compass-north" />
-            <path d="M0 14 L5 -2 L0 1 L-5 -2 Z" className="compass-south" />
-            <text y="-6.5" className="compass-n" transform="translate(0 -9.5)">
-              N
-            </text>
-          </g>
-        </svg>
+        <CompassRose />
       </button>
     </div>
   )
@@ -365,23 +381,45 @@ export function ExaggerationSlider() {
   )
 }
 
-/** Live scale bar, measured at the centre of the view. */
-export function ScaleBar() {
+/** The scale bar and its label, measured at the centre of the view. */
+export function ScaleReadout({
+  store = useCameraState,
+  maxPx = 110,
+  short = false,
+}: {
+  store?: ReadingsStore
+  maxPx?: number
+  /** Leave out "at centre", for a small chip. */
+  short?: boolean
+}) {
   const bar = useRef<HTMLDivElement>(null)
   const label = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    const draw = ({ metresPerPixel }: { metresPerPixel: number }) => {
-      const s = scaleBar(metresPerPixel, 110)
+    const draw = ({ metresPerPixel }: Readings) => {
+      const s = scaleBar(metresPerPixel, maxPx)
       if (bar.current) bar.current.style.width = `${s.px}px`
       if (label.current) {
         label.current.textContent = s.metres >= 1000 ? `${s.metres / 1000} km` : `${s.metres} m`
       }
     }
-    draw(useCameraState.getState())
-    return useCameraState.subscribe(draw)
-  }, [])
+    draw(store.getState())
+    return store.subscribe(draw)
+  }, [store, maxPx])
 
+  return (
+    <>
+      <div ref={bar} className="scale-bar" />
+      <span className="text-[11px] whitespace-nowrap text-ink-dim">
+        <span ref={label} className="font-mono text-ink" />
+        {short ? null : ' at centre'}
+      </span>
+    </>
+  )
+}
+
+/** Live scale bar chip on the map. */
+export function ScaleBar() {
   // Decorative, so it never takes a click. Below `xl` the stage is too narrow to hold this chip
   // and the camera group in one row, so it drops under the timeline instead of covering a button.
   return (
@@ -390,10 +428,7 @@ export function ScaleBar() {
       style={delay(1.2)}
       aria-hidden="true"
     >
-      <div ref={bar} className="scale-bar" />
-      <span className="text-[11px] whitespace-nowrap text-ink-dim">
-        <span ref={label} className="font-mono text-ink" /> at centre
-      </span>
+      <ScaleReadout />
     </div>
   )
 }
