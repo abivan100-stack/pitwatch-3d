@@ -22,12 +22,32 @@ export function polygonArea(poly: Polygon): number {
   return Math.abs(s) / 2
 }
 
-export function distanceToSegment(p: Vec2, a: Vec2, b: Vec2): number {
+function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
   const dx = b.x - a.x
   const dy = b.y - a.y
   const len2 = dx * dx + dy * dy
   const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2))
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+  return { x: a.x + t * dx, y: a.y + t * dy }
+}
+
+export function distanceToSegment(p: Vec2, a: Vec2, b: Vec2): number {
+  const q = closestOnSegment(p, a, b)
+  return Math.hypot(p.x - q.x, p.y - q.y)
+}
+
+/** The point on the polygon outline nearest to `p` (inside or outside). */
+export function nearestOnBoundary(p: Vec2, poly: Polygon): Vec2 {
+  let best = poly[0]
+  let d = Infinity
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const q = closestOnSegment(p, poly[j], poly[i])
+    const dq = Math.hypot(p.x - q.x, p.y - q.y)
+    if (dq < d) {
+      d = dq
+      best = q
+    }
+  }
+  return best
 }
 
 /** Shortest distance from a point to the polygon outline, metres (inside or outside). */

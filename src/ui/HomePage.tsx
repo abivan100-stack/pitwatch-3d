@@ -7,7 +7,6 @@ import {
   type ComponentType,
   type SVGProps,
 } from 'react'
-import { COMPLIANCE_CONFIG } from '../compliance/config'
 import type { RuleId } from '../domain/types'
 import { SURVEY_EPOCHS } from '../data/fixtures/mine'
 import { tweenStory, useStory } from '../state/story'
@@ -15,6 +14,7 @@ import { useTerrain } from '../state/terrain'
 import { countText, GLYPH, worstTone } from './findings'
 import { daysBetween, formatDate } from './format'
 import { StoryClock } from './home/StoryClock'
+import { WorkedCase } from './home/WorkedCase'
 import { ArrowRightIcon, BoundaryIcon, FloorIcon, PitMark, TerrainIcon } from './icons'
 import { MONITOR_HREF, OVERVIEW_HREF, ROUTE_HREF } from './route'
 import { Relief } from './schematic'
@@ -70,49 +70,11 @@ const VIEWS = [
 
 type View = (typeof VIEWS)[number]
 
-/** The method, in order. Each step can be shown on the model above. */
-const STEPS: { title: string; text: string; view: View }[] = [
-  {
-    title: 'Survey the ground twice',
-    text: `A drone maps the pit surface on two dates, ${DAYS} days apart, to within a few centimetres.`,
-    view: VIEWS[0],
-  },
-  {
-    title: 'Keep only real change',
-    text: `Subtract one survey from the other. A change counts only when it is bigger than the survey noise: more than ${COMPLIANCE_CONFIG.minChangeM} m plus ${COMPLIANCE_CONFIG.k}σ.`,
-    view: VIEWS[2],
-  },
-  {
-    title: 'Check it against the permit',
-    text: 'Every changed cell is tested against the lease. Failures become findings, ranked by how serious they are.',
-    view: VIEWS[3],
-  },
-]
-
-const RULES: {
-  rule: RuleId
-  Icon: ComponentType<SVGProps<SVGSVGElement>>
-  title: string
-  text: string
-}[] = [
-  {
-    rule: 'R1',
-    Icon: BoundaryIcon,
-    title: 'Stay inside the lease',
-    text: 'No ground may be excavated outside the lease boundary, or inside the safety buffer along its inner edge.',
-  },
-  {
-    rule: 'R2',
-    Icon: FloorIcon,
-    title: 'Stop at the approved floor',
-    text: 'The pit may not be taken deeper than the floor level approved on the mine plan.',
-  },
-  {
-    rule: 'R3',
-    Icon: TerrainIcon,
-    title: 'Dump only where allowed',
-    text: 'Waste rock may only be placed inside the dump zones approved in the mine plan.',
-  },
+/** The three rules, one line each. Their full wording lives on the Permit rules page. */
+const RULES: { rule: RuleId; Icon: ComponentType<SVGProps<SVGSVGElement>>; title: string }[] = [
+  { rule: 'R1', Icon: BoundaryIcon, title: 'Stay inside the lease' },
+  { rule: 'R2', Icon: FloorIcon, title: 'Stop at the approved floor' },
+  { rule: 'R3', Icon: TerrainIcon, title: 'Dump only where allowed' },
 ]
 
 const PROVENANCE = ['measured', 'derived', 'simulated', 'unverified'] as const
@@ -296,29 +258,14 @@ export function HomePage() {
 
         <section id="how" aria-labelledby="how-title" className="landing-section">
           <div className="landing-inner">
-            <div className="landing-head">
-              <h2 id="how-title" className="cond section-big">
-                From two surveys to a verdict
-              </h2>
-              <p>
-                Three steps, the same ones the dashboard runs. Each can be shown on the model above.
-              </p>
-            </div>
-            <ol className="step-list">
-              {STEPS.map((s, i) => (
-                <li key={s.title} className="step">
-                  <span className="step-n cond" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <h3 className="cond text-[24px] leading-tight font-bold text-ink">{s.title}</h3>
-                  <p className="mt-2 text-[15px] leading-7 text-ink-dim">{s.text}</p>
-                  <button type="button" className="link-arrow" onClick={() => showOnModel(s.view)}>
-                    Show on the model
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ol>
+            <h2 id="how-title" className="cond section-big">
+              One finding, followed from survey to verdict
+            </h2>
+            <p className="case-lede">
+              This is the largest finding in the simulated scenario, checked the way the dashboard
+              checks every 4 m cell of the ground.
+            </p>
+            <WorkedCase onShowOnModel={() => showOnModel(VIEWS[3])} />
           </div>
         </section>
 
@@ -328,35 +275,24 @@ export function HomePage() {
           className="landing-section landing-band"
         >
           <div className="landing-inner">
-            <div className="landing-head">
-              <h2 id="checks-title" className="cond section-big">
-                Three conditions in every mining lease
-              </h2>
-              <p>
-                PitWatch tests every 4 m cell of the ground against each one. The result under each
-                rule is what the engine found on this mine.
-              </p>
-            </div>
-            <ol className="rule-rows">
-              {RULES.map(({ rule, Icon, title, text }) => {
+            <h2 id="checks-title" className="cond ledger-title">
+              What the engine tests
+            </h2>
+            <ol className="ledger">
+              {RULES.map(({ rule, Icon, title }) => {
                 const own = findings.filter((f) => f.ruleId === rule)
                 const tone = own.length ? worstTone(own) : 'clear'
                 const Glyph = tone === 'clear' ? null : GLYPH[tone]
                 return (
-                  <li key={rule} className="rule-row">
-                    <span className="rule-id cond" aria-hidden="true">
+                  <li key={rule} className="ledger-row">
+                    <span className="ledger-id" aria-hidden="true">
                       {rule}
                     </span>
-                    <div>
-                      <h3 className="cond flex items-center gap-3 text-[26px] leading-tight font-bold text-ink">
-                        <Icon className="h-5 w-5 shrink-0 text-accent" />
-                        {title}
-                      </h3>
-                      <p className="mt-2 max-w-[38rem] text-[15px] leading-7 text-ink-dim">
-                        {text}
-                      </p>
-                    </div>
-                    <p
+                    <span className="flex items-center gap-2.5 text-[16px] font-semibold text-ink">
+                      <Icon className="h-5 w-5 shrink-0 text-accent" />
+                      {title}
+                    </span>
+                    <span
                       className={`rule-result-line ${ready ? `tone-${tone}` : ''}`}
                       aria-live="polite"
                     >
@@ -372,15 +308,21 @@ export function HomePage() {
                       ) : (
                         'Evaluating…'
                       )}
-                    </p>
+                    </span>
                   </li>
                 )
               })}
             </ol>
-            <a href={ROUTE_HREF.rules} className="link-arrow mt-10">
-              How each rule is tested
-              <ArrowRightIcon className="h-4 w-4" />
-            </a>
+            <p className="mt-6 text-[14px] leading-6 text-ink-dim">
+              Results are the engine’s, on simulated surveys.{' '}
+              <a href={ROUTE_HREF.rules} className="text-accent underline underline-offset-3">
+                How each rule is tested
+              </a>
+              {' · '}
+              <a href={ROUTE_HREF.findings} className="text-accent underline underline-offset-3">
+                All findings
+              </a>
+            </p>
           </div>
         </section>
 
