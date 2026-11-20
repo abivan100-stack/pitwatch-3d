@@ -14,12 +14,10 @@ import {
   ROCK_DETAIL_PARS,
   detailTexture,
   detailTile,
+  groundGrain,
 } from './rockDetail'
 import { BASE_RL, buildApronArrays, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
 import { makeSurfaceUniforms, type SurfaceUniforms } from './surfaceUniforms'
-
-/** Metres over which the lowered apron climbs back to ground level, from the block's edge. */
-const APRON_DROP_RAMP_M = 400
 
 /*
  * Morph: every vertex also carries the other survey's height (aAltY) and normal
@@ -183,39 +181,55 @@ function makeSkirtMaterial(morph: Uniform<number>) {
 }
 
 /**
- * The ground around the block. It fades to transparent with distance from the block's edge, so the
- * far ground dissolves into the page's own backdrop and never ends in a cut. It casts no shadow
- * (see sun.ts), so it needs no depth material. `half` is half the block's side, scene units.
+ * The ground around the block. It meets the block at ground level and is drawn like it: the image
+ * painted around the survey (`map`, the block's own painter, coarser) under the same roughness and
+ * the same flat-ground grain and overlay dimming (`overlay`, the surface material's own uniform), so
+ * only the survey-edge hairline marks where the survey ends. Without an image it falls back to its
+ * vertex tint. It fades to transparent with distance from the
+ * block's edge, so the far ground dissolves into the page's own backdrop and never ends in a cut.
+ * It casts no shadow (see sun.ts), so it needs no depth material. `half` is half the block's side,
+ * scene units.
  */
-function makeApronMaterial(half: number, drop: number) {
+function makeApronMaterial(
+  half: number,
+  map: THREE.Texture | null,
+  detail: THREE.Texture,
+  overlay: Uniform<THREE.Vector2>,
+) {
   const m = new THREE.MeshStandardMaterial({
-    vertexColors: true,
+    map,
+    vertexColors: !map,
     roughness: 0.96,
     metalness: 0,
     transparent: true,
   })
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uHalf = { value: half }
-    shader.uniforms.uDrop = { value: drop }
-    shader.uniforms.uDropRamp = { value: APRON_DROP_RAMP_M }
     shader.uniforms.uFade = { value: new THREE.Vector2(APRON_FADE_M.from, APRON_FADE_M.to) }
+    shader.uniforms.uDetail = { value: detail }
+    shader.uniforms.uOverlay = overlay
     shader.vertexShader =
-      'varying float vApronD;\nuniform float uHalf;\nuniform float uDrop;\nuniform float uDropRamp;\n' +
+      'varying float vApronD;\nvarying vec2 vApronP;\nuniform float uHalf;\n' +
       shader.vertexShader.replace(
         '#include <begin_vertex>',
-        // Distance from the block's square outline, so a corner fades round, not square. The
-        // drop mirrors apronDropAt() in terrainGeometry.ts.
+        // Distance from the block's square outline, so a corner fades round, not square; and plan
+        // metres east and north, the block's own coordinates for the grain.
         '#include <begin_vertex>\n  vApronD = length(max(abs(position.xz) - vec2(uHalf), 0.0));\n' +
-          '  transformed.y -= uDrop * (1.0 - smoothstep(0.0, uDropRamp, vApronD));',
+          '  vApronP = vec2(position.x, -position.z);',
       )
     shader.fragmentShader =
-      'varying float vApronD;\nuniform vec2 uFade;\n' +
+      'varying float vApronD;\nvarying vec2 vApronP;\nuniform vec2 uFade;\nuniform sampler2D uDetail;\nuniform vec2 uOverlay;\n' +
       shader.fragmentShader.replace(
         '#include <color_fragment>',
-        '#include <color_fragment>\n  diffuseColor.a *= 1.0 - smoothstep(uFade.x, uFade.y, vApronD);',
+        '#include <color_fragment>\n' +
+          groundGrain('vApronP') +
+          // The block dims its unmarked ground under the change and findings overlays; so does
+          // the ground around it, or the block would show as a darker square.
+          '  diffuseColor.rgb *= (1.0 - 0.35 * uOverlay.x) * (1.0 - 0.35 * uOverlay.y);\n' +
+          '  diffuseColor.a *= 1.0 - smoothstep(uFade.x, uFade.y, vApronD);',
       )
   }
-  m.customProgramCacheKey = () => 'terrain-apron' + (drop > 0 ? '-drop' : '')
+  m.customProgramCacheKey = () => `terrain-apron-${map ? 'map' : 'tint'}`
   return m
 }
 
@@ -307,7 +321,6 @@ export function Terrain({
   morph,
   onPick,
   visible,
-  apronDrop = 0,
 }: {
   survey: TerrainSurvey
   marks?: TerrainMarks
@@ -318,8 +331,6 @@ export function Terrain({
   onPick?: (point: THREE.Vector3) => void
   /** Drawn or not. Defaults to the map's Terrain layer switch; the landing page always passes it. */
   visible?: boolean
-  /** Metres the apron is lowered at the block's edge, so the block's sides show. Zero on the map. */
-  apronDrop?: number
 }) {
   const exaggeration = useAppStore((s) => s.exaggeration)
   const layers = useAppStore((s) => s.layers)
@@ -387,10 +398,32 @@ export function Terrain({
   const grid = survey.grid
   const apronGeometry = useMemo(() => {
     const ground = apronFor(grid)
-    return geometryFrom(ground.positions, ground.index, { color: [ground.colors, 3] })
+    return geometryFrom(ground.positions, ground.index, {
+      color: [ground.colors, 3],
+      uv: [ground.uvs, 2],
+    })
   }, [grid])
   const half = ((grid.cols - 1) * grid.cellSize) / 2
-  const apronMaterial = useMemo(() => makeApronMaterial(half, apronDrop), [half, apronDrop])
+  // The image of the ground around the block comes with whichever survey the provider sent it on.
+  const around = survey.surroundings ?? morphTo?.surroundings
+  const aroundTexture = useMemo(() => {
+    if (!around) return null
+    const t = orthoTexture(around, maxAnisotropy)
+    // Beyond the painted reach the ground is mostly faded: the image mirrors, so it has no edge.
+    t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping
+    return t
+  }, [around, maxAnisotropy])
+  const apronMaterial = useMemo(
+    () =>
+      makeApronMaterial(
+        half,
+        aroundTexture,
+        detail,
+        materials.surface.userData.overlay as Uniform<THREE.Vector2>,
+      ),
+    [half, aroundTexture, detail, materials],
+  )
+  useEffect(() => () => aroundTexture?.dispose(), [aroundTexture])
   useEffect(() => () => apronGeometry.dispose(), [apronGeometry])
   useEffect(() => () => apronMaterial.dispose(), [apronMaterial])
 

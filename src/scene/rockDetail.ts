@@ -236,6 +236,20 @@ export const ROCK_DETAIL_COLOR = `
 `
 
 /**
+ * The flat-ground grain alone, for ground with no rock faces (the apron around the block). `p` is a
+ * varying of plan metres east and north, as `vRockP.xy`. It is the tile, registration, strength
+ * and fade ROCK_DETAIL_COLOR gives flat ground, so the grain runs on across the block's edge: keep
+ * the two in step. Needs `uniform sampler2D uDetail`.
+ */
+export const groundGrain = (p: string) => `
+  {
+    float grainFoot = max(length(dFdx(${p})), length(dFdy(${p}))) * ${(DETAIL_SIZE / DETAIL_TILE_M).toFixed(4)};
+    float grain = (texture(uDetail, ${p} / ${TILE}).b - 0.5) * (1.0 - smoothstep(3.0, 6.0, grainFoot));
+    diffuseColor.rgb *= 1.0 + 0.16 * grain;
+  }
+`
+
+/**
  * Bump from `rockHeight`, after the normal is set up (Mikkelsen's surface-gradient method on the
  * view-space position, so it works at any exaggeration and needs no tangents).
  */

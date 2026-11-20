@@ -1,4 +1,4 @@
-import type { ApronGrid } from '../data/apron'
+import { APRON_PHOTO_REACH_M, type ApronGrid } from '../data/apron'
 import type { GridSpec, Vec2 } from '../domain/types'
 import { extent } from '../geo/grid'
 import { APRON, hexToRgb, rampAt, srgbToLinear } from './palette'
@@ -184,19 +184,11 @@ export function buildSkirtArrays(g: GridSpec, elevations: Float32Array) {
 }
 
 /**
- * How far the apron is lowered `distance` metres out from the block's edge: the full `drop` at the
- * edge, back to 0 at `ramp`, with the same smoothstep as the vertex shader in Terrain.tsx (keep
- * the two in step).
- */
-export function apronDropAt(distance: number, drop: number, ramp: number): number {
-  const t = Math.min(1, Math.max(0, distance / ramp))
-  return drop * (1 - t * t * (3 - 2 * t))
-}
-
-/**
  * The ground around the block: the apron lattice as an upward-facing mesh with the block's cells
- * left out, tinted from dry scrub in the low ground to paler soil on the rises. No uvs: the
- * aerial image covers the surveyed block only. Same axes as the block, so the two share an edge.
+ * left out. Its uvs are 0–1 across the image painted around the block (`buildApronPhoto`, v = 0 on
+ * its southern edge) and run on beyond it, where the material mirrors the image. The vertex tint,
+ * dry scrub in the low ground to paler soil on the rises, is what shows when a provider sends no
+ * such image. Same axes as the block, so the two share an edge.
  */
 export function buildApronArrays(a: ApronGrid, heights: Float32Array) {
   const g = a.grid
@@ -205,10 +197,14 @@ export function buildApronArrays(a: ApronGrid, heights: Float32Array) {
   const [low, high] = [hexToRgb(APRON.low), hexToRgb(APRON.high)]
   const positions = new Float32Array(g.cols * g.rows * 3)
   const colors = new Float32Array(g.cols * g.rows * 3)
+  const uvs = new Float32Array(g.cols * g.rows * 2)
+  const reach = APRON_PHOTO_REACH_M / g.cellSize
   for (let row = 0; row < g.rows; row++) {
     for (let col = 0; col < g.cols; col++) {
       const i = row * g.cols + col
       const rl = heights[i]
+      uvs[i * 2] = (col - c0 + reach) / (c1 - c0 + 2 * reach)
+      uvs[i * 2 + 1] = (row - r0 + reach) / (r1 - r0 + 2 * reach)
       positions[i * 3] = g.originXY.x + col * g.cellSize - c.x
       positions[i * 3 + 1] = rl - BASE_RL
       positions[i * 3 + 2] = -(g.originXY.y + row * g.cellSize - c.y)
@@ -224,5 +220,5 @@ export function buildApronArrays(a: ApronGrid, heights: Float32Array) {
       index.push(v, v + 1, v + g.cols, v + 1, v + g.cols + 1, v + g.cols)
     }
   }
-  return { positions, colors, index: Uint32Array.from(index) }
+  return { positions, colors, uvs, index: Uint32Array.from(index) }
 }

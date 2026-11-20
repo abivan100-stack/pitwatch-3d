@@ -5,6 +5,7 @@ import type {
   TerrainProvider,
   TerrainSurvey,
 } from '../domain/types'
+import { apronGrid, apronHeights, buildApronPhoto } from './apron'
 import { SURVEY_EPOCHS } from './fixtures/mine'
 import {
   GRID,
@@ -56,6 +57,13 @@ export class SyntheticTerrainProvider implements TerrainProvider {
       verticalUncertainty: sigma,
       horizontalUncertainty: SURVEY_HORIZONTAL_SIGMA_M,
       orthophoto: buildOrthophoto(GRID, elevations, this.natural, id, this.seed),
+    }
+    // The ground around the block is the same at both dates. It rides with the baseline, which
+    // is the quicker survey to build, so in the browser (one worker per survey) it is ready
+    // before the current survey and the first result waits no longer.
+    if (id === 'baseline') {
+      const apron = apronGrid(GRID)
+      survey.surroundings = buildApronPhoto(apron, apronHeights(apron, this.seed), this.seed)
     }
     this.cache.set(id, survey)
     return survey

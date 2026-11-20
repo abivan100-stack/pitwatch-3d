@@ -1,5 +1,5 @@
 import { SyntheticTerrainProvider } from '../data/SyntheticTerrainProvider'
-import type { TerrainSurvey } from '../domain/types'
+import type { Orthophoto, TerrainSurvey } from '../domain/types'
 
 /*
  * Builds synthetic surveys off the main thread (about 1.5 s of work for both epochs).
@@ -21,12 +21,18 @@ ctx.onmessage = async ({ data }) => {
     // Send copies so the provider's cache stays usable for later requests.
     const elevations = survey.elevations.slice()
     transfer.push(elevations.buffer)
-    let orthophoto = survey.orthophoto
-    if (orthophoto) {
-      orthophoto = { ...orthophoto, rgba: orthophoto.rgba.slice() }
-      transfer.push(orthophoto.rgba.buffer)
+    const copy = (photo?: Orthophoto) => {
+      if (!photo) return photo
+      const rgba = photo.rgba.slice()
+      transfer.push(rgba.buffer)
+      return { ...photo, rgba }
     }
-    ctx.postMessage({ id: data.id, survey: { ...survey, elevations, orthophoto } }, transfer)
+    const orthophoto = copy(survey.orthophoto)
+    const surroundings = copy(survey.surroundings)
+    ctx.postMessage(
+      { id: data.id, survey: { ...survey, elevations, orthophoto, surroundings } },
+      transfer,
+    )
   } catch (e) {
     ctx.postMessage({ id: data.id, error: e instanceof Error ? e.message : String(e) })
   }

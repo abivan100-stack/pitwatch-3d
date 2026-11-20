@@ -38,8 +38,8 @@ export const ROCK = { stain: '#e3d5cb' } as const
 
 /**
  * Ground around the surveyed block (the apron): dry scrub in the low ground, paler grass and soil
- * on the rises, close to the mean of the simulated aerial image's open ground, so the apron reads as
- * more of the same landscape and not as a second material.
+ * on the rises, close to the mean of the simulated aerial image's open ground. It is the fallback:
+ * a survey that comes with an image of its surroundings is drawn with that image instead.
  */
 export const APRON = { low: '#6e6e48', high: '#8e8460' } as const
 
@@ -55,8 +55,8 @@ export const OVERLAY = {
   critical: '#8c3bb0',
   /** Lease boundary and buffer lines. */
   lease: '#fbfaf6',
-  /** Hairline along the edge of the surveyed area (same as the --color-ink token). */
-  surveyEdge: '#23262b',
+  /** Hairline along the edge of the surveyed area (same as the --color-ink-dim token). */
+  surveyEdge: '#4a4f57',
   /** Picked point and measure line (same as --color-accent). */
   accent: '#1f5f86',
   /** Pin badge: paper fill, ink text (same as --color-ink). */
