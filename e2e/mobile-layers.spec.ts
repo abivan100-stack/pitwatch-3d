@@ -38,6 +38,7 @@ test('every layer switch and the exaggeration slider are reachable from the phon
   await expect(layers.locator('summary')).toHaveAccessibleName('Map layers and vertical scale')
   await expect(drawer.getByRole('switch', { name: 'Terrain' })).toBeHidden()
   await layers.locator('summary').click()
+  for (const b of await drawer.getByRole('button', { name: /\d+ more/ }).all()) await b.click()
 
   for (const label of SWITCHES) {
     const toggle = drawer.getByRole('switch', { name: label })
@@ -92,5 +93,5 @@ test('no width shows two sets of layer controls', async ({ page }) => {
   // Desktop: the drawer is permanent and still has none.
   await page.setViewportSize({ width: 1440, height: 900 })
   await expect(drawer.getByRole('switch')).toHaveCount(0)
-  await expect(page.getByRole('navigation', { name: 'Map' }).getByRole('switch')).toHaveCount(8)
+  await expect(page.getByRole('navigation', { name: 'Map' }).getByRole('switch')).toHaveCount(2)
 })
