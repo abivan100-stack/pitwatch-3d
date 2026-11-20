@@ -9,11 +9,13 @@ import {
 } from 'react'
 import type { RuleId } from '../domain/types'
 import { SURVEY_EPOCHS } from '../data/fixtures/mine'
+import { resetView } from '../state/homeView'
 import { tweenStory, useStory } from '../state/story'
 import { useTerrain } from '../state/terrain'
 import { countText, GLYPH, worstTone } from './findings'
-import { daysBetween, formatDate } from './format'
-import { StoryClock } from './home/StoryClock'
+import { daysBetween } from './format'
+import { ModelControls, TurnButtons } from './home/ModelControls'
+import { FindingNames, ModelFrame, ModelScale } from './home/ModelFrame'
 import { WorkedCase } from './home/WorkedCase'
 import { ArrowRightIcon, BoundaryIcon, FloorIcon, PitMark, TerrainIcon } from './icons'
 import { MONITOR_HREF, OVERVIEW_HREF, ROUTE_HREF } from './route'
@@ -22,8 +24,8 @@ import { SceneErrorBoundary } from './viewport/SceneErrorBoundary'
 
 /*
  * The landing page: what PitWatch does, shown on the live 3D model of the simulated surveys,
- * and one click into the dashboard. The model is driven by four buttons, and the sections
- * below it are wired back to the model, so the page reads as one piece.
+ * and one click into the dashboard. The model is driven by a before/after slider and two overlay
+ * switches, and the sections below it are wired back to the model, so the page reads as one piece.
  */
 
 // three.js is large; fetch it only for the landing model.
@@ -31,44 +33,6 @@ const HomeScene = lazy(() => import('../scene/HomeScene'))
 
 const [BASELINE, CURRENT] = SURVEY_EPOCHS
 const DAYS = BASELINE && CURRENT ? daysBetween(BASELINE.date, CURRENT.date) : 0
-
-/** What the model shows. `id` is the scene step: 1 baseline, 2 current, 3 change, 4 findings. */
-const VIEWS = [
-  {
-    id: 1,
-    label: 'Baseline',
-    sub: BASELINE ? formatDate(BASELINE.date) : '',
-    t: 0,
-    title: `Baseline survey, ${BASELINE ? formatDate(BASELINE.date) : ''}`,
-    text: 'The ground as it was: every bench, ramp and floor of the pit, from a drone survey.',
-  },
-  {
-    id: 2,
-    label: 'Current',
-    sub: CURRENT ? formatDate(CURRENT.date) : '',
-    t: 1,
-    title: `Current survey, ${CURRENT ? formatDate(CURRENT.date) : ''}`,
-    text: `The same ground ${DAYS} days later. The west wall has been pushed back, a new cut has opened on the east side and the floor is a bench deeper.`,
-  },
-  {
-    id: 3,
-    label: 'Change',
-    sub: 'the difference',
-    t: 1,
-    title: 'Measured change',
-    text: 'Rust where rock was removed, blue where material was added. Anything that does not clear the survey noise plus the minimum-change allowance is ignored.',
-  },
-  {
-    id: 4,
-    label: 'Findings',
-    sub: 'vs the permit',
-    t: 1,
-    title: 'Held against the permit',
-    text: 'Each pin marks a simulated finding under one of the permit rules. Red marks violations, purple marks the most severe findings, and amber marks warnings.',
-  },
-] as const
-
-type View = (typeof VIEWS)[number]
 
 /** The three rules, one line each. Their full wording lives on the Permit rules page. */
 const RULES: { rule: RuleId; Icon: ComponentType<SVGProps<SVGSVGElement>>; title: string }[] = [
@@ -82,7 +46,10 @@ const PROVENANCE = ['measured', 'derived', 'simulated', 'unverified'] as const
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export function HomePage() {
-  const [view, setView] = useState<View['id']>(4)
+  // The overlays on the model. It opens on the current survey with the findings, the result worth
+  // seeing first.
+  const [showChange, setShowChange] = useState(false)
+  const [showFindings, setShowFindings] = useState(true)
   // The model only renders while it is on screen.
   const [stageVisible, setStageVisible] = useState(true)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -91,11 +58,11 @@ export function HomePage() {
   const error = useTerrain((s) => s.error)
   const retry = useTerrain((s) => s.retry)
   const ready = status === 'ready'
-  const current = VIEWS.find((v) => v.id === view)!
 
-  // The first view is the findings on the current survey, so the model starts at "current".
+  // The model starts at the current survey, in the framed view.
   useEffect(() => {
     useStory.setState({ t: 1 })
+    resetView()
   }, [])
 
   useEffect(() => {
@@ -106,14 +73,10 @@ export function HomePage() {
     return () => io.disconnect()
   }, [])
 
-  const show = (next: View) => {
-    setView(next.id)
-    tweenStory(next.t)
-  }
-
-  /** Switches the model and brings it into view, so a step below answers on the screen above. */
-  const showOnModel = (next: View) => {
-    show(next)
+  /** The findings on the current survey, brought into view, so a step below answers on the screen above. */
+  const showOnModel = () => {
+    tweenStory(1)
+    setShowFindings(true)
     stageRef.current?.scrollIntoView({
       block: 'center',
       behavior: reducedMotion() ? 'auto' : 'smooth',
@@ -208,15 +171,29 @@ export function HomePage() {
 
           <div ref={stageRef} className="hero-stage">
             <Relief className="opacity-60" />
-            <div className="hero-model" aria-hidden="true">
+            <div className="hero-model">
               {ready ? (
-                <SceneErrorBoundary
-                  fallback={() => <p className="plan-status">The 3D model could not start.</p>}
-                >
-                  <Suspense fallback={<p className="plan-status">Loading the 3D model…</p>}>
-                    <HomeScene step={view} active={stageVisible} />
-                  </Suspense>
-                </SceneErrorBoundary>
+                <>
+                  <ModelFrame change={showChange} findings={showFindings}>
+                    <SceneErrorBoundary
+                      fallback={() => <p className="plan-status">The 3D model could not start.</p>}
+                    >
+                      <Suspense fallback={<p className="plan-status">Loading the 3D model…</p>}>
+                        <HomeScene
+                          change={showChange}
+                          findings={showFindings}
+                          active={stageVisible}
+                        />
+                      </Suspense>
+                    </SceneErrorBoundary>
+                  </ModelFrame>
+                  <FindingNames shown={showFindings} />
+                  <ModelScale />
+                  <TurnButtons />
+                  <p className="model-hint" aria-hidden="true">
+                    Drag to turn. Click it, then scroll to zoom.
+                  </p>
+                </>
               ) : status === 'error' ? (
                 <p className="plan-status">The simulated surveys could not be built.</p>
               ) : (
@@ -227,32 +204,12 @@ export function HomePage() {
               )}
             </div>
 
-            <p className="model-hint" aria-hidden="true">
-              Drag to turn
-            </p>
-            <div className="hero-controls">
-              <div role="group" aria-label="What the model shows" className="seg seg-fill">
-                {VIEWS.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    aria-pressed={v.id === view}
-                    onClick={() => show(v)}
-                  >
-                    <span className="seg-step" aria-hidden="true">
-                      {v.id}
-                    </span>
-                    <span className="seg-label">{v.label}</span>
-                    <span className="seg-sub">{v.sub}</span>
-                  </button>
-                ))}
-              </div>
-              <div role="status" className="mt-3">
-                <h2 className="cond text-[17px] font-bold text-ink">{current.title}</h2>
-                <p className="mt-1 text-[13.5px] leading-6 text-ink-dim">{current.text}</p>
-              </div>
-              <StoryClock />
-            </div>
+            <ModelControls
+              change={showChange}
+              findings={showFindings}
+              onChange={setShowChange}
+              onFindings={setShowFindings}
+            />
           </div>
         </section>
 
@@ -265,7 +222,7 @@ export function HomePage() {
               This is the largest finding in the simulated scenario, checked the way the dashboard
               checks every 4 m cell of the ground.
             </p>
-            <WorkedCase onShowOnModel={() => showOnModel(VIEWS[3])} />
+            <WorkedCase onShowOnModel={showOnModel} />
           </div>
         </section>
 

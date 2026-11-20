@@ -50,8 +50,8 @@ export function findingView(
   return focusPose(onGround(survey, findingAnchor(survey.grid, f), ex, FINDING_AIM_LIFT))
 }
 
-/** Polyline along a polygon outline, a few metres above the ground, a point every ~16 m. */
-export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number) {
+/** Polyline along a polygon outline, `lift` metres above the ground, a point every ~16 m. */
+export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number, lift = LIFT) {
   const pts: V3[] = []
   for (let k = 0; k < lease.length; k++) {
     const a = lease[k]
@@ -59,11 +59,29 @@ export function leaseLine(survey: TerrainSurvey, lease: Polygon, ex: number) {
     const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 16))
     for (let s = 0; s <= steps; s++) {
       const p = { x: a.x + ((b.x - a.x) * s) / steps, y: a.y + ((b.y - a.y) * s) / steps }
-      pts.push(onGround(survey, p, ex))
+      pts.push(onGround(survey, p, ex, lift))
     }
   }
   return pts
 }
+
+/** A closed ring on the ground around `centre`, `radius` metres out, as a polyline (last point = first). */
+export function groundRing(survey: TerrainSurvey, centre: Vec2, radius: number, ex: number): V3[] {
+  const n = 48
+  return Array.from({ length: n + 1 }, (_, i) => {
+    const a = ((i % n) / n) * 2 * Math.PI
+    return onGround(
+      survey,
+      { x: centre.x + radius * Math.cos(a), y: centre.y + radius * Math.sin(a) },
+      ex,
+      3,
+    )
+  })
+}
+
+/** Ring radius for a finding: about its own extent, kept readable for the smallest and the largest. */
+export const ringRadius = (areaM2: number) =>
+  Math.min(70, Math.max(30, Math.sqrt(areaM2 / Math.PI) * 1.2))
 
 /** The edge of the surveyed area: where the survey ends and the decorative apron begins. */
 export function surveyEdgeLine(survey: TerrainSurvey, ex: number) {

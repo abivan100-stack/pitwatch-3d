@@ -16,26 +16,34 @@ test('the landing page opens the dashboard', async ({ page }) => {
   await expect(page.getByText('Venthar Ridge Iron Pit').first()).toBeVisible()
 })
 
-test('the landing model is driven by buttons, not by scrolling', async ({ page }) => {
+test('the landing model is driven by a slider and two switches, not by scrolling', async ({
+  page,
+}) => {
   await page.goto('/')
 
-  const views = page.getByRole('group', { name: 'What the model shows' })
-  await expect(views).toBeVisible()
-  // It opens on the findings, the result worth seeing first.
-  await expect(views.getByRole('button', { name: 'Findings' })).toHaveAttribute(
-    'aria-pressed',
+  const controls = page.getByRole('group', { name: 'What the model shows' })
+  await expect(controls).toBeVisible()
+  const slider = controls.getByRole('slider', { name: /Survey shown/ })
+  const status = controls.locator('.model-status')
+  // It opens on the current survey with the findings, the result worth seeing first.
+  await expect(slider).toHaveValue('1')
+  await expect(controls.getByRole('switch', { name: 'Show permit findings' })).toHaveAttribute(
+    'aria-checked',
     'true',
   )
-
-  await views.getByRole('button', { name: 'Baseline' }).click()
-  await expect(views.getByRole('button', { name: 'Baseline' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
+  await expect(controls.getByRole('switch', { name: 'Show change' })).toHaveAttribute(
+    'aria-checked',
+    'false',
   )
-  await expect(page.getByRole('heading', { name: /Baseline survey, 14 Nov 2025/ })).toBeVisible()
+  await expect(status).toContainText('Current survey, 22 Aug 2026')
 
-  await views.getByRole('button', { name: 'Current' }).click()
-  await expect(page.getByRole('heading', { name: /Current survey, 22 Aug 2026/ })).toBeVisible()
+  // Baseline and Current are the two ends of the one slider; the model changes state with it.
+  await controls.getByRole('button', { name: /^Baseline/ }).click()
+  await expect(slider).toHaveValue('0', { timeout: 10_000 })
+  await expect(status).toContainText('Baseline survey, 14 Nov 2025')
+  await controls.getByRole('button', { name: /^Current/ }).click()
+  await expect(slider).toHaveValue('1', { timeout: 10_000 })
+  await expect(status).toContainText('Current survey, 22 Aug 2026')
 })
 
 // The hero used to open on its copy, so a phone's first screen had no model in it at all.
@@ -88,18 +96,20 @@ test('the worked example can be shown on the model, and the rules report the eng
   ).toBeInViewport()
 
   const views = page.getByRole('group', { name: 'What the model shows' })
-  await views.getByRole('button', { name: 'Baseline' }).click()
-  await expect(views.getByRole('button', { name: 'Baseline' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
+  await views.getByRole('slider', { name: /Survey shown/ }).fill('0')
+  await views.getByRole('switch', { name: 'Show permit findings' }).click()
+  await expect(views.locator('.model-status')).toHaveText('Baseline survey, 14 Nov 2025.')
 
-  // The verdict's button (no arrow link) brings the model back on the findings view.
+  // The verdict's button brings the model back on the current survey with the findings shown.
   await page.getByRole('button', { name: 'See R1-1 on the 3D model' }).click({ timeout: 60_000 })
-  await expect(views.getByRole('button', { name: 'Findings' })).toHaveAttribute(
-    'aria-pressed',
+  await expect(views.getByRole('slider', { name: /Survey shown/ })).toHaveValue('1', {
+    timeout: 10_000,
+  })
+  await expect(views.getByRole('switch', { name: 'Show permit findings' })).toHaveAttribute(
+    'aria-checked',
     'true',
   )
+  await expect(views.locator('.model-status')).toContainText('simulated permit findings')
   await expect(views).toBeInViewport()
 
   // Live result per rule, from the same engine the dashboard uses.

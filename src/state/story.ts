@@ -3,7 +3,7 @@ import { easeInOutCubic } from '../scene/presets'
 
 /**
  * Landing-page model position in time between the two surveys: 0 = baseline, 1 = current.
- * The 3D model and the date bar both follow it.
+ * The 3D model and the before/after slider both follow it.
  */
 export const useStory = create<{ t: number }>(() => ({ t: 0 }))
 
@@ -25,4 +25,10 @@ export function tweenStory(to: number, ms = 900) {
     if (p < 1) frame = requestAnimationFrame(step)
   }
   frame = requestAnimationFrame(step)
+}
+
+/** Puts the story at `t` now (the before/after slider), cancelling any glide in progress. */
+export function setStory(t: number) {
+  cancelAnimationFrame(frame)
+  useStory.setState({ t })
 }
