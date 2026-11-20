@@ -251,9 +251,24 @@ test('the wheel zooms only once the model has focus, and gives the page back at 
   await page.mouse.wheel(0, 4000)
   expect(await label(page)).toContain('zoom 1.0×')
   // At the zoom limit the wheel scrolls the page again, though the model still has focus.
-  const top = await page.evaluate(() => window.scrollY)
-  await page.mouse.wheel(0, 400)
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top)
+  // The page scrolls inside a container (the body itself does not scroll), so read the model
+  // frame's nearest scrolling ancestor.
+  const scrollTop = () =>
+    frame.evaluate((el) => {
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        const y = getComputedStyle(n).overflowY
+        if ((y === 'auto' || y === 'scroll') && n.scrollHeight > n.clientHeight) return n.scrollTop
+      }
+      return document.scrollingElement?.scrollTop ?? 0
+    })
+  // Chromium can drop the first wheel tick after the page stops cancelling them, so keep turning
+  // the wheel (as a visitor would) until the page moves.
+  const top = await scrollTop()
+  await expect(async () => {
+    await page.mouse.wheel(0, 400)
+    expect(await scrollTop()).toBeGreaterThan(top)
+  }).toPass({ timeout: 20_000 })
+  expect(await label(page)).toContain('zoom 1.0×')
 })
 
 test('a scale bar and a north arrow turn with the model', async ({ page }) => {
