@@ -206,17 +206,39 @@ body {
     --tone: var(--color-ok);
   }
 
-  /* One finding in the list: severity edge, glyph, rule, explanation, figures. */
+  /* One finding in the map panel's list: severity edge, then three short lines. */
   .finding {
-    padding: 12px 4px 10px 12px;
+    padding: 8px 4px 7px 10px;
     border-bottom: 1px solid var(--color-line-strong);
     border-left: 3px solid var(--tone);
+    font-size: 12px;
+    line-height: 16px;
   }
   .finding[data-selected] {
     background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   }
   .finding-list {
     border-top: 2px solid var(--color-ink);
+  }
+  /* Names the three figures once, so the rows do not repeat the labels. */
+  .finding-key {
+    margin-bottom: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--color-ink-faint);
+    text-align: right;
+  }
+  /* Status, then the figures; the figures drop under the status as one piece when they do not fit. */
+  .finding-facts {
+    display: flex;
+    margin: 1px 0 2px;
+    flex-wrap: wrap;
+    column-gap: 8px;
+  }
+  .finding-figures {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-dim);
   }
   .finding .frow-more {
     flex: 1;
@@ -225,40 +247,6 @@ body {
   }
   .finding .frow-more p {
     font-size: 12.5px;
-  }
-  .finding-figures {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 10px;
-    padding-top: 9px;
-    border-top: 1px solid var(--color-line);
-  }
-
-  /* Compact density for the map panel's Findings tab. */
-  .finding[data-density='compact'] {
-    padding: 7px 4px 6px 10px;
-  }
-  .finding[data-density='compact'] .finding-figures {
-    margin-top: 4px;
-    padding-top: 4px;
-    gap: 6px;
-  }
-  .finding[data-density='compact'] .finding-actions {
-    margin-top: 2px;
-  }
-  .density-toggle {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-ink-dim);
-    padding: 2px 8px;
-    border: 1px solid var(--color-line-strong);
-    border-radius: 4px;
-  }
-  .density-toggle[aria-pressed='true'] {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
   }
   .threshold-more {
     margin-top: 10px;

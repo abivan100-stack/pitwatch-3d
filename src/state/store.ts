@@ -4,7 +4,6 @@ import type { ViewRequest } from '../scene/presets'
 
 /** Tabs of the details panel on the 3D map. Overview and About data are dashboard pages now. */
 export type PanelTab = 'findings' | 'inspector'
-export type FindingsDensity = 'comfortable' | 'compact'
 
 /** Sidebar width: `auto` follows the screen (a slim rail on the 3D map, full width elsewhere). */
 export type SidebarMode = 'auto' | 'open' | 'rail'
@@ -28,8 +27,6 @@ interface AppState {
   /** Side panels folded to give the map more room, by the width rule or the visitor's choice. */
   layersHidden: boolean
   detailsHidden: boolean
-  /** Row density of the map panel's Findings tab, for the session only. */
-  findingsDensity: FindingsDensity
   /** True once the map card's visibility was decided on purpose, so the width rule stops. */
   layersUserSet: boolean
   /** True once the details panel's visibility was decided on purpose, so the width rule stops. */
@@ -58,7 +55,6 @@ interface AppState {
   setLayersHidden: (hidden: boolean) => void
   /** Sets the details panel's visibility without claiming the visitor asked for it. */
   setDetailsHidden: (hidden: boolean) => void
-  setFindingsDensity: (density: FindingsDensity) => void
   toggleLayer: (id: LayerId) => void
   setExaggeration: (v: number) => void
   requestView: (kind: ViewRequest) => void
@@ -80,7 +76,6 @@ export const useAppStore = create<AppState>((set) => ({
   menuOpen: false,
   layersHidden: false,
   detailsHidden: false,
-  findingsDensity: 'comfortable',
   layersUserSet: false,
   detailsUserSet: false,
   // Natural look by default: aerial image, no tint or contours; the lease line and the
@@ -112,7 +107,6 @@ export const useAppStore = create<AppState>((set) => ({
   toggleDetails: () => set((s) => ({ detailsHidden: !s.detailsHidden, detailsUserSet: true })),
   setLayersHidden: (layersHidden) => set({ layersHidden }),
   setDetailsHidden: (detailsHidden) => set({ detailsHidden }),
-  setFindingsDensity: (findingsDensity) => set({ findingsDensity }),
   toggleLayer: (id) => set((s) => ({ layers: { ...s.layers, [id]: !s.layers[id] } })),
   setExaggeration: (v) =>
     set({ exaggeration: Math.min(EXAGGERATION.max, Math.max(EXAGGERATION.min, v)) }),
