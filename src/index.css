@@ -229,6 +229,41 @@ body {
     border-top: 1px solid var(--color-line);
   }
 
+  /* Compact density for the map panel's Findings tab. */
+  .finding[data-density='compact'] {
+    padding: 7px 4px 6px 10px;
+  }
+  .finding[data-density='compact'] .finding-figures {
+    margin-top: 4px;
+    padding-top: 4px;
+    gap: 6px;
+  }
+  .finding[data-density='compact'] .finding-actions {
+    margin-top: 2px;
+  }
+  .density-toggle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-ink-dim);
+    padding: 2px 8px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 4px;
+  }
+  .density-toggle[aria-pressed='true'] {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  }
+  .threshold-more {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .threshold-more summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
