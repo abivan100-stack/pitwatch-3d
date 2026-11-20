@@ -50,6 +50,14 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: the Overview's survey and permit details are grouped and tight (issue #106)
+
+- **Groups.** The fold holds three groups with `h3` headings, Surveys, Permit and Surface: three columns from 1100 px, one column below. Each fact is one row (`Fact` in `OverviewPage.tsx`, local; the shared `Row` and the Inspector are untouched): a 100 px label, the value, and its provenance tag 8 px after it. The Interval row is gone, so "281 days" appears once. The summary is a 14 px secondary heading with a small chevron that turns when open; print opens the fold through `::details-content`.
+- **Values.** The approved floor is one row with a line per pit, "Main pit 240 m RL" and "South pit 334 m RL", each with its own `simulated` tag. Values still come from `pitFloorRows`; names come from `MINE.approvedZones`, the site plan's source. Both survey dates now carry `simulated`. Dates and the grid origin are JetBrains Mono; every other value is Archivo with tabular figures. The method prints "Drone photogrammetry": the fixture's "(simulated)" suffix repeated the tag beside it.
+- **Measured** at 1440, 1100, 800 and 390 px: every value line 24 px high, every value-to-tag gap 8 px, no horizontal overflow, all text 13 px or more (the tags are 13 px inside the fold).
+- **Deviations.** The label column is 100 px, not about 120: at 1100 px the three groups do not fit one-line rows with 120 px labels. The approved-floor row has two tags, one per pit, at the owner's request, where the issue asked for one per row.
+- **Checks.** `npm run typecheck` and `npm run lint` pass. `overview.spec.ts` on a fresh build, one worker: 11 of 11, including the rewritten fold check (keyboard open, group order, line height, gaps, tags, faces, tabular figures, no zone ids, one "281 days", columns per width) and axe at 1440 and 390 px with the fold closed. Unit tests and the full browser suite were not run locally; CI runs them. Screenshots of the open fold at 1440 and 390 px were checked by eye; no before screenshots were taken.
+
 ### 2026-11-20: the Overview answers one question (issue #74)
 
 - **Layout.** The page opens on an answer line computed from the findings ("2 violations and 3 warnings. The most serious is at the east lease boundary.", `src/compliance/answer.ts`: `answerLine`, `leaseDirection`). Below it the site plan with its key directly beneath and a footer rail holding the scale bar and north arrow; the three most serious findings beside the plan; three figures under it (removed outside the lease 175,297 m³, flagged area 16,832 m², 281 days between surveys); a closed details list last. The per-rule results left the Overview (the Permit rules page has them). The counts appear only in the header chip and the answer line. On phones the order is answer, plan, findings, figures, details.
