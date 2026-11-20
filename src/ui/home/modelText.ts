@@ -28,7 +28,7 @@ export function modelSentence(phase: Phase, change: boolean, findings: boolean):
   const extra = {
     both: 'with the change in rust and blue and simulated permit findings ringed',
     change: 'with rust where rock was removed and blue where it was added',
-    findings: 'with simulated permit findings ringed inside the lease line',
+    findings: 'with simulated permit findings ringed and the lease line drawn',
   }[change && findings ? 'both' : change ? 'change' : 'findings']
   return `${what}, ${extra}.`
 }

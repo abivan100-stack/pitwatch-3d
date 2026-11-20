@@ -70,8 +70,8 @@ function FindingMark({
   return (
     <group>
       {/* Paper halo under the tone ring, drawn first, so the ring reads on any ground. */}
-      <Line points={ring} color={OVERLAY.lease} lineWidth={6.5} renderOrder={1} />
-      <Line points={ring} color={color} lineWidth={3.2} renderOrder={2} />
+      <Line points={ring} color={OVERLAY.lease} lineWidth={4.5} renderOrder={1} />
+      <Line points={ring} color={color} lineWidth={2.4} renderOrder={2} />
       <Line
         points={[
           [x, y, z],
@@ -86,7 +86,14 @@ function FindingMark({
         scale={[h * (BADGE_W / BADGE_H), h, 1]}
         renderOrder={10}
       >
-        <spriteMaterial map={map} sizeAttenuation={false} depthTest={false} transparent />
+        {/* Not tone mapped, so the tag reads in the same colours as on the 3D map. */}
+        <spriteMaterial
+          map={map}
+          sizeAttenuation={false}
+          depthTest={false}
+          transparent
+          toneMapped={false}
+        />
       </sprite>
     </group>
   )

@@ -174,19 +174,31 @@ export function HomePage() {
             <div className="hero-model">
               {ready ? (
                 <>
-                  <ModelFrame change={showChange} findings={showFindings}>
-                    <SceneErrorBoundary
-                      fallback={() => <p className="plan-status">The 3D model could not start.</p>}
+                  {/* Loading and failure text sit outside the model's role="img" frame, whose
+                      description would otherwise hide them from a screen reader. */}
+                  <SceneErrorBoundary
+                    fallback={() => (
+                      <p className="plan-status" role="alert">
+                        The 3D model could not start.
+                      </p>
+                    )}
+                  >
+                    <Suspense
+                      fallback={
+                        <p className="plan-status" role="status">
+                          Loading the 3D model…
+                        </p>
+                      }
                     >
-                      <Suspense fallback={<p className="plan-status">Loading the 3D model…</p>}>
+                      <ModelFrame change={showChange} findings={showFindings}>
                         <HomeScene
                           change={showChange}
                           findings={showFindings}
                           active={stageVisible}
                         />
-                      </Suspense>
-                    </SceneErrorBoundary>
-                  </ModelFrame>
+                      </ModelFrame>
+                    </Suspense>
+                  </SceneErrorBoundary>
                   <FindingNames shown={showFindings} />
                   <ModelScale />
                   <TurnButtons />

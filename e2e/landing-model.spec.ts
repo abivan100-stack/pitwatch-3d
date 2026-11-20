@@ -239,6 +239,10 @@ test('drag turns and tilts, the wheel zooms only once the model has focus, a dou
   await expect.poll(() => label(page)).toMatch(/zoom 1\.[1-9]|zoom [2-4]\./)
   await page.mouse.wheel(0, 4000)
   expect(await label(page)).toContain('zoom 1.0×')
+  // At the zoom limit the wheel scrolls the page again, though the model still has focus.
+  const top = await page.evaluate(() => window.scrollY)
+  await page.mouse.wheel(0, 400)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top)
 })
 
 test('a scale bar and a north arrow turn with the model', async ({ page }) => {

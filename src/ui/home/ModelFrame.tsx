@@ -6,6 +6,7 @@ import {
   moveView,
   resetView,
   useHomeView,
+  ZOOM_RANGE,
 } from '../../state/homeView'
 import { useStory } from '../../state/story'
 import { useTerrain } from '../../state/terrain'
@@ -88,8 +89,13 @@ export function ModelFrame({
     }
     const wheel = (e: WheelEvent) => {
       if (!(e.ctrlKey || e.metaKey || document.activeElement === el)) return
+      // At a zoom limit the wheel belongs to the page again, so a focused model never traps the
+      // page's scroll.
+      const { zoom } = useHomeView.getState()
+      const factor = Math.exp(-e.deltaY * 0.0015)
+      if ((factor < 1 && zoom <= ZOOM_RANGE[0]) || (factor > 1 && zoom >= ZOOM_RANGE[1])) return
       e.preventDefault()
-      moveView({ zoom: Math.exp(-e.deltaY * 0.0015) })
+      moveView({ zoom: factor })
     }
     el.addEventListener('pointerdown', down)
     el.addEventListener('pointermove', move)
