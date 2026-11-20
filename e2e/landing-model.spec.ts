@@ -8,7 +8,9 @@ import { expect, test, type Page } from '@playwright/test'
 // camera is read from the model's own description, which has to follow the state anyway.
 
 test.use({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } })
-test.setTimeout(120_000)
+// Each check here takes several canvas shots in software WebGL (about a frame a second on CI), so
+// it gets the 180 s budget the other 3D specs use (apron, flight-exaggeration, terrain-picking).
+test.describe.configure({ timeout: 180_000 })
 
 const READY = { timeout: 60_000 }
 
