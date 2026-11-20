@@ -50,6 +50,10 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: the landing headline drops "simulated"
+
+- The headline reads "See where a mine breaks its permit.", at the owner's request. The page's "Simulated data" note, the dashboard's SIMULATED DATA badge and every provenance tag are unchanged, so the data is still marked simulated. The headline checks in `e2e/uncertainty.spec.ts` follow it.
+
 ### 2026-11-20: the About page is concise (issue #69)
 
 - **Five sections.** How a result is made (step 2 links to Permit rules instead of repeating the threshold), This mine is fictional (one paragraph holding the synthetic and seeded, simulated aerial image, decorative ground from #77, and "violation and warning are its labels" statements, with a link to Findings), Where each value comes from (the four provenance tags), What each data source can show (one line each, "1 of 3" as text) and Keyboard shortcuts. "What is in this app" is gone, as is the meter. `source-card` and `fit-meter` CSS were used only here and are removed.
