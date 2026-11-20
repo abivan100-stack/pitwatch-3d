@@ -4,9 +4,9 @@ import type { ViewRequest } from '../scene/presets'
 
 /** Tabs of the details panel on the 3D map. Overview and About data are dashboard pages now. */
 export type PanelTab = 'findings' | 'inspector'
-/** Sidebar width: `auto` follows the screen (a slim rail on the 3D map, full width elsewhere). */
 export type FindingsDensity = 'comfortable' | 'compact'
 
+/** Sidebar width: `auto` follows the screen (a slim rail on the 3D map, full width elsewhere). */
 export type SidebarMode = 'auto' | 'open' | 'rail'
 export type LayerId =
   'terrain' | 'tint' | 'contours' | 'lease' | 'buffer' | 'zones' | 'change' | 'findings'

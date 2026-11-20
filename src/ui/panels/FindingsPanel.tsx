@@ -80,7 +80,7 @@ export function FindingCard({
           </div>
         ))}
       </dl>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
+      <div className="finding-actions mt-1.5 flex items-center justify-between gap-2">
         <details className="frow-more">
           <summary>Why it was flagged</summary>
           <p>{f.explanation}</p>

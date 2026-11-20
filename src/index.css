@@ -238,7 +238,7 @@ body {
     padding-top: 4px;
     gap: 6px;
   }
-  .finding[data-density='compact'] > div:last-child {
+  .finding[data-density='compact'] .finding-actions {
     margin-top: 2px;
   }
   .density-toggle {
