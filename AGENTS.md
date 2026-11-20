@@ -64,6 +64,7 @@ Newest first.
   - A mouse selects a finding by its badge (a 44 px target), not by clicking inside its outline. The outline takes no pointer events, so one finding's area can never cover another finding's badge. By keyboard and screen reader, outline and badge are one button.
   - R1-3's badge still sits on the lease line, because that is where the finding is.
   - The plan note, key, dates, scale label, plan labels and provenance tags stay at 10 to 11.5 px. axe passes and AGENTS.md sets no minimum for these.
+- **After merging #71.** CI failed `home.spec.ts` "the landing page opens the dashboard": #71 rewrote that spec after this branch was built, and it waited for the Overview's old "2 violations, 3 warnings" heading. It now waits for the answer line, as `dashboard.spec.ts` does, and passes (6 of 6 in `home.spec.ts`).
 
 ### 2026-11-20: the landing page follows one finding instead of three generic steps (issue #71)
 

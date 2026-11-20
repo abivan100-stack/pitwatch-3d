@@ -9,9 +9,9 @@ test('the landing page opens the dashboard', async ({ page }) => {
 
   await expect(page).toHaveURL(/#\/overview$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible()
-  // The overview waits for the rule engine, so its verdict is the readiness signal.
+  // The overview waits for the rule engine, so its answer line is the readiness signal.
   await expect(
-    page.getByRole('heading', { level: 2, name: '2 violations, 3 warnings' }),
+    page.getByRole('heading', { level: 2, name: /^2 violations and 3 warnings\./ }),
   ).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText('Venthar Ridge Iron Pit').first()).toBeVisible()
 })
