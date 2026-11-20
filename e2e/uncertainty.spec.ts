@@ -353,7 +353,7 @@ test('the resolution section aligns its heading, keys the lines and labels the a
 
 test('no page claims a real permit was broken', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('See where a simulated mine')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('See where a mine')
   // The model's status calls the marks simulated permit findings (all three rules, warnings
   // included), not lease breaches.
   const findingsCaption = page.locator('.hero-controls .model-status')

@@ -259,21 +259,96 @@ test('the scale bar and north arrow sit in the footer rail, below the drawing, a
   }
 })
 
-test('the details are one folded list, closed until opened', async ({ page }) => {
+test('the details fold is closed until opened, by keyboard, and holds three tight groups', async ({
+  page,
+}) => {
   await openOverview(page, 1440, 900)
   const details = page.locator('details.details-fold')
   await expect(details).not.toHaveAttribute('open', '')
-  await details.locator('summary').click()
+  await details.locator('summary').focus()
+  await page.keyboard.press('Enter')
   await expect(details).toHaveAttribute('open', '')
-  for (const label of [
-    'Baseline survey',
-    'Interval',
-    'Lease area',
-    'Approved floor',
-    'Grid origin',
+  await expect(details.locator('h3')).toHaveText(['Surveys', 'Permit', 'Surface'])
+  await expect(details.locator('dt')).toHaveText([
+    'Baseline',
+    'Current',
     'Method',
-  ]) {
-    await expect(details.locator('dt', { hasText: label }).first()).toBeVisible()
+    'Grid',
+    'Grid origin',
+    'Operator',
+    'Lease area',
+    'Safety buffer',
+    'Approved floor',
+    'Lowest point',
+    'Highest point',
+  ])
+
+  // The zones go by their display names, and the interval is the headline figure's alone.
+  const main = await page.locator('main').innerText()
+  expect(main).toContain('Main pit')
+  expect(main).toContain('South pit')
+  expect(main).not.toMatch(/pit-main|pit-south/)
+  expect(main.match(/281 days/g)).toHaveLength(1)
+
+  for (const width of [1440, 1100]) {
+    await page.setViewportSize({ width, height: 900 })
+    const m = await details.evaluate((el) => {
+      const px = (n: Element) => parseFloat(getComputedStyle(n).fontSize)
+      return {
+        columns: new Set(
+          [...el.querySelectorAll('.fact-group')].map((g) => g.getBoundingClientRect().left),
+        ).size,
+        rows: [...el.querySelectorAll('.fact')].map((row) => {
+          const values = [...row.querySelectorAll('.fact-value')]
+          return {
+            label: row.querySelector('dt')!.textContent!,
+            // One line per value: the approved floor has one line per pit.
+            lineHeight: row.getBoundingClientRect().height / values.length,
+            tags: row.querySelectorAll('.prov').length - values.length,
+            gaps: values.map(
+              (v) =>
+                v.nextElementSibling!.getBoundingClientRect().left -
+                v.getBoundingClientRect().right,
+            ),
+            tagged: values.every((v) => v.nextElementSibling!.classList.contains('prov')),
+            mono: values.some((v) => /JetBrains Mono/.test(getComputedStyle(v).fontFamily)),
+            tabular: values.every((v) =>
+              getComputedStyle(v).fontVariantNumeric.includes('tabular-nums'),
+            ),
+          }
+        }),
+        smallest: Math.min(...[...el.querySelectorAll('summary, h3, dt, dd, dd *, p')].map(px)),
+      }
+    })
+    expect(m.columns, `columns at ${width}px`).toBe(3)
+    expect(m.smallest, `smallest text at ${width}px`).toBeGreaterThanOrEqual(13)
+    for (const row of m.rows) {
+      const at = `${row.label} at ${width}px`
+      expect(row.lineHeight, `${at}: one line per value`).toBeLessThanOrEqual(28)
+      expect(row.tags, `${at}: one tag per value`).toBe(0)
+      expect(row.tagged, `${at}: the tag follows its value`).toBe(true)
+      for (const gap of row.gaps) {
+        expect(gap, `${at}: value to tag`).toBeGreaterThanOrEqual(0)
+        expect(gap, `${at}: value to tag`).toBeLessThanOrEqual(12)
+      }
+      expect(row.tabular, `${at}: tabular figures`).toBe(true)
+      // Dates and coordinates are monospace; nothing else is.
+      expect(row.mono, `${at}: monospace`).toBe(
+        ['Baseline', 'Current', 'Grid origin'].includes(row.label),
+      )
+    }
+  }
+
+  for (const width of [800, 390]) {
+    await page.setViewportSize({ width, height: 900 })
+    const m = await details.evaluate((el) => ({
+      columns: new Set(
+        [...el.querySelectorAll('.fact-group')].map((g) => g.getBoundingClientRect().left),
+      ).size,
+      overflow: document.documentElement.scrollWidth > window.innerWidth,
+    }))
+    expect(m.columns, `columns at ${width}px`).toBe(1)
+    expect(m.overflow, `overflow at ${width}px`).toBe(false)
   }
   await expect(page.getByText('Result by permit rule')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Explore in 3D' })).toBeVisible()

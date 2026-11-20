@@ -6,23 +6,17 @@ import { ProvenanceTag } from '../ProvenanceTag'
 export function Section({
   title,
   provenance,
-  action,
   children,
 }: {
   title: string
   provenance?: Provenance
-  /** A control that sits beside the heading. */
-  action?: ReactNode
   children: ReactNode
 }) {
   return (
     <section className="px-5 py-4">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="panel-title">{title}</h3>
-        <div className="flex items-center gap-2">
-          {action}
-          {provenance && <ProvenanceTag value={provenance} />}
-        </div>
+        {provenance && <ProvenanceTag value={provenance} />}
       </div>
       {children}
     </section>
