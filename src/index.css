@@ -511,7 +511,7 @@ body {
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 7px 8px;
+    padding: 4px 8px;
     border-radius: 6px;
     font-size: 13px;
     color: var(--color-ink-dim);
@@ -529,6 +529,57 @@ body {
   .layer-row:disabled {
     cursor: not-allowed;
     color: var(--color-ink-faint);
+  }
+
+  /* A button that opens a block below it: the body grows from 0 to its height over 200 ms. */
+  .fold-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--color-ink-dim);
+  }
+  .fold-btn:hover {
+    background: var(--color-panel-2);
+    color: var(--color-ink);
+  }
+  .fold-caret {
+    width: 6px;
+    height: 6px;
+    margin: 0 6px 2px 4px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    rotate: -45deg;
+    transition: rotate 0.2s ease-out;
+  }
+  .fold-btn[aria-expanded='true'] .fold-caret {
+    rotate: 45deg;
+  }
+  .fold {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+      grid-template-rows 0.2s ease-out,
+      visibility 0s 0.2s;
+  }
+  .fold[data-open] {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 0.2s ease-out;
+  }
+  .fold-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fold,
+    .fold-caret {
+      transition: none !important;
+    }
   }
 
   /* On/off switch for layers. */
@@ -3047,7 +3098,8 @@ body {
     .btn-outline-light {
       min-height: 44px;
     }
-    .layer-row {
+    .layer-row,
+    .fold-btn {
       min-height: 44px;
     }
     .landing-nav button,
