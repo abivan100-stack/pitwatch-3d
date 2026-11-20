@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-// The colour key used to sit at the bottom of the Map card, below the switches and the slider, so
-// nobody reached it. It now sits on the stage above the timeline: open on arrival where there is
-// room, a single "Key" button otherwise.
+// The colour key is a small "Map key" chip, closed on arrival at every width (issue #105). It sits
+// under the Map card, or at the stage's bottom-left above the timeline when that card is folded or
+// absent, and opens upward into a compact card that stays out of the model's way.
 
 test.use({ reducedMotion: 'reduce' })
 
@@ -23,21 +23,40 @@ async function openMap(page: Page, width: number, height: number) {
   return page.getByRole('region', { name: 'Map key' })
 }
 
-const toggle = (key: Locator) => key.getByRole('button', { name: /^Key/ })
+const toggle = (key: Locator) => key.getByRole('button', { name: 'Map key', exact: true })
 
-test('the key is open on arrival at 1440 x 900 and lists the active overlays', async ({ page }) => {
+for (const { width, height } of SIZES) {
+  test(`the key is closed on arrival at ${width} px`, async ({ page }) => {
+    const key = await openMap(page, width, height)
+    await expect(toggle(key)).toHaveAttribute('aria-expanded', 'false')
+    await expect(toggle(key)).toHaveText('Map key')
+    await expect(key.locator('.card')).toBeHidden()
+  })
+}
+
+test('the open key is compact at 1440 x 900 and stays open for the session', async ({ page }) => {
   const key = await openMap(page, 1440, 900)
+  await toggle(key).click()
   await expect(toggle(key)).toHaveAttribute('aria-expanded', 'true')
   // Default layers: Terrain and Findings on, so the aerial surfaces and the three finding shapes.
-  for (const label of ['Scrub', 'Haul road', 'Warning', 'Violation', 'Critical']) {
+  for (const label of [
+    'Scrub',
+    'Haul road',
+    'Lease boundary',
+    'Warning',
+    'Violation',
+    'Critical',
+  ]) {
     await expect(key.getByText(label, { exact: true })).toBeVisible()
   }
-  await expect(key.getByText('Simulated aerial image')).toBeVisible()
-  expect((await key.locator('.card').boundingBox())!.width).toBeLessThanOrEqual(260)
+  await expect(key.getByText('Simulated image; rule-engine marks')).toBeVisible()
+  const card = (await key.locator('.card').boundingBox())!
+  expect(card.width).toBeLessThanOrEqual(240)
+  expect(card.height).toBeLessThanOrEqual(180)
 
-  // Each row is one line.
+  // Each entry is one line.
   for (const row of await key.locator('li').all()) {
-    expect((await row.boundingBox())!.height, await row.innerText()).toBeLessThanOrEqual(20)
+    expect((await row.boundingBox())!.height, await row.innerText()).toBeLessThanOrEqual(22)
   }
 
   // Nothing in the key is smaller than 12 px.
@@ -49,10 +68,17 @@ test('the key is open on arrival at 1440 x 900 and lists the active overlays', a
     ),
   )
   expect(smallest).toBeGreaterThanOrEqual(12)
+
+  // The choice lasts for the session: leave the map and come back.
+  await page.evaluate(() => (location.hash = '#/overview'))
+  await expect(key).toHaveCount(0)
+  await page.evaluate(() => (location.hash = '#/monitor'))
+  await expect(toggle(key)).toHaveAttribute('aria-expanded', 'true', { timeout: 60_000 })
 })
 
 test('the key rows follow the active layers', async ({ page }) => {
   const key = await openMap(page, 1440, 900)
+  await toggle(key).click()
   const map = page.getByRole('navigation', { name: 'Map', exact: true })
   await expect(key.getByText('Violation', { exact: true })).toBeVisible()
   await map.getByRole('switch', { name: 'Findings' }).click()
@@ -74,14 +100,10 @@ for (const size of [
   { width: 1100, height: 700 },
   { width: 390, height: 844 },
 ]) {
-  test(`the key is a collapsed button at ${size.width} x ${size.height} and toggles by keyboard`, async ({
-    page,
-  }) => {
+  test(`the key toggles by keyboard at ${size.width} x ${size.height}`, async ({ page }) => {
     const key = await openMap(page, size.width, size.height)
     const button = toggle(key)
     await expect(button).toHaveAttribute('aria-expanded', 'false')
-    // The count of entries is on the button; the content is out of reach until it opens.
-    await expect(button).toHaveText(/Key\s*\d+/)
     await expect(key.getByText('Violation', { exact: true })).toBeHidden()
 
     await button.focus()
@@ -97,8 +119,45 @@ for (const size of [
   })
 }
 
+// The open key stays off the model: left of the stage's centre line and clear of every finding
+// tag in the arrival (Oblique) view. A tag hangs beside the top of its pin, up to 75 px either way.
+for (const { width, height } of [
+  { width: 1440, height: 900 },
+  { width: 1100, height: 700 },
+]) {
+  test(`the open key covers no finding tag at ${width} x ${height}`, async ({ page }) => {
+    type ProbeWindow = Window & {
+      __pitwatchProbe: { flights: unknown[]; pinTop?: (id: string) => { x: number; y: number } }
+    }
+    await page.addInitScript(() => {
+      ;(window as unknown as ProbeWindow).__pitwatchProbe = { flights: [] }
+    })
+    const key = await openMap(page, width, height)
+    await toggle(key).click()
+    const card = (await key.locator('.card').boundingBox())!
+    const stage = (await page.locator('.stage').boundingBox())!
+    expect(card.x + card.width).toBeLessThanOrEqual(stage.x + stage.width / 2)
+
+    const pins = () =>
+      page.evaluate(() => {
+        const top = (window as unknown as ProbeWindow).__pitwatchProbe.pinTop
+        return top ? ['R1-1', 'R1-2', 'R2-1', 'R3-1', 'R1-3'].map((id) => top(id)) : null
+      })
+    await expect.poll(async () => (await pins())?.every(Boolean), { timeout: 60_000 }).toBe(true)
+    for (const pin of (await pins())!) {
+      const clear =
+        pin.x + 75 <= card.x ||
+        pin.x - 75 >= card.x + card.width ||
+        pin.y + 30 <= card.y ||
+        pin.y - 30 >= card.y + card.height
+      expect(clear, `tag at ${Math.round(pin.x)}, ${Math.round(pin.y)}`).toBe(true)
+    }
+  })
+}
+
 test('folding the Map card with [ leaves the key where it is', async ({ page }) => {
   const key = await openMap(page, 1440, 900)
+  await toggle(key).click()
   await page.keyboard.press('[')
   await expect(page.getByRole('navigation', { name: 'Map', exact: true })).toBeHidden({
     timeout: 20_000,
@@ -150,8 +209,8 @@ for (const { width, height } of SIZES) {
   })
 }
 
-// With every layer on, the key is at its tallest. On a short screen it must still stop below the
-// tool stack, scrolling inside instead of covering the measurement chip and its Clear button.
+// With every layer on, the key is at its tallest. It must still stop below the tool stack and the
+// Map card (see the overlap checks), and take at most 45% of the stage, scrolling inside.
 for (const { width, height } of [
   { width: 1100, height: 700 },
   { width: 1280, height: 700 },
@@ -186,5 +245,9 @@ for (const { width, height } of [
     // The cap leaves room for the tool stack at its tallest (status chip with a measurement).
     expect(box.y, 'key top below the tool stack').toBeGreaterThanOrEqual(tools.y + tools.height)
     expect(box.y, 'key top leaves the measurement chip room').toBeGreaterThanOrEqual(200)
+    // At most 45% of the stage, scrolling inside beyond that.
+    const stage = (await page.locator('.stage').boundingBox())!
+    expect(box.height).toBeLessThanOrEqual(stage.height * 0.45 + 0.5)
+    expect(await card.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto')
   })
 }

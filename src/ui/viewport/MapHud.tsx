@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useMemo, useRef, type CSSProperties } from 'react'
 import { SURFACE_KEY } from '../../data/orthophoto'
 import { useCameraState } from '../../scene/cameraState'
 import { changeThreshold } from '../../compliance/change'
@@ -151,30 +151,15 @@ const KEY_TICKS = [0, 0.25, 0.5, 0.75, 1]
 
 type KeyRow = { key: string; swatch: React.ReactNode; label: string }
 
-/** Rows for the permit, change and finding overlays that are switched on. */
-function overlayRows(
+/** Lines drawn on the map that are switched on: one key row each. */
+function lineRows(
   layers: ReturnType<typeof useAppStore.getState>['layers'],
   limits: NonNullable<ReturnType<typeof useTerrain.getState>['limits']>,
-  onCurrent: boolean,
 ): KeyRow[] {
-  // The hairline round the surveyed grid is always drawn: it is where the real (simulated) survey
-  // ends and the decorative ground around it begins.
-  const rows: KeyRow[] = [
-    {
-      key: 'survey-edge',
-      swatch: (
-        <span
-          className="w-5"
-          style={{ height: 0, borderTop: `1.5px solid ${OVERLAY.surveyEdge}` }}
-        />
-      ),
-      label: 'Surveyed area (simulated)',
-    },
-  ]
   // White map lines sit on a dark chip so they stay visible on the pale panel.
   const swatch = (inner: React.CSSProperties) => (
     <span
-      className="flex h-3 w-5 shrink-0 items-center rounded-[2px] px-0.5"
+      className="flex h-2.5 w-4 shrink-0 items-center rounded-[2px] px-0.5"
       style={{ background: 'color-mix(in srgb, var(--color-ink) 62%, transparent)' }}
     >
       <span className="w-full" style={{ height: 0, ...inner }} />
@@ -182,6 +167,20 @@ function overlayRows(
   )
   const line = (opacity: number, h: number) =>
     swatch({ borderTop: `${h}px solid ${OVERLAY.lease}`, opacity })
+  // The hairline round the surveyed grid is always drawn: it is where the real (simulated) survey
+  // ends and the decorative ground around it begins.
+  const rows: KeyRow[] = [
+    {
+      key: 'survey-edge',
+      swatch: (
+        <span
+          className="w-4"
+          style={{ height: 0, borderTop: `1.5px solid ${OVERLAY.surveyEdge}` }}
+        />
+      ),
+      label: 'Surveyed area (simulated)',
+    },
+  ]
   if (layers.lease) rows.push({ key: 'lease', swatch: line(1, 3), label: 'Lease boundary' })
   if (layers.buffer) {
     rows.push({
@@ -205,36 +204,26 @@ function overlayRows(
     }
     rows.push({ key: 'dump', swatch: dashed('dotted'), label: 'Dump zone' })
   }
-  if (layers.change && onCurrent) {
-    const box = (c: string) => (
-      <span className="h-3 w-3 shrink-0 rounded-[2px]" style={{ background: c }} />
-    )
-    rows.push(
-      { key: 'cut', swatch: box(OVERLAY.cut), label: 'Excavated' },
-      { key: 'fill', swatch: box(OVERLAY.fill), label: 'Filled' },
-    )
-  }
-  if (layers.findings && onCurrent) {
-    for (const [tone, label] of [
-      ['warning', 'Warning'],
-      ['violation', 'Violation'],
-      ['critical', 'Critical'],
-    ] as const) {
-      const Glyph = GLYPH[tone]
-      rows.push({
-        key: tone,
-        swatch: <Glyph className="h-4 w-4 shrink-0" style={{ color: OVERLAY[tone] }} />,
-        label,
-      })
-    }
-  }
   return rows
 }
 
+const box = (key: string, label: string, colour: string): KeyRow => ({
+  key,
+  label,
+  swatch: <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ background: colour }} />,
+})
+
+const SEVERITIES = [
+  ['warning', 'Warning'],
+  ['violation', 'Violation'],
+  ['critical', 'Critical'],
+] as const
+
 /**
- * The map key, placed on the stage above the timeline. It is open on arrival where there is room
- * (1280 px wide and 700 px tall) and a single "Key" button otherwise; either way the visitor can
- * toggle it, and it opens upward.
+ * The map key: a small "Map key" chip, closed on arrival at every width. It sits under the Map card
+ * at the bottom of its column, or at the stage's bottom-left above the timeline when that card is
+ * folded or absent (`.map-key` in index.css). It opens upward into a compact one-column card and
+ * stays as the visitor left it for the session.
  */
 export function MapKey() {
   const survey = useTerrain((s) => s.surveys.current)
@@ -242,35 +231,20 @@ export function MapKey() {
   const change = useTerrain((s) => s.change)
   const layers = useAppStore((s) => s.layers)
   const onCurrent = useAppStore((s) => s.epoch === 'current')
-  const [open, setOpen] = useState(() => window.innerWidth >= 1280 && window.innerHeight >= 700)
+  const open = useAppStore((s) => s.keyOpen)
+  const toggleKey = useAppStore((s) => s.toggleKey)
   const id = useId()
   const scale = useMemo(() => survey && elevationScale(survey.elevations), [survey])
   if (!survey || !scale || !limits || !change) return null
 
   const tint = layers.tint || !survey.orthophoto
-  const surface: KeyRow[] = tint
-    ? []
-    : SURFACE_KEY.map((k) => ({
-        key: k.label,
-        label: k.label,
-        swatch: (
-          <span
-            className="h-3 w-3 shrink-0 rounded-[2px]"
-            style={{ background: `rgb(${k.rgb.join(' ')})` }}
-          />
-        ),
-      }))
-  const overlays = overlayRows(layers, limits, onCurrent)
   const showChange = layers.change && onCurrent
-  const count = (tint ? 1 : surface.length) + overlays.length
-  // A long label takes the whole row, so every row stays on one line in the two-column grid.
-  const grid = (rows: KeyRow[]) => (
-    <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
+  const showFindings = layers.findings && onCurrent
+  // Swatch and label pairs that share a wrapped line; `wide` gives each pair a line of its own.
+  const list = (rows: KeyRow[], wide = false) => (
+    <ul className="flex flex-wrap gap-x-3">
       {rows.map((r) => (
-        <li
-          key={r.key}
-          className={`flex items-center gap-2 text-[12px] text-ink-dim ${r.label.length >= 14 ? 'col-span-2' : ''}`}
-        >
+        <li key={r.key} className={`map-key-row ${wide ? 'w-full' : ''}`}>
           <span aria-hidden="true" className="flex shrink-0">
             {r.swatch}
           </span>
@@ -279,56 +253,74 @@ export function MapKey() {
       ))}
     </ul>
   )
-  const note = 'text-[12px] leading-4 text-ink-faint'
+  const source = [!tint && 'Simulated image', (showFindings || showChange) && 'rule-engine marks']
+    .filter(Boolean)
+    .join('; ')
+  const notes = [
+    layers.contours && 'Contours every 5 m, bold every 25 m',
+    showChange &&
+      `Changes under ${changeThreshold(change.sigma, COMPLIANCE_CONFIG).toFixed(2)} m are not shown (noise)`,
+    source && source[0].toUpperCase() + source.slice(1),
+  ].filter(Boolean)
 
   return (
     <section
       aria-label="Map key"
-      className="map-key pointer-events-none absolute inset-x-4 bottom-24 flex justify-center max-xl:bottom-[8.5rem] max-sm:bottom-[10.75rem]"
+      className="map-key pointer-events-none absolute inset-x-4 bottom-24 flex justify-start max-sm:bottom-[8.25rem]"
     >
-      <div className="flex w-full max-w-[600px] flex-col items-start">
+      <div className="flex flex-col items-start">
         <div
           id={id}
           data-open={open ? '' : undefined}
-          className="map-key-body w-[260px] max-w-full"
+          className="map-key-body w-[240px] max-w-full"
         >
           <div className="map-key-inner">
-            <div className="map-key-card card pointer-events-auto mb-2 flex flex-col gap-2 px-3 py-2.5">
+            <div className="map-key-card card pointer-events-auto mb-2 px-3 py-2">
               {tint && (
-                <div>
+                <div className="pt-1 pb-0.5">
                   <div
                     className="h-2 rounded-[1px]"
                     style={{ background: rampGradient() }}
                     aria-hidden="true"
                   />
-                  <div className="mt-1 flex justify-between font-mono text-[12px] text-ink-dim">
+                  <div className="mt-0.5 flex justify-between font-mono text-[12px] leading-4 text-ink-dim">
                     {KEY_TICKS.map((t) => (
                       <span key={t}>{scale.at(t).toFixed(0)}</span>
                     ))}
                   </div>
-                  <div className={note}>Elevation, m RL</div>
+                  <div className="map-key-note">Elevation, m RL</div>
                 </div>
               )}
-              {surface.length > 0 && grid(surface)}
-              {overlays.length > 0 && grid(overlays)}
-              {(layers.contours || !tint || showChange) && (
-                <div className="flex flex-col gap-0.5 border-t border-line pt-2">
-                  {layers.contours && (
-                    <div className={note}>Contours every 5 m, bold every 25 m</div>
-                  )}
-                  {!tint && <div className={note}>Simulated aerial image</div>}
-                  {showChange && (
-                    <div className={note}>
-                      Changes under {changeThreshold(change.sigma, COMPLIANCE_CONFIG).toFixed(2)} m
-                      are not shown (noise)
+              {!tint &&
+                list(SURFACE_KEY.map((k) => box(k.label, k.label, `rgb(${k.rgb.join(' ')})`)))}
+              {list(lineRows(layers, limits), true)}
+              {showChange &&
+                list([box('cut', 'Excavated', OVERLAY.cut), box('fill', 'Filled', OVERLAY.fill)])}
+              {showFindings && (
+                <ul className="flex flex-wrap gap-x-2.5">
+                  {SEVERITIES.map(([tone, label]) => {
+                    const Glyph = GLYPH[tone]
+                    return (
+                      <li key={tone} className="map-key-row map-key-sev">
+                        <Glyph
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 shrink-0"
+                          style={{ color: OVERLAY[tone] }}
+                        />
+                        {label}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              {notes.length > 0 && (
+                <div className="mt-1.5 border-t border-line pt-1.5">
+                  {notes.map((n) => (
+                    <div key={n as string} className="map-key-note">
+                      {n}
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
-              {layers.findings && onCurrent && (
-                <p className={`${note} border-t border-line pt-2`}>
-                  Coloured cells and pins come from the rule engine, not hand-placed marks.
-                </p>
               )}
             </div>
           </div>
@@ -337,14 +329,11 @@ export function MapKey() {
           type="button"
           aria-expanded={open}
           aria-controls={id}
-          onClick={() => setOpen((o) => !o)}
-          className="map-chip pointer-events-auto flex items-center gap-2 text-[12px] font-medium text-ink"
+          onClick={toggleKey}
+          className="map-chip map-key-btn pointer-events-auto flex items-center gap-2 text-[12px] leading-4 font-medium text-ink-dim"
         >
-          Key
-          <span className="font-mono text-ink-dim">{count}</span>
-          <span aria-hidden="true" className="font-mono text-ink-faint">
-            {open ? '−' : '+'}
-          </span>
+          Map key
+          <span className="fold-caret" aria-hidden="true" />
         </button>
       </div>
     </section>
@@ -424,7 +413,7 @@ export function ScaleBar() {
   // and the camera group in one row, so it drops under the timeline instead of covering a button.
   return (
     <div
-      className="map-chip enter-down pointer-events-none absolute top-4 left-4 flex items-center gap-2.5 max-xl:top-auto max-xl:bottom-24 max-sm:bottom-[8.25rem]"
+      className="map-chip scale-chip enter-down pointer-events-none absolute top-4 left-4 flex items-center gap-2.5 max-xl:top-auto max-xl:bottom-24 max-sm:bottom-[8.25rem]"
       style={delay(1.2)}
       aria-hidden="true"
     >

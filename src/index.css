@@ -2344,23 +2344,52 @@ body {
     min-height: 0;
     overflow: hidden;
   }
-  /* The card grows upward from above the timeline. Cap it so it stops below the click-tool stack
-     (60 px header, the tools and their status chip up to 140 px into the stage, a 12 px gap), and
-     scroll inside it beyond that. The offsets follow the section's bottom: 6rem, 8.5rem below xl,
-     10.75rem below sm, plus the 30 px Key button and the card's 8 px margin. */
+  /* The card grows upward from the chip. It is fully opaque, so its small text never sits on
+     terrain. Two caps, and it scrolls inside beyond them: 45% of the stage (the viewport less the
+     60 px header), and the room below the click-tool stack (60 px header, the tools and their
+     status chip up to 140 px into the stage, a 12 px gap; the offsets follow the section's bottom:
+     6rem, or 8.25rem below sm, plus the 30 px chip and the card's 8 px margin). */
   .map-key-card {
-    max-height: max(120px, calc(100dvh - 346px));
+    --room: 346px;
+    max-height: min(calc((100dvh - 60px) * 0.45), max(120px, calc(100dvh - var(--room))));
     overflow-y: auto;
-  }
-  @media (width < 80rem) {
-    .map-key-card {
-      max-height: max(120px, calc(100dvh - 386px));
-    }
+    background: var(--color-panel);
   }
   @media (width < 40rem) {
     .map-key-card {
-      max-height: max(120px, calc(100dvh - 422px));
+      --room: 382px;
     }
+  }
+  /* One key entry: a 10 px swatch and its label on a 20 px row. */
+  .map-key-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 20px;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+    color: var(--color-ink-dim);
+  }
+  .map-key-sev {
+    gap: 4px;
+  }
+  .map-key-note {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--color-ink-faint);
+  }
+  /* The chip's chevron points up while closed (the key opens upward) and down while open. */
+  .map-key-btn:hover {
+    color: var(--color-ink);
+  }
+  .map-key-btn .fold-caret {
+    margin: 3px 1px 0;
+    rotate: -135deg;
+  }
+  .map-key-btn[aria-expanded='true'] .fold-caret {
+    margin: 0 1px 3px;
+    rotate: 45deg;
   }
   @media (prefers-reduced-motion: reduce) {
     .map-key-body {
@@ -3392,6 +3421,53 @@ body {
   }
   .monitor[data-details='hidden'] .stage {
     right: 0;
+  }
+}
+
+/*
+ * The map key's corner. While the Map card shows (from md, not folded) the key sits under it, at
+ * the bottom of the card's column, so it never covers the model: its `left` undoes the stage's
+ * offset (and moves with it when the card folds). Otherwise it sits at the stage's bottom-left,
+ * above the timeline, with the scale bar to its right below xl.
+ * --key-max is the open key's height cap in the column: 45% of the map area (the viewport less the
+ * 60 px header), less on a short screen so the Map card keeps 300 px. The Map card stops above the
+ * chip (28 px + 16 px gaps), and above the open key's cap as well.
+ */
+.map-key {
+  transition:
+    left 0.45s cubic-bezier(0.2, 0.7, 0.2, 1),
+    bottom 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (width < 80rem) {
+  .scale-chip {
+    left: 6.75rem;
+  }
+}
+@media (width >= 48rem) {
+  .monitor:not([data-layers='hidden']) {
+    --key-max: min(calc((100dvh - 60px) * 0.45), max(168px, calc(100dvh - 444px)));
+  }
+  .monitor:not([data-layers='hidden']) .map-key {
+    left: -224px;
+    bottom: 16px;
+    justify-content: flex-start;
+  }
+  .monitor:not([data-layers='hidden']) .map-key-card {
+    max-height: var(--key-max);
+  }
+  .monitor:not([data-layers='hidden']) .scale-chip {
+    left: 1rem;
+  }
+  .monitor:not([data-layers='hidden']) .layer-panel {
+    max-height: calc(100% - 76px);
+  }
+  .monitor:not([data-layers='hidden']):has(.map-key-btn[aria-expanded='true']) .layer-panel {
+    max-height: calc(100% - 84px - var(--key-max));
+  }
+}
+@media (width >= 80rem) {
+  .monitor:not([data-layers='hidden']) .map-key {
+    left: -256px;
   }
 }
 

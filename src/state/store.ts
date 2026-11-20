@@ -27,6 +27,8 @@ interface AppState {
   /** Side panels folded to give the map more room, by the width rule or the visitor's choice. */
   layersHidden: boolean
   detailsHidden: boolean
+  /** The 3D map's key: closed on arrival, and it stays as the visitor left it for the session. */
+  keyOpen: boolean
   /** True once the map card's visibility was decided on purpose, so the width rule stops. */
   layersUserSet: boolean
   /** True once the details panel's visibility was decided on purpose, so the width rule stops. */
@@ -51,6 +53,7 @@ interface AppState {
   setMenuOpen: (open: boolean) => void
   toggleLayers: () => void
   toggleDetails: () => void
+  toggleKey: () => void
   /** Sets the map card's visibility without claiming the visitor asked for it. */
   setLayersHidden: (hidden: boolean) => void
   /** Sets the details panel's visibility without claiming the visitor asked for it. */
@@ -76,6 +79,7 @@ export const useAppStore = create<AppState>((set) => ({
   menuOpen: false,
   layersHidden: false,
   detailsHidden: false,
+  keyOpen: false,
   layersUserSet: false,
   detailsUserSet: false,
   // Natural look by default: aerial image, no tint or contours; the lease line and the
@@ -105,6 +109,7 @@ export const useAppStore = create<AppState>((set) => ({
   setMenuOpen: (menuOpen) => set({ menuOpen }),
   toggleLayers: () => set((s) => ({ layersHidden: !s.layersHidden, layersUserSet: true })),
   toggleDetails: () => set((s) => ({ detailsHidden: !s.detailsHidden, detailsUserSet: true })),
+  toggleKey: () => set((s) => ({ keyOpen: !s.keyOpen })),
   setLayersHidden: (layersHidden) => set({ layersHidden }),
   setDetailsHidden: (detailsHidden) => set({ detailsHidden }),
   toggleLayer: (id) => set((s) => ({ layers: { ...s.layers, [id]: !s.layers[id] } })),
