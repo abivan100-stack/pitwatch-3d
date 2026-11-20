@@ -41,7 +41,7 @@ export function AboutPage() {
         <h2 id="pipeline" className="section-title">
           How a result is made
         </h2>
-        <ol className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ol className="mt-4 grid gap-x-8 gap-y-4 min-[1100px]:grid-cols-4">
           {PIPELINE.map(([title, text], i) => (
             <li key={title}>
               <span className="font-mono text-[13px] text-oxide">0{i + 1}</span>
@@ -85,7 +85,7 @@ export function AboutPage() {
           <h2 id="labels" className="section-title">
             Where each value comes from
           </h2>
-          <dl className="mt-3 grid gap-x-6 sm:grid-cols-2">
+          <dl className="mt-3 grid gap-x-6 min-[1100px]:grid-cols-2">
             {PROVENANCE.map(([value, meaning]) => (
               <div key={value} className="py-1">
                 <dt className="mb-0.5">
@@ -118,7 +118,7 @@ export function AboutPage() {
         <h2 id="keys" className="section-title">
           Keyboard shortcuts on the 3D map
         </h2>
-        <dl className="mt-3 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-3 grid gap-x-8 min-[1100px]:grid-cols-4">
           {SHORTCUTS.map(([key, action]) => (
             <div key={key} className="flex items-baseline gap-4 py-1">
               <dt className="w-[80px] shrink-0">

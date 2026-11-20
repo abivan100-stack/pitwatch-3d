@@ -56,6 +56,7 @@ Newest first.
 - **Shortcuts** were checked against `MapPage.tsx` (`[`, `]`, M, R, F, Esc) and `SidePanel.tsx` (arrow keys): all still match; labels are shortened.
 - **Height at 1440 px** (main's content height): 1,308 px before, 660 px after (49% shorter). Inline links are underlined, which axe requires inside running text.
 - **Checks.** `npm run typecheck` and `npm run lint` pass. One browser run (`uncertainty.spec`, `a11y`, filtered to About and the claims check): 3 of 3 pass, after the first run failed axe `link-in-text-block` and the underline fixed it. No full suite; CI runs it.
+- **Review follow-up** (read by the lead, not a separate session). The issue asks for one column below 1100 px, but the steps, the provenance list and the shortcuts went two-wide from 640 px; all three now go multi-column only from 1100 px (`min-[1100px]:`). The 1440 px layout, and so the height above, is unchanged.
 
 ### 2026-11-20: the Overview answers one question (issue #74)
 
