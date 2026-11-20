@@ -4,7 +4,7 @@ import { apronGrid, apronHeights } from '../data/apron'
 import { GRID, SEED } from '../data/fixtures/scenario'
 import type { TerrainSurvey } from '../domain/types'
 import { pickGround, surveyEdgeLine } from './overlayGeometry'
-import { BASE_RL, buildApronArrays, buildTerrainArrays } from './terrainGeometry'
+import { BASE_RL, apronDropAt, buildApronArrays, buildTerrainArrays } from './terrainGeometry'
 
 const a = apronGrid(GRID)
 const apron = buildApronArrays(a, apronHeights(a, SEED))
@@ -58,6 +58,26 @@ describe('apron geometry', () => {
     }
     // 64 cells a side, so 65 vertices a side minus shared corners: 4 * 64.
     expect(onEdge.size).toBe(4 * 64)
+  })
+})
+
+describe('apron drop', () => {
+  it('is the full drop at the block edge, none from the ramp on, and nothing with no drop', () => {
+    expect(apronDropAt(0, 45, 400)).toBe(45)
+    expect(apronDropAt(400, 45, 400)).toBe(0)
+    expect(apronDropAt(1000, 45, 400)).toBe(0)
+    expect(apronDropAt(0, 0, 400)).toBe(0)
+    expect(apronDropAt(200, 0, 400)).toBe(0)
+  })
+
+  it('falls monotonically between the edge and the ramp', () => {
+    let prev = apronDropAt(0, 45, 400)
+    for (let d = 10; d <= 400; d += 10) {
+      const v = apronDropAt(d, 45, 400)
+      expect(v).toBeLessThanOrEqual(prev)
+      prev = v
+    }
+    expect(apronDropAt(200, 45, 400)).toBeCloseTo(22.5, 6) // smoothstep is half way at the middle
   })
 })
 

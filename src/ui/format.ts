@@ -50,14 +50,3 @@ export function formatLat(lat: number): string {
 export function formatLon(lon: number): string {
   return `${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`
 }
-
-/**
- * Readout of the landing date bar for story position `t` (0 = baseline, 1 = current survey).
- * Only the two ends are surveys; in between the model is a blend of them, so the readout says
- * so instead of naming a date and day.
- */
-export function storyClockLabel(t: number, baseline: string, days: number): string {
-  if (t <= 0.001) return `${days} days between surveys`
-  if (t < 1) return 'Illustration between surveys'
-  return `${formatDate(addDays(baseline, days))}, day ${days} of ${days}`
-}

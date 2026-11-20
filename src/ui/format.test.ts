@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  addDays,
-  daysBetween,
-  formatDate,
-  formatLat,
-  formatLon,
-  monthTicks,
-  storyClockLabel,
-} from './format'
+import { addDays, daysBetween, formatDate, formatLat, formatLon, monthTicks } from './format'
 
 describe('format', () => {
   it('formats ISO dates without timezone drift', () => {
@@ -45,16 +37,5 @@ describe('format', () => {
 
   it('returns no ticks inside a single month', () => {
     expect(monthTicks('2026-03-02', '2026-03-20')).toEqual([])
-  })
-})
-
-describe('storyClockLabel', () => {
-  it('names the surveys at the ends and calls any blend an illustration', () => {
-    const base = '2025-11-14'
-    expect(storyClockLabel(0, base, 281)).toBe('281 days between surveys')
-    expect(storyClockLabel(1, base, 281)).toBe(`${formatDate(addDays(base, 281))}, day 281 of 281`)
-    for (const t of [0.01, 0.5, 0.999999]) {
-      expect(storyClockLabel(t, base, 281)).toBe('Illustration between surveys')
-    }
   })
 })

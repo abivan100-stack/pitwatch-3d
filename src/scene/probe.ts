@@ -22,6 +22,8 @@ export interface Probe {
   pinTop?: (id: string) => { x: number; y: number } | null
   /** Id of the finding the camera was last sent to by this map. */
   framed?: string
+  /** The landing model's renderer: its tone mapper (three's constants; 0 is none) and frames drawn. */
+  landing?: { toneMapping: number; frames: number }
 }
 
 export const probe = (globalThis as { __pitwatchProbe?: Probe }).__pitwatchProbe

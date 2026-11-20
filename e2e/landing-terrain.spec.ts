@@ -7,6 +7,10 @@ import { expect, test } from '@playwright/test'
 // No test can see a shader and the page exposes no scene graph, so this compares canvas
 // screenshots. The first half proves the probe notices a hidden terrain on the map; the second
 // asserts the same switch does not change the landing model.
+//
+// Re-measured on the #72 scene (tone mapped, rings and tags, lease tube): hiding the map terrain
+// changes the shot by 0.59 (threshold > 0.2) and the landing shot changes by 0.00002 (threshold
+// < 0.01), so both thresholds stand.
 
 test.use({ reducedMotion: 'reduce', viewport: { width: 800, height: 720 } })
 // Two scene builds and four screenshots, on software WebGL. Fine alone; under a full parallel

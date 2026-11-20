@@ -18,6 +18,9 @@ import {
 import { BASE_RL, buildApronArrays, buildSkirtArrays, buildTerrainArrays } from './terrainGeometry'
 import { makeSurfaceUniforms, type SurfaceUniforms } from './surfaceUniforms'
 
+/** Metres over which the lowered apron climbs back to ground level, from the block's edge. */
+const APRON_DROP_RAMP_M = 400
+
 /*
  * Morph: every vertex also carries the other survey's height (aAltY) and normal
  * (aAltNormal); uMorph blends 0 = this survey, 1 = the other. Without a second survey the
@@ -184,7 +187,7 @@ function makeSkirtMaterial(morph: Uniform<number>) {
  * far ground dissolves into the page's own backdrop and never ends in a cut. It casts no shadow
  * (see sun.ts), so it needs no depth material. `half` is half the block's side, scene units.
  */
-function makeApronMaterial(half: number) {
+function makeApronMaterial(half: number, drop: number) {
   const m = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.96,
@@ -193,13 +196,17 @@ function makeApronMaterial(half: number) {
   })
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uHalf = { value: half }
+    shader.uniforms.uDrop = { value: drop }
+    shader.uniforms.uDropRamp = { value: APRON_DROP_RAMP_M }
     shader.uniforms.uFade = { value: new THREE.Vector2(APRON_FADE_M.from, APRON_FADE_M.to) }
     shader.vertexShader =
-      'varying float vApronD;\nuniform float uHalf;\n' +
+      'varying float vApronD;\nuniform float uHalf;\nuniform float uDrop;\nuniform float uDropRamp;\n' +
       shader.vertexShader.replace(
         '#include <begin_vertex>',
-        // Distance from the block's square outline, so a corner fades round, not square.
-        '#include <begin_vertex>\n  vApronD = length(max(abs(position.xz) - vec2(uHalf), 0.0));',
+        // Distance from the block's square outline, so a corner fades round, not square. The
+        // drop mirrors apronDropAt() in terrainGeometry.ts.
+        '#include <begin_vertex>\n  vApronD = length(max(abs(position.xz) - vec2(uHalf), 0.0));\n' +
+          '  transformed.y -= uDrop * (1.0 - smoothstep(0.0, uDropRamp, vApronD));',
       )
     shader.fragmentShader =
       'varying float vApronD;\nuniform vec2 uFade;\n' +
@@ -208,7 +215,7 @@ function makeApronMaterial(half: number) {
         '#include <color_fragment>\n  diffuseColor.a *= 1.0 - smoothstep(uFade.x, uFade.y, vApronD);',
       )
   }
-  m.customProgramCacheKey = () => 'terrain-apron'
+  m.customProgramCacheKey = () => 'terrain-apron' + (drop > 0 ? '-drop' : '')
   return m
 }
 
@@ -300,6 +307,7 @@ export function Terrain({
   morph,
   onPick,
   visible,
+  apronDrop = 0,
 }: {
   survey: TerrainSurvey
   marks?: TerrainMarks
@@ -310,6 +318,8 @@ export function Terrain({
   onPick?: (point: THREE.Vector3) => void
   /** Drawn or not. Defaults to the map's Terrain layer switch; the landing page always passes it. */
   visible?: boolean
+  /** Metres the apron is lowered at the block's edge, so the block's sides show. Zero on the map. */
+  apronDrop?: number
 }) {
   const exaggeration = useAppStore((s) => s.exaggeration)
   const layers = useAppStore((s) => s.layers)
@@ -380,7 +390,7 @@ export function Terrain({
     return geometryFrom(ground.positions, ground.index, { color: [ground.colors, 3] })
   }, [grid])
   const half = ((grid.cols - 1) * grid.cellSize) / 2
-  const apronMaterial = useMemo(() => makeApronMaterial(half), [half])
+  const apronMaterial = useMemo(() => makeApronMaterial(half, apronDrop), [half, apronDrop])
   useEffect(() => () => apronGeometry.dispose(), [apronGeometry])
   useEffect(() => () => apronMaterial.dispose(), [apronMaterial])
 
