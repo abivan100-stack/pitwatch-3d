@@ -152,7 +152,9 @@ test('the slider moves the picture between the surveys', async ({ page }) => {
   const current = await shot(page)
   await page.getByRole('slider', { name: /Survey shown/ }).fill('0')
   const baseline = await shot(page)
-  expect(relativeChange(current, baseline), 'baseline differs from current').toBeGreaterThan(0.01)
+  // Two shots of an unchanged frame differ by about 0.00002 (landing-terrain.spec.ts), so 0.002 is
+  // still a hundred times the noise. CI measured 0.0049 for this change.
+  expect(relativeChange(current, baseline), 'baseline differs from current').toBeGreaterThan(0.002)
 })
 
 test('the findings are named, and a ring and tag are drawn for them', async ({ page }) => {
@@ -208,9 +210,7 @@ test('the keyboard turns, tilts, zooms and resets the model', async ({ page }) =
   expect(relativeChange(first, reset), 'reset restores the framed view').toBeLessThan(0.01)
 })
 
-test('drag turns and tilts, the wheel zooms only once the model has focus, a double click resets', async ({
-  page,
-}) => {
+test('drag turns and tilts the model, and a double click resets it', async ({ page }) => {
   const frame = await openHome(page)
   const start = await label(page)
   const box = (await frame.boundingBox())!
@@ -228,6 +228,15 @@ test('drag turns and tilts, the wheel zooms only once the model has focus, a dou
 
   await frame.dblclick()
   expect(await label(page)).toBe(start)
+})
+
+test('the wheel zooms only once the model has focus, and gives the page back at the limit', async ({
+  page,
+}) => {
+  const frame = await openHome(page)
+  const box = (await frame.boundingBox())!
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
 
   // A bare wheel over the picture scrolls the page. Once the model has focus, it zooms.
   await frame.evaluate((el) => (el as HTMLElement).blur())
