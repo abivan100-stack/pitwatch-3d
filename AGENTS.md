@@ -50,6 +50,14 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: the map's Findings tab is compact by default (issue #107)
+
+- **One layout, no toggle.** The Compact button from #65 is gone, with `findingsDensity` / `setFindingsDensity` (store and its test), the `data-density` and `.density-toggle` CSS and `Section`'s action slot, which nothing else used.
+- **Three-line row** (`FindingCard`): glyph, rule name and id; status and severity in text ("Violation · critical") followed by "7,696 m² · 175,297 m³ · 52.5 m max"; then "Why it was flagged" (closed) and "Show on map". One key above the list, "Area · volume · max excess", replaces the labels on every row; the labels stay in the row as screen-reader text. The figures are one unbreakable piece that drops under the status when the panel is too narrow. All text is 12 px or more, colours are existing tokens. `SeverityLegend`, `ThresholdNote` and the Findings page are untouched.
+- **Row height** at 1440 px: 139.75 px before (comfortable; five rows ended at y = 873 and the fifth was cut at 1440 × 800), 69 px now. The five rows end at y = 537, so all are fully visible at 1440 × 900 and 1440 × 800. The phone drawer at 390 px has the same 69 px rows and no horizontal overflow.
+- **Tests.** `e2e/findings-density.spec.ts` is replaced by one check at 1440 × 900 and 1440 × 800: no compact or density button, the threshold note closed, status and figures in text on each row, every row at most 76 px and inside the panel.
+- **Checks.** `npm run typecheck`, `npm run lint` and `npm run format:check` pass; `store.test.ts` passes. Browser, one worker on port 4801: `findings-density` (2) and `finding-evidence` (5) pass. Screenshots before and after at 1440 × 900 and 390 × 844 were taken for the owner's sign-off. Not run locally: the full suite, the axe scan of the map route and a figure-by-figure comparison against the Findings page; CI runs the first two.
+
 ### 2026-11-20: the Overview answers one question (issue #74)
 
 - **Layout.** The page opens on an answer line computed from the findings ("2 violations and 3 warnings. The most serious is at the east lease boundary.", `src/compliance/answer.ts`: `answerLine`, `leaseDirection`). Below it the site plan with its key directly beneath and a footer rail holding the scale bar and north arrow; the three most serious findings beside the plan; three figures under it (removed outside the lease 175,297 m³, flagged area 16,832 m², 281 days between surveys); a closed details list last. The per-rule results left the Overview (the Permit rules page has them). The counts appear only in the header chip and the answer line. On phones the order is answer, plan, findings, figures, details.
