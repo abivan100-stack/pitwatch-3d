@@ -50,6 +50,14 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: the About page is concise (issue #69)
+
+- **Five sections.** How a result is made (step 2 links to Permit rules instead of repeating the threshold), This mine is fictional (one paragraph holding the synthetic and seeded, simulated aerial image, decorative ground from #77, and "violation and warning are its labels" statements, with a link to Findings), Where each value comes from (the four provenance tags), What each data source can show (one line each, "1 of 3" as text) and Keyboard shortcuts. "What is in this app" is gone, as is the meter. `source-card` and `fit-meter` CSS were used only here and are removed.
+- **Shortcuts** were checked against `MapPage.tsx` (`[`, `]`, M, R, F, Esc) and `SidePanel.tsx` (arrow keys): all still match; labels are shortened.
+- **Height at 1440 px** (main's content height): 1,308 px before, 660 px after (49% shorter). Inline links are underlined, which axe requires inside running text.
+- **Checks.** `npm run typecheck` and `npm run lint` pass. One browser run (`uncertainty.spec`, `a11y`, filtered to About and the claims check): 3 of 3 pass, after the first run failed axe `link-in-text-block` and the underline fixed it. No full suite; CI runs it.
+- **Review follow-up** (read by the lead, not a separate session). The issue asks for one column below 1100 px, but the steps, the provenance list and the shortcuts went two-wide from 640 px; all three now go multi-column only from 1100 px (`min-[1100px]:`). The 1440 px layout, and so the height above, is unchanged.
+
 ### 2026-11-20: the Map card folds its layer switches into dropdowns (issue #68)
 
 - **Dropdowns.** `LayerSwitches` shows one primary switch per group, Terrain and Findings (the triage's choice), and the rest behind a button: "2 more" under Layers, "4 more" under Permit and change, and "4 more · 1 on" while a hidden switch is on (the lease boundary is on by default). New `Fold` in `src/ui/LayerControls.tsx` is a button with `aria-expanded` and `aria-controls`, not a `<details>`. Its body (`.fold` in `src/index.css`) opens with a 200 ms ease-out `grid-template-rows` transition and is `visibility: hidden` once closed, so hidden switches leave the tab order and the accessibility tree; focus stays on the button. Under reduced motion there is no transition. The drawer's "Map layers and vertical scale" disclosure uses the same component, so it has the same grouping. Switch labels, `role="switch"` and the disabled state before load are unchanged, as is the exaggeration slider.
