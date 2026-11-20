@@ -35,7 +35,15 @@ const n = (v: number, digits = 0) =>
  * rule, the three figures in line, the explanation on demand. `level` is the heading level of
  * its title.
  */
-export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 | 4 }) {
+export function FindingCard({
+  f,
+  level = 4,
+  compact = false,
+}: {
+  f: ComplianceFinding
+  level?: 3 | 4
+  compact?: boolean
+}) {
   const Title = `h${level}` as const
   const tone = toneOf(f)
   const Glyph = GLYPH[tone]
@@ -46,6 +54,7 @@ export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 
       className={`finding tone-${tone}`}
       aria-current={selected || undefined}
       data-selected={selected || undefined}
+      data-density={compact ? 'compact' : undefined}
     >
       <div className="flex items-start gap-2.5">
         <Glyph className="mt-0.5 h-[18px] w-[18px] shrink-0 text-(--tone)" />
@@ -71,7 +80,7 @@ export function FindingCard({ f, level = 4 }: { f: ComplianceFinding; level?: 3 
           </div>
         ))}
       </dl>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
+      <div className="finding-actions mt-1.5 flex items-center justify-between gap-2">
         <details className="frow-more">
           <summary>Why it was flagged</summary>
           <p>{f.explanation}</p>
@@ -144,12 +153,27 @@ export function SeverityLegend({
 export function FindingsPanel() {
   const ready = useTerrain((s) => s.status === 'ready')
   const findings = useTerrain((s) => s.findings)
+  const density = useAppStore((s) => s.findingsDensity)
+  const setDensity = useAppStore((s) => s.setFindingsDensity)
+  const compact = density === 'compact'
 
   return (
     <>
       <Section
         title={ready ? countText(findings) : 'Findings'}
         provenance={ready ? 'derived' : undefined}
+        action={
+          ready && findings.length > 0 ? (
+            <button
+              type="button"
+              className="density-toggle"
+              aria-pressed={compact}
+              onClick={() => setDensity(compact ? 'comfortable' : 'compact')}
+            >
+              Compact
+            </button>
+          ) : undefined
+        }
       >
         {!ready ? (
           <EmptyNote>Findings appear once both surveys have loaded.</EmptyNote>
@@ -158,11 +182,16 @@ export function FindingsPanel() {
         ) : (
           <ul className="finding-list">
             {findings.map((f) => (
-              <FindingCard key={f.id} f={f} />
+              <FindingCard key={f.id} f={f} compact={compact} />
             ))}
           </ul>
         )}
-        <ThresholdNote />
+        {ready && (
+          <details className="threshold-more">
+            <summary>How a change is counted</summary>
+            <ThresholdNote />
+          </details>
+        )}
       </Section>
       <div className="divider" />
       <Section title="How findings are marked">
