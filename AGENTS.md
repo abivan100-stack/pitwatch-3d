@@ -50,6 +50,12 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: README rewritten for newcomers
+
+- `README.md` now reads top-down for a newcomer: what PitWatch is and the live link, what you can do (landing page and the six dashboard pages), how to run it, how it works (data, engine, interface; honesty rules; the 0.5 m + 2σ threshold; R1–R3; the five findings), then reference (Mermaid diagram, folders, stack, Vercel deploy, known limits) and links to STATUS.md, AGENTS.md and `docs/`.
+- The landing page is described as PR #100 (issue #72) ships it: one Baseline–Current slider, the Show change and Show permit findings switches, scale bar and north arrow, drag, wheel, pinch, keyboard and Reset view, then the R1-1 worked example and the rule ledger.
+- Dropped stale history: the milestone table, fork-era ticket notes, the removed tour and the long 3D-map feature list. The finding figures were checked against the compliance snapshot, commands against `package.json`, and relative links against the tree; `prettier --check README.md` passes. No code changed, so no tests were run.
+
 ### 2026-11-20: the Overview answers one question (issue #74)
 
 - **Layout.** The page opens on an answer line computed from the findings ("2 violations and 3 warnings. The most serious is at the east lease boundary.", `src/compliance/answer.ts`: `answerLine`, `leaseDirection`). Below it the site plan with its key directly beneath and a footer rail holding the scale bar and north arrow; the three most serious findings beside the plan; three figures under it (removed outside the lease 175,297 m³, flagged area 16,832 m², 281 days between surveys); a closed details list last. The per-rule results left the Overview (the Permit rules page has them). The counts appear only in the header chip and the answer line. On phones the order is answer, plan, findings, figures, details.
