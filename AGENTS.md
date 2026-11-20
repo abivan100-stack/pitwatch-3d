@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-20: the About page is concise (issue #69)
+
+- **Five sections.** How a result is made (step 2 links to Permit rules instead of repeating the threshold), This mine is fictional (one paragraph holding the synthetic and seeded, simulated aerial image, decorative ground from #77, and "violation and warning are its labels" statements, with a link to Findings), Where each value comes from (the four provenance tags), What each data source can show (one line each, "1 of 3" as text) and Keyboard shortcuts. "What is in this app" is gone, as is the meter. `source-card` and `fit-meter` CSS were used only here and are removed.
+- **Shortcuts** were checked against `MapPage.tsx` (`[`, `]`, M, R, F, Esc) and `SidePanel.tsx` (arrow keys): all still match; labels are shortened.
+- **Height at 1440 px** (main's content height): 1,308 px before, 660 px after (49% shorter). Inline links are underlined, which axe requires inside running text.
+- **Checks.** `npm run typecheck` and `npm run lint` pass. One browser run (`uncertainty.spec`, `a11y`, filtered to About and the claims check): 3 of 3 pass, after the first run failed axe `link-in-text-block` and the underline fixed it. No full suite; CI runs it.
+
 ### 2026-11-20: the Overview answers one question (issue #74)
 
 - **Layout.** The page opens on an answer line computed from the findings ("2 violations and 3 warnings. The most serious is at the east lease boundary.", `src/compliance/answer.ts`: `answerLine`, `leaseDirection`). Below it the site plan with its key directly beneath and a footer rail holding the scale bar and north arrow; the three most serious findings beside the plan; three figures under it (removed outside the lease 175,297 m³, flagged area 16,832 m², 281 days between surveys); a closed details list last. The per-rule results left the Overview (the Permit rules page has them). The counts appear only in the header chip and the answer line. On phones the order is answer, plan, findings, figures, details.
