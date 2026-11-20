@@ -187,7 +187,7 @@ describe('severity and explanations', () => {
     expect(f.maxExceedance).toBeCloseTo(6, 4)
     expect(f.centroid.x).toBeCloseTo((80 + 90 + 80) / 3)
     expect(f.explanation).toBe(
-      'Excavated 300 m² outside the lease boundary; deepest cut 6.0 m ± 0.14 m (2σ). About 1,200 m³ removed.',
+      'Excavated 300 m² outside the lease boundary; deepest cut 6.0 m ± 0.14 m (2σ). 1,200 m³ removed.',
     )
   })
 })
@@ -230,7 +230,9 @@ describe('synthetic scenario', async () => {
     const raw = (a: Float32Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
     expect(fnv(raw(baseline.elevations))).toBe('c81d61ee')
     expect(fnv(raw(current.elevations))).toBe('d61b3b0e')
-    expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('ef3f65e5')
+    // Re-pinned for #74, which changed only the explanation wording (whole-m³ volumes, no "About";
+    // R2's ± beside its depth). With explanations blanked the findings match the #79 pin's source.
+    expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('e85c4dde')
     // What did change: the aerial image (this was its hash before the pit was repainted).
     expect(fnv(current.orthophoto!.rgba)).not.toBe('8d9f4a92')
   })
@@ -239,6 +241,23 @@ describe('synthetic scenario', async () => {
     for (const f of findings) {
       expect(f.explanation).toMatch(/\d m²/)
       expect(f.explanation).toMatch(/± 0\.\d\d m \(2σ\)/)
+    }
+  })
+
+  it('quotes a finding volume to the whole cubic metre, the same as the Overview figure', () => {
+    const whole = (v: number) => v.toLocaleString('en-GB', { maximumFractionDigits: 0 })
+    const withVolume = findings.filter((f) => /m³/.test(f.explanation))
+    expect(withVolume.map((f) => f.id)).toEqual(['R1-1', 'R2-1', 'R3-1'])
+    for (const f of withVolume) {
+      expect(f.explanation, f.id).toContain(`${whole(f.volumeM3)} m³`)
+      expect(f.explanation, f.id).not.toMatch(/About/)
+    }
+  })
+
+  it('writes a depth and its uncertainty the same way in every rule', () => {
+    for (const f of findings) {
+      if (f.ruleId === 'R1' && f.status === 'warning') continue
+      expect(f.explanation, f.id).toMatch(/\d+\.\d+ m ± 0\.\d\d m \(2σ\)/)
     }
   })
 })
