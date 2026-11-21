@@ -50,6 +50,13 @@ Vite 8, React 19, TypeScript strict, Tailwind v4 (tokens in `@theme` in `src/ind
 
 Newest first.
 
+### 2026-11-21: new pit outlines and a slightly richer palette
+
+- **Shapes.** At the owner's request the pits look different. `PIT_SEED` is `SEED + 707` (was `+ 101`) and `SATELLITE_SEED` is `SEED + 313` (was `+ 211`). Each was chosen from eight candidates drawn against the lease. The boxes they fill, the depths and the bench geometry are unchanged. The main pit's rim keeps 88.9 m from the lease (72.8 m before), and its east end still meets the encroachment lobe.
+- **Colours** (`SURFACE` in `src/data/orthophoto.ts`, which the apron paints with too). The rock is a little redder: `rockRed` 132/64/46 and `rockOchre` 172/116/62. Soil, cleared ground, grass and berms are a touch warmer. Scrub is slightly greener (118/122/80). `rockGrey` and waste rock are a little cooler. Roads, water, ruts and wear are unchanged.
+- **Figures.** None moved. The findings snapshot and the findings hash (`9fa38743`) are unchanged: all five come from the encroachment lobe, the sump, the heaps and the scrape, not the pit outline. Only the elevation hashes were re-pinned (`09fd564a`, `e17efd0c`). The floor sample in `data.test.ts` moved to (1000, 1225), on the new floor. The keyboard measure line (1125, 1000)–(1325, 1000) still crosses a wall (slope distance 215.3 m).
+- **Checks.** `npm run verify` passes (285 unit tests in 34 files). On port 4931 with one worker, `terrain-picking`, `keyboard`, `flight-exaggeration` and `landing-terrain` pass (15 of 15). That includes the badge behind the near wall at Pit 3×, which depends on the pit's shape. Screenshots at 1440 × 900 (landing, Oblique, Top, Pit, Overview) show no console error. The full suite is left to CI.
+
 ### 2026-11-21: the site is 2,560 m square and the workings are bigger and deeper
 
 - **Scale.** At the owner's request the mine and its area are bigger, at the same detail. The survey grid is 641 × 641 at 4 m (was 513 × 513, 2,048 m). Every place in `scenario.ts` (lease, pits, zones, dumps, pond, ramp starts, roads, ridge, rises, creek, planted changes) and the calm-ground centres in `synthetic.ts` are 1.25× further from the origin. Engineering sizes stay fixed: 15 m benches, 8 m berms, the 30 m ramp, truck heaps. The buffer scrape is 120 × 8 m and stays inside the 20 m buffer. Depths grow in proportion: the main pit is 225 m deep, with 15 benches and its floor at RL 197 (approved 195). The south pit floor is RL 316 (approved 314) and the encroachment lobe RL 310. At the original depths the larger pit had an oversized flat floor and looked shallow.

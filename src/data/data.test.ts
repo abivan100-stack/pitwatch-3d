@@ -118,7 +118,7 @@ describe('synthetic terrain provider', async () => {
   })
 
   it('cuts a stepped pit with a flat floor just above the approved level', () => {
-    const floor = sampleBilinear(GRID, current.elevations, { x: 1250, y: 1288 })!
+    const floor = sampleBilinear(GRID, current.elevations, { x: 1000, y: 1225 })!
     expect(floor).toBeCloseTo(CURRENT_PIT.floorRL, 0)
     expect(floor).toBeGreaterThan(PIT_ZONE.approvedFloorElevation)
   })

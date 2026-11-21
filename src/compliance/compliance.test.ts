@@ -229,9 +229,11 @@ describe('synthetic scenario', async () => {
     }
     const raw = (a: Float32Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
     // Re-pinned when the site grew from 2,048 m to 2,560 m: every elevation and finding moved on
-    // purpose (same five findings, same rules, statuses and severities; see the snapshot).
-    expect(fnv(raw(baseline.elevations))).toBe('7a09051e')
-    expect(fnv(raw(current.elevations))).toBe('9478b0e5')
+    // purpose (same five findings, same rules, statuses and severities; see the snapshot). The
+    // elevations were re-pinned again for the new pit outlines (PIT_SEED, SATELLITE_SEED); the
+    // findings hash did not move.
+    expect(fnv(raw(baseline.elevations))).toBe('09fd564a')
+    expect(fnv(raw(current.elevations))).toBe('e17efd0c')
     expect(fnv(new TextEncoder().encode(JSON.stringify(findings)))).toBe('9fa38743')
     // What did change: the aerial image (this was its hash before the pit was repainted).
     expect(fnv(current.orthophoto!.rgba)).not.toBe('8d9f4a92')

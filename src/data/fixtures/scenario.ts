@@ -88,7 +88,7 @@ export function randomOutline(
 }
 
 /** Seed for the pit outline, separate from the terrain noise. */
-export const PIT_SEED = SEED + 101
+export const PIT_SEED = SEED + 707
 
 /**
  * Main pit now: random outline (anticlockwise) inside the lease, about 1,140 m long and 225 m
@@ -130,7 +130,7 @@ export const blobAround = (cx: number, cy: number, r: number, phase: number, n =
   })
 
 /** Second working: a satellite pit south of the main one, 106 m deep. */
-export const SATELLITE_SEED = SEED + 211
+export const SATELLITE_SEED = SEED + 313
 export const CURRENT_PIT_B: PitStage = {
   floorRL: 316,
   outline: randomOutline(SATELLITE_SEED, { x0: 950, x1: 1325, y0: 412, y1: 700 }, 18),

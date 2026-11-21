@@ -37,19 +37,19 @@ type RGB = readonly [number, number, number]
 /** Surface colours used in the image (sRGB 0–255). */
 export const SURFACE = {
   trees: [70, 80, 52],
-  scrub: [124, 124, 84],
-  grass: [162, 152, 114],
-  soil: [150, 108, 80],
-  cleared: [170, 144, 116],
+  scrub: [118, 122, 80],
+  grass: [166, 150, 108],
+  soil: [156, 102, 72],
+  cleared: [174, 142, 110],
   road: [198, 180, 148],
-  rockRed: [124, 66, 48],
-  rockGrey: [114, 108, 102],
-  rockOchre: [166, 118, 68],
+  rockRed: [132, 64, 46],
+  rockGrey: [110, 104, 100],
+  rockOchre: [172, 116, 62],
   /** Shaded, damp-stained rock and the fractures between blocks. */
   rockDark: [84, 62, 52],
   /** Pale chert and weathered ochre laminae between the iron-rich bands. */
   rockPale: [190, 156, 116],
-  berm: [166, 136, 106],
+  berm: [170, 134, 100],
   floor: [122, 100, 82],
   /** Damp ground where water sits: berm drains, wet patches on the floor, mud at the sump. */
   wet: [96, 82, 70],
@@ -64,7 +64,7 @@ export const SURFACE = {
   /** Pale scum line at the water's edge. */
   tide: [176, 166, 144],
   shadow: [56, 54, 40],
-  waste: [166, 152, 136],
+  waste: [160, 148, 134],
   freshCut: [172, 110, 74],
   creekSand: [196, 170, 132],
 } as const satisfies Record<string, RGB>
