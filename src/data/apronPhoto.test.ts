@@ -58,11 +58,11 @@ describe('ground painted around the survey', () => {
   let block: Orthophoto
   beforeAll(async () => {
     block = (await new SyntheticTerrainProvider().getSurvey('current')).orthophoto!
-  }, 30_000)
+  }, 120_000)
 
   it('is a coarse image of the block and the ground around it', () => {
-    expect(around.width).toBe(1280)
-    expect(around.rgba.length).toBe(1280 * 1280 * 4)
+    expect(around.width).toBe(1600)
+    expect(around.rgba.length).toBe(1600 * 1600 * 4)
     // 4.8 m per pixel against the block image's 1.6 m.
     expect(AROUND_SPAN / around.width).toBe(4.8)
     expect(around.provenance).toBe('simulated')

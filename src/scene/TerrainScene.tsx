@@ -70,10 +70,10 @@ export default function TerrainScene() {
       flat
       frameloop="demand"
       dpr={[1, 2]}
-      camera={{ fov: 35, near: 10, far: 16000, position: [0, 4000, 900] }}
+      camera={{ fov: 35, near: 10, far: 20000, position: [0, 4000, 900] }}
       gl={{ antialias: true, alpha: true }}
     >
-      <fog attach="fog" args={[fog, 5200, 12000]} />
+      <fog attach="fog" args={[fog, 6500, 15000]} />
       {/* Cool sky fill and a warm, fairly low sun from the north-west. */}
       <hemisphereLight args={[LIGHT.sky, LIGHT.ground, 0.95]} />
       <directionalLight
@@ -87,7 +87,7 @@ export default function TerrainScene() {
         shadow-camera-top={SHADOW_HALF}
         shadow-camera-bottom={-SHADOW_HALF}
         shadow-camera-near={500}
-        shadow-camera-far={6000}
+        shadow-camera-far={7500}
         shadow-bias={-0.0004}
         shadow-normalBias={1.5}
       />

@@ -62,7 +62,7 @@ const PANELS = [
   {
     title: 'PitWatch survey grid',
     cell: '4 m cells',
-    text: 'The app compares two 513 × 513 surveys at 4 m spacing. Each bench spans several cells, so the steps survive.',
+    text: 'The app compares two 641 × 641 surveys at 4 m spacing. Each bench spans several cells, so the steps survive.',
     path: sampled(4),
   },
   {

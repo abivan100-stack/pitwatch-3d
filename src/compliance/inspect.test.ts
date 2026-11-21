@@ -25,7 +25,7 @@ beforeAll(async () => {
     p.getLimits(),
   ])
   evaluation = evaluate(baseline, current, limits)
-}, 30_000)
+}, 120_000)
 
 const readAt = (p: Vec2, findings = evaluation.findings, permit = limits) =>
   readPoint(p, baseline, current, permit, { change: evaluation.change, findings })

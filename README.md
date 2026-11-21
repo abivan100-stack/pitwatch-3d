@@ -60,7 +60,7 @@ GitHub Actions runs `verify`, the build and the browser tests on every pull requ
 
 The app has three parts, and data flows one way through them.
 
-1. **Data.** A seeded generator builds the mine: a baseline survey and a current survey, each a grid of 513 × 513 heights at 4 m spacing (about 2 km square), plus a simulated aerial photo for each. The changes an inspector should find are planted in the current survey. The surrounding ground outside the 2 km block is decoration only; nothing is measured on it.
+1. **Data.** A seeded generator builds the mine: a baseline survey and a current survey, each a grid of 641 × 641 heights at 4 m spacing (about 2.6 km square), plus a simulated aerial photo for each. The changes an inspector should find are planted in the current survey. The surrounding ground outside the 2.6 km block is decoration only; nothing is measured on it.
 2. **Engine.** For every cell, the engine subtracts the baseline height from the current one, decides whether the change is bigger than the surveys' own error, groups flagged cells into findings and writes a plain-English explanation for each.
 3. **Interface.** The pages and the 3D model draw what the engine reports. No alert is written by hand.
 
@@ -87,7 +87,7 @@ R2 compares the current ground with a fixed approved floor, so it uses the curre
 
 Flagged cells that touch (including diagonally) form one finding. Each finding has an area, a volume, its largest exceedance, a centre and a severity: a violation is critical or high, a warning medium or low, depending on area, volume and exceedance limits. A typical explanation reads:
 
-> Excavated 7,696 m² outside the lease boundary; deepest cut 52.5 m ± 0.14 m (2σ). 175,297 m³ removed.
+> Excavated 12,096 m² outside the lease boundary; deepest cut 66.8 m ± 0.14 m (2σ). 335,542 m³ removed.
 
 Every threshold lives in [`src/compliance/config.ts`](src/compliance/config.ts).
 

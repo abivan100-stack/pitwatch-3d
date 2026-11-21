@@ -117,8 +117,8 @@ function LeaseTube({ points }: { points: V3[] }) {
   )
 }
 
-/** Half the diagonal of the 2048 m block: the circle its corners sweep while turning. */
-const SWEEP = Math.hypot(1024, 1024)
+/** Half the diagonal of the 2560 m block: the circle its corners sweep while turning. */
+const SWEEP = Math.hypot(1280, 1280)
 /** Block thickness in scene units at 1.5× (ground to the base of the sides). */
 const THICKNESS = 260
 
@@ -226,14 +226,14 @@ export default function HomeScene({
       shadows="percentage"
       frameloop={active ? 'always' : 'never'}
       dpr={[1, 2]}
-      camera={{ fov: 35, near: 10, far: 16000, position: [0, 3000, 2000] }}
+      camera={{ fov: 35, near: 10, far: 20000, position: [0, 3000, 2000] }}
       gl={{ antialias: true, alpha: true }}
       style={{ touchAction: 'pan-y' }}
       onCreated={({ gl }) => {
         if (probe) probe.landing = { toneMapping: gl.toneMapping, frames: 0 }
       }}
     >
-      <fog attach="fog" args={[fog, 5200, 12000]} />
+      <fog attach="fog" args={[fog, 6500, 15000]} />
       <hemisphereLight args={[LIGHT.sky, LIGHT.ground, 0.95]} />
       <directionalLight
         position={[...SUN_POSITION]}
@@ -246,7 +246,7 @@ export default function HomeScene({
         shadow-camera-top={SHADOW_HALF}
         shadow-camera-bottom={-SHADOW_HALF}
         shadow-camera-near={500}
-        shadow-camera-far={6000}
+        shadow-camera-far={7500}
         shadow-bias={-0.0004}
         shadow-normalBias={1.5}
       />

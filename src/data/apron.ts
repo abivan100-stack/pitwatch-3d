@@ -19,13 +19,13 @@ import { creekDistance, distanceToLine, naturalGround } from './synthetic'
 /** Lattice spacing, metres: eight block cells, so the apron costs far fewer triangles per metre. */
 export const APRON_CELL_M = 32
 /** How far the apron reaches beyond each edge of the block, metres (a whole number of cells). */
-export const APRON_REACH_M = 3008
+export const APRON_REACH_M = 3744
 
 /**
  * Distance beyond the block's edge, metres, over which the apron fades from solid to transparent.
  * It ends inside the reach, so the apron's own outer edge is never seen.
  */
-export const APRON_FADE_M = { from: 900, to: 3000 } as const
+export const APRON_FADE_M = { from: 1100, to: 3700 } as const
 
 export interface ApronGrid {
   /** Vertex lattice covering block and apron, aligned to the block. */
@@ -70,12 +70,12 @@ export function apronHeights(a: ApronGrid, seed: number): Float32Array {
  * the apron is already more than half faded, the material mirrors the image instead of painting
  * ground nobody can make out.
  */
-export const APRON_PHOTO_REACH_M = 2048
+export const APRON_PHOTO_REACH_M = 2560
 /**
- * Side of that image, pixels: 4.8 m per pixel over the block and its reach (6.6 MB). At 1,536 px
- * it took as long to paint as the baseline survey has to spare before the current one is ready.
+ * Side of that image, pixels: 4.8 m per pixel over the block and its reach (10.2 MB). It is painted
+ * by the baseline survey's worker, in the time that survey has to spare before the current one.
  */
-export const APRON_PHOTO_SIZE = 1280
+export const APRON_PHOTO_SIZE = 1600
 
 /** Beyond this distance from the creek, metres, its bed and bank trees paint nothing. */
 const CREEK_REACH_M = 200

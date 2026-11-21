@@ -102,7 +102,7 @@ export function CoordinateEntry() {
               step="any"
               inputMode="decimal"
               autoComplete="off"
-              placeholder="e.g. 1024"
+              placeholder="e.g. 1280"
               aria-describedby={hintId}
               className={inputClass}
               value={draft.east}

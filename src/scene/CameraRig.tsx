@@ -242,7 +242,7 @@ export function CameraRig({ pit, floorRL }: { pit: Vec2; floorRL: number }) {
       dampingFactor={0.09}
       maxPolarAngle={1.42}
       minDistance={140}
-      maxDistance={5600}
+      maxDistance={7000}
       screenSpacePanning={false}
       onStart={() => {
         // A drag ends the flight where it is.

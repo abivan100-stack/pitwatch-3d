@@ -136,14 +136,14 @@ test('a click or a typed point on the apron is read as outside the survey', asyn
   await page.keyboard.press('Escape')
   await expect(inspector.getByText('Nothing selected')).toBeVisible()
   await page.keyboard.press(']')
-  await expect(inspector).toBeHidden()
+  await expect(inspector).toBeHidden({ timeout: 15_000 })
 
   // The apron lies either side of the block at the Top preset. A click there picks a point west
   // (or east) of the grid, and the Inspector says it has no reading there.
   const east = page.getByLabel('East', { exact: true })
   for (const [x, outside] of [
     [100, (v: number) => v < 0],
-    [1340, (v: number) => v > 2048],
+    [1340, (v: number) => v > 2560],
   ] as const) {
     await page.mouse.click(x, 450)
     await showInspector()
@@ -154,7 +154,7 @@ test('a click or a typed point on the apron is read as outside the survey', asyn
     ).toBeVisible()
     await page.keyboard.press('Escape')
     await page.keyboard.press(']')
-    await expect(inspector).toBeHidden()
+    await expect(inspector).toBeHidden({ timeout: 15_000 })
   }
   await showInspector()
 
@@ -163,7 +163,7 @@ test('a click or a typed point on the apron is read as outside the survey', asyn
   await page.getByLabel('North', { exact: true }).fill('1000')
   await page.getByRole('button', { name: 'Read point' }).click()
   await expect(page.locator('form').getByRole('status')).toContainText(
-    'E -1,500 m, N 1,000 m is outside the survey grid (E 0–2,048 m, N 0–2,048 m). The position is reported; elevations cannot be.',
+    'E -1,500 m, N 1,000 m is outside the survey grid (E 0–2,560 m, N 0–2,560 m). The position is reported; elevations cannot be.',
   )
   await expect(
     page.getByText('No reading here: the point is outside the survey grid.'),

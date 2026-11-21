@@ -10,9 +10,9 @@ const block = extent(GRID)
 describe('apron lattice', () => {
   const a = apronGrid(GRID)
 
-  it('reaches 3 km past every edge on a 32 m lattice aligned to the survey grid', () => {
+  it('reaches 3.7 km past every edge on a 32 m lattice aligned to the survey grid', () => {
     expect(a.grid.cellSize).toBe(APRON_CELL_M)
-    expect(a.grid.cols).toBe(2048 / 32 + 2 * (APRON_REACH_M / 32) + 1)
+    expect(a.grid.cols).toBe(2560 / 32 + 2 * (APRON_REACH_M / 32) + 1)
     expect(a.grid.rows).toBe(a.grid.cols)
     // The first lattice vertex is the reach short of the block's origin; the hole is the block.
     expect(a.grid.originXY).toEqual({ x: -APRON_REACH_M, y: -APRON_REACH_M })
@@ -83,10 +83,10 @@ describe('apron heights', () => {
   })
 
   it('carry none of the surveyed features: no pit, dump, pond or road', () => {
-    // At the centre of the main pit the survey is ~150 m below the natural ground. The apron's
+    // At the centre of the main pit the survey is ~225 m below the natural ground. The apron's
     // lattice there (hole interior, never drawn) is still the natural ground.
-    const col = a.hole.c0 + Math.round(875 / APRON_CELL_M)
-    const row = a.hole.r0 + Math.round(1020 / APRON_CELL_M)
+    const col = a.hole.c0 + Math.round(1094 / APRON_CELL_M)
+    const row = a.hole.r0 + Math.round(1275 / APRON_CELL_M)
     const p = cellCenter(a.grid, col, row)
     expect(trueSurface(p, 'current', SEED)).toBeLessThan(naturalGround(p, SEED) - 100)
     expect(heights[row * a.grid.cols + col]).toBeCloseTo(naturalGround(p, SEED), 3)

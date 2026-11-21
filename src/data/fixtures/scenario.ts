@@ -11,23 +11,23 @@ import { MINE_INFO } from './mine'
 
 /*
  * Geometry of the fictional Venthar Ridge scenario. All local metres (X east, Y north).
- * The grid covers 0..2048 m in both directions. Every value here is synthetic.
+ * The grid covers 0..2560 m in both directions. Every value here is synthetic.
  */
 
 export const SEED = 20251114
 
-export const GRID: GridSpec = { cols: 513, rows: 513, cellSize: 4, originXY: { x: 0, y: 0 } }
+export const GRID: GridSpec = { cols: 641, rows: 641, cellSize: 4, originXY: { x: 0, y: 0 } }
 
-/** Lease boundary. The east edge at x ≈ 1380 m runs close to the pit on purpose. */
+/** Lease boundary. The east edge at x ≈ 1725 m runs close to the pit on purpose. */
 export const LEASE: Polygon = [
-  { x: 240, y: 220 },
-  { x: 1640, y: 240 },
-  { x: 1660, y: 800 },
-  { x: 1380, y: 880 },
-  { x: 1385, y: 1320 },
-  { x: 1560, y: 1560 },
-  { x: 1180, y: 1500 },
-  { x: 300, y: 1560 },
+  { x: 300, y: 275 },
+  { x: 2050, y: 300 },
+  { x: 2075, y: 1000 },
+  { x: 1725, y: 1100 },
+  { x: 1731, y: 1650 },
+  { x: 1950, y: 1950 },
+  { x: 1475, y: 1875 },
+  { x: 375, y: 1950 },
 ]
 
 export const SAFETY_BUFFER_M = 20
@@ -91,24 +91,24 @@ export function randomOutline(
 export const PIT_SEED = SEED + 101
 
 /**
- * Main pit now: random outline (anticlockwise) inside the lease, about 930 m long and 195 m
- * deep (13 benches), floor 2 m above the approved floor. The east wall stops at x = 1330,
+ * Main pit now: random outline (anticlockwise) inside the lease, about 1,140 m long and 225 m
+ * deep (15 benches), floor 2 m above the approved floor. The east wall stops at x = 1662,
  * clear of the lease buffer.
  */
 export const CURRENT_PIT: PitStage = {
-  floorRL: 242,
-  outline: randomOutline(PIT_SEED, { x0: 420, x1: 1330, y0: 710, y1: 1330 }),
+  floorRL: 197,
+  outline: randomOutline(PIT_SEED, { x0: 525, x1: 1662, y0: 888, y1: 1662 }),
 }
 
 /**
  * Main pit at the baseline survey: the same pit before its west wall was pushed back
- * (about 75 m at the far west) and before the last bench was mined.
+ * (about 95 m at the far west) and before the last bench was mined.
  */
 export const BASELINE_PIT: PitStage = {
-  floorRL: 257,
+  floorRL: 212,
   outline: CURRENT_PIT.outline.map((p) => ({
-    x: p.x < 700 ? p.x + (700 - p.x) * 0.23 : p.x,
-    y: 1020 + (p.y - 1020) * 0.94,
+    x: p.x < 875 ? p.x + (875 - p.x) * 0.23 : p.x,
+    y: 1275 + (p.y - 1275) * 0.94,
   })),
 }
 
@@ -129,38 +129,38 @@ export const blobAround = (cx: number, cy: number, r: number, phase: number, n =
     return { x: cx + rr * Math.cos(t), y: cy + rr * Math.sin(t) }
   })
 
-/** Second working: a satellite pit south of the main one, 86 m deep. */
+/** Second working: a satellite pit south of the main one, 106 m deep. */
 export const SATELLITE_SEED = SEED + 211
 export const CURRENT_PIT_B: PitStage = {
-  floorRL: 336,
-  outline: randomOutline(SATELLITE_SEED, { x0: 760, x1: 1060, y0: 330, y1: 560 }, 18),
+  floorRL: 316,
+  outline: randomOutline(SATELLITE_SEED, { x0: 950, x1: 1325, y0: 412, y1: 700 }, 18),
 }
 /** The satellite pit at the baseline survey: smaller, and a bench shallower. */
 export const BASELINE_PIT_B: PitStage = {
-  floorRL: 350,
+  floorRL: 330,
   outline: scaleAbout(CURRENT_PIT_B.outline, 0.8),
 }
 
 export const PIT_ZONE: PitZone = {
   id: 'pit-main',
   polygon: scaleAbout(CURRENT_PIT.outline, 1.14),
-  approvedFloorElevation: 240,
+  approvedFloorElevation: 195,
 }
 
 export const PIT_ZONE_B: PitZone = {
   id: 'pit-south',
   polygon: scaleAbout(CURRENT_PIT_B.outline, 1.22),
-  approvedFloorElevation: 334,
+  approvedFloorElevation: 314,
 }
 
 export const DUMP_ZONE: DumpZone = {
   id: 'dump-west',
-  polygon: blobAround(540, 510, 165, 0.7),
+  polygon: blobAround(675, 638, 206, 0.7),
 }
 
 export const DUMP_ZONE_B: DumpZone = {
   id: 'dump-east',
-  polygon: blobAround(1280, 470, 140, 2.1),
+  polygon: blobAround(1600, 588, 175, 2.1),
 }
 
 /*
@@ -172,70 +172,70 @@ export const DUMP_ZONE_B: DumpZone = {
  *   zoneDump      no finding: waste placed inside the dump zone.
  */
 export const CHANGES = {
-  /** Pushback of the east wall, benched down into the pit, that runs past the lease edge (x ≈ 1382 here). */
+  /** Pushback of the east wall, benched down into the pit, that runs past the lease edge (x ≈ 1727 here). */
   encroachment: {
-    floorRL: 332,
+    floorRL: 310,
     outline: pts([
-      [1240, 900],
-      [1330, 905],
-      [1410, 950],
-      [1448, 1030],
-      [1415, 1110],
-      [1330, 1150],
-      [1240, 1140],
-      [1200, 1020],
+      [1550, 1125],
+      [1662, 1131],
+      [1762, 1188],
+      [1810, 1288],
+      [1769, 1388],
+      [1662, 1438],
+      [1550, 1425],
+      [1500, 1275],
     ]),
   } satisfies PitStage,
-  sump: { cx: 880, cy: 1020, r: 22, depthBelowFloor: 6 },
-  bufferScrape: { x0: 900, x1: 1010, y0: 1500, y1: 1510, depth: 1.2 },
+  sump: { cx: 1100, cy: 1275, r: 27, depthBelowFloor: 6 },
+  bufferScrape: { x0: 1140, x1: 1260, y0: 1878, y1: 1886, depth: 1.2 },
   /** A cluster of truck-tipped heaps around (cx, cy). */
-  strayDump: { cx: 1520, cy: 480, r: 45, height: 4 },
+  strayDump: { cx: 1900, cy: 600, r: 45, height: 4 },
   /** The terraced west dump grows taller and wider (see BASELINE_DUMP). */
-  zoneDump: { cx: 540, cy: 510, r: 115, height: 10 },
+  zoneDump: { cx: 675, cy: 638, r: 144, height: 10 },
   /** The east waste dump also grows inside its own zone: no finding. */
-  zoneDumpB: { cx: 1280, cy: 470, r: 100, height: 12 },
+  zoneDumpB: { cx: 1600, cy: 588, r: 125, height: 12 },
 } as const
 
 /** Terraced waste dump that already exists in the baseline survey, inside the dump zone. */
-export const BASELINE_DUMP = { cx: 530, cy: 505, r: 85, height: 5 } as const
-export const BASELINE_DUMP_B = { cx: 1275, cy: 465, r: 70, height: 6 } as const
+export const BASELINE_DUMP = { cx: 662, cy: 631, r: 106, height: 5 } as const
+export const BASELINE_DUMP_B = { cx: 1594, cy: 581, r: 88, height: 6 } as const
 
 /** Settling pond at a low point south-west of the main pit, present in both surveys. */
-export const POND = { cx: 560, cy: 1400, r: 60, depth: 7 } as const
+export const POND = { cx: 700, cy: 1750, r: 75, depth: 7 } as const
 
 /**
  * Haul ramp in the main pit: leaves the rim at the point nearest `start` (where the
  * haul road arrives) and runs anticlockwise down the wall at `grade` until the floor.
  */
 export const RAMP = {
-  start: { x: 900, y: 715 },
-  startB: { x: 905, y: 560 },
+  start: { x: 1125, y: 894 },
+  startB: { x: 1131, y: 700 },
   grade: 0.1,
   width: 30,
 } as const
 
 /** Crest line of Venthar Ridge, north of the lease (local metres). */
 export const RIDGE: readonly [number, number][] = [
-  [-150, 1640],
-  [400, 1790],
-  [900, 1860],
-  [1400, 1800],
-  [2200, 1910],
+  [-188, 2050],
+  [500, 2238],
+  [1125, 2325],
+  [1750, 2250],
+  [2750, 2388],
 ]
 
 /** Broad rises on the plateau, so the block has shape away from the ridge too. */
 export const RISES: readonly { cx: number; cy: number; r: number; h: number }[] = [
-  { cx: 1800, cy: 1480, r: 300, h: 34 },
-  { cx: 90, cy: 760, r: 260, h: 26 },
+  { cx: 2250, cy: 1850, r: 375, h: 34 },
+  { cx: 112, cy: 950, r: 325, h: 26 },
 ]
 
 /** Dry creek bed east of the lease, draining south, with a wide floodplain. */
 export const CREEK: readonly [number, number][] = [
-  [2200, 1200],
-  [1850, 930],
-  [1735, 640],
-  [1770, 320],
-  [1690, -150],
+  [2750, 1500],
+  [2312, 1162],
+  [2169, 800],
+  [2212, 400],
+  [2112, -188],
 ]
 
 /**
@@ -247,44 +247,44 @@ export const CREEK: readonly [number, number][] = [
 export const ROADS: readonly (readonly [number, number][])[] = [
   // Main pit ramp to the first junction.
   [
-    [900, 715],
-    [930, 650],
-    [960, 600],
+    [1125, 894],
+    [1162, 812],
+    [1200, 750],
   ],
   // Satellite pit down to the same junction.
   [
-    [905, 560],
-    [930, 580],
-    [960, 600],
+    [1131, 700],
+    [1162, 725],
+    [1200, 750],
   ],
   // Junction to the west dump.
   [
-    [960, 600],
-    [800, 570],
-    [660, 520],
-    [560, 505],
+    [1200, 750],
+    [1000, 712],
+    [825, 650],
+    [700, 631],
   ],
   // Junction to the second junction, then the east dump and the stray-dump track.
   [
-    [960, 600],
-    [1060, 560],
-    [1130, 500],
+    [1200, 750],
+    [1325, 700],
+    [1412, 625],
   ],
   [
-    [1130, 500],
-    [1230, 470],
-    [1300, 470],
+    [1412, 625],
+    [1537, 587],
+    [1625, 587],
   ],
   [
-    [1300, 470],
-    [1420, 470],
-    [1500, 475],
+    [1625, 587],
+    [1775, 587],
+    [1875, 593],
   ],
   // Out of the lease gate to the north.
   [
-    [1130, 500],
-    [1150, 300],
-    [1180, 0],
+    [1412, 625],
+    [1437, 375],
+    [1475, 0],
   ],
 ]
 

@@ -227,8 +227,8 @@ interface ContourSegment {
 }
 
 const svgNumber = (value: number) => String(Object.is(value, -0) ? 0 : value)
-// Bound main-thread work to about 16 million grid-cell/level visits. The current 513² survey
-// with 5 m contours over its ~150 m relief needs only about 7.9 million visits.
+// Bound main-thread work to about 16 million grid-cell/level visits. The site plan draws at most
+// four index levels over the 641² survey, about 1.6 million visits.
 const MAX_CONTOUR_CELL_VISITS = 16_000_000
 
 /**

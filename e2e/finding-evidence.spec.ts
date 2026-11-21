@@ -5,7 +5,7 @@ test.use({ reducedMotion: 'reduce' })
 test('Show on map restores the current terrain, finding layer, and selected evidence', async ({
   page,
 }) => {
-  // The map now renders the 513 × 513 terrain while this test changes routes repeatedly.
+  // The map now renders the 641 × 641 terrain while this test changes routes repeatedly.
   test.setTimeout(60_000)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/#/monitor')

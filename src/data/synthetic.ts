@@ -30,8 +30,8 @@ import { gaussian, mulberry32 } from './rng'
  */
 
 /** Rough centres of the two workings; natural relief is calmed near them. */
-const PIT_CENTRE = { x: 875, y: 1020 }
-const SATELLITE_CENTRE = { x: 910, y: 445 }
+const PIT_CENTRE = { x: 1094, y: 1275 }
+const SATELLITE_CENTRE = { x: 1138, y: 556 }
 
 export function distanceToLine(p: Vec2, line: readonly (readonly [number, number])[]): number {
   let d = Infinity
@@ -71,8 +71,8 @@ export function naturalGround(p: Vec2, seed: number): number {
   const toSatellite = Math.hypot(p.x - SATELLITE_CENTRE.x, p.y - SATELLITE_CENTRE.y)
   const calm =
     Math.min(
-      Math.min(1, Math.max(0, (toPit - 560) / 480)),
-      Math.min(1, Math.max(0, (toSatellite - 230) / 300)),
+      Math.min(1, Math.max(0, (toPit - 700) / 600)),
+      Math.min(1, Math.max(0, (toSatellite - 288) / 375)),
     ) ** 2
 
   // The ridge: its height varies along the crest.

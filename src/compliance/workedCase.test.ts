@@ -20,7 +20,7 @@ beforeAll(async () => {
     p.getLimits(),
   ])
   evaluation = evaluate(baseline, current, limits)
-}, 30_000)
+}, 120_000)
 
 describe('worked case for the landing page', () => {
   it('follows R1-1 and reports the finding’s own figures', () => {

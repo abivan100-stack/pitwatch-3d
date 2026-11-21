@@ -95,10 +95,10 @@ test('typed coordinates set measure A and B and produce a distance', async ({ pa
     'true',
   )
 
-  await enterCoordinate(page, '900', '800')
-  await expect(page.getByText('Point A is set at E 900 m, N 800 m.')).toBeVisible()
+  await enterCoordinate(page, '1125', '1000')
+  await expect(page.getByText('Point A is set at E 1,125 m, N 1,000 m.')).toBeVisible()
 
-  await enterCoordinate(page, '1100', '800')
+  await enterCoordinate(page, '1325', '1000')
   // A complete measurement now renders the rows the inspector shows after two clicks.
   await expect(page.locator('#details-tabpanel dt', { hasText: 'Horizontal' })).toBeVisible()
   await expect(page.locator('#details-tabpanel dt', { hasText: 'Average grade' })).toBeVisible()
@@ -133,20 +133,20 @@ test('a point reading quotes horizontal error and refuses an unconfirmable side'
   await openInspector(page)
 
   const reading = page.locator('#details-tabpanel dd')
-  await enterCoordinate(page, '240.30', '220.30')
-  await expect(reading.filter({ hasText: 'E 240.30 m, N 220.30 m ± 0.10 m' })).toBeVisible()
+  await enterCoordinate(page, '300.30', '275.30')
+  await expect(reading.filter({ hasText: 'E 300.30 m, N 275.30 m ± 0.10 m' })).toBeVisible()
   await expect(
     reading.filter({ hasText: 'Inside, 0.29 m from the boundary ±0.10 m' }),
   ).toBeVisible()
 
-  await enterCoordinate(page, '239.70', '219.70')
-  await expect(reading.filter({ hasText: 'E 239.70 m, N 219.70 m ± 0.10 m' })).toBeVisible()
+  await enterCoordinate(page, '299.70', '274.70')
+  await expect(reading.filter({ hasText: 'E 299.70 m, N 274.70 m ± 0.10 m' })).toBeVisible()
   await expect(
     reading.filter({ hasText: 'Outside, 0.42 m from the boundary ±0.10 m' }),
   ).toBeVisible()
 
-  await enterCoordinate(page, '240', '220')
-  await expect(reading.filter({ hasText: 'E 240.00 m, N 220.00 m ± 0.10 m' })).toBeVisible()
+  await enterCoordinate(page, '300', '275')
+  await expect(reading.filter({ hasText: 'E 300.00 m, N 275.00 m ± 0.10 m' })).toBeVisible()
   await expect(reading.filter({ hasText: 'Side cannot be confirmed' })).toContainText(
     '0.00 m from the boundary, within the 0.20 m (2σ) horizontal error band',
   )
@@ -156,12 +156,12 @@ test('a coordinate outside the grid is applied and reported honestly', async ({ 
   await openMonitor(page)
   await openInspector(page)
 
-  await enterCoordinate(page, '2400', '1200')
+  await enterCoordinate(page, '2700', '1200')
 
   // It is still read, so the panel is not empty: the position is real, the elevation is not.
   await expect(page.getByText('Selected point')).toBeVisible()
   await expect(
-    page.locator('#details-tabpanel dd').filter({ hasText: 'E 2,400.00 m, N 1,200.00 m' }),
+    page.locator('#details-tabpanel dd').filter({ hasText: 'E 2,700.00 m, N 1,200.00 m' }),
   ).toBeVisible()
   const elevation = page
     .locator('#details-tabpanel dt', { hasText: 'Elevation' })
@@ -267,8 +267,8 @@ test('Escape closes the navigation drawer before clearing a map measurement', as
   await page.keyboard.press('m')
   await page.getByRole('button', { name: 'Details', exact: true }).click()
   await openInspector(page)
-  await enterCoordinate(page, '900', '800')
-  await enterCoordinate(page, '1100', '800')
+  await enterCoordinate(page, '1125', '1000')
+  await enterCoordinate(page, '1325', '1000')
 
   const distance = page.getByText('200.0 m ± 0.14 m', { exact: true })
   await expect(distance).toBeVisible()

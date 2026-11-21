@@ -34,5 +34,5 @@ test('keeps the terrain map usable across widths and explains its survey resolut
   await page.goto('/#/uncertainty')
   await expect(page.getByRole('heading', { name: 'Why survey resolution matters' })).toBeVisible()
   await expect(page.getByText(/4 m cells/)).toBeVisible()
-  await expect(page.getByText(/513 × 513/)).toBeVisible()
+  await expect(page.getByText(/641 × 641/)).toBeVisible()
 })

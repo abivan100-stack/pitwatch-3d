@@ -83,10 +83,10 @@ const walls = (() => {
 })()
 
 describe('simulated orthophoto', () => {
-  it('draws 1280 px over the 2048 m grid, about 1.6 m per pixel, marked simulated', () => {
-    // Close range is the shader's detail tile (src/scene/rockDetail.ts), not a bigger image: 2048 px
-    // made the first engine result about a quarter slower and the landing model half as slow.
-    expect(ORTHOPHOTO_SIZE).toBe(1280)
+  it('draws 1600 px over the 2560 m grid, 1.6 m per pixel, marked simulated', () => {
+    // Close range is the shader's detail tile (src/scene/rockDetail.ts), not a finer image: 2048 px
+    // over 2048 m made the first engine result about a quarter slower and the landing model half as slow.
+    expect(ORTHOPHOTO_SIZE).toBe(1600)
     expect(SIZE).toBe(ORTHOPHOTO_SIZE)
     expect(SPAN / (SIZE - 1)).toBeCloseTo(1.6, 2)
     expect(photo.rgba.length).toBe(SIZE * SIZE * 4)
@@ -99,18 +99,18 @@ describe('simulated orthophoto', () => {
     const a = buildOrthophoto(GRID, elevations, natural, 'current', SEED, small)
     const b = buildOrthophoto(GRID, elevations, natural, 'current', SEED, small)
     expect(b.rgba).toEqual(a.rgba)
-  }, 30_000)
+  }, 60_000)
 
   it('shows the pit as bare ground, redder than it is green', () => {
-    const [r, g] = pixel(1130, 1030)
+    const [r, g] = pixel(1412, 1288)
     expect(r).toBeGreaterThan(g)
   })
 
   it('draws haul roads paler than the scrub around them', () => {
-    // The lease-gate road, on the leg from (1150, 300) to (1180, 0).
+    // The lease-gate road, on the leg from (1437, 375) to (1475, 0).
     const [x, y] = ROADS[ROADS.length - 1]![2]!
-    const onRoad = pixel(1159, 210)
-    const offRoad = pixel(1159 + 120, 210)
+    const onRoad = pixel(1448, 262)
+    const offRoad = pixel(1448 + 150, 262)
     expect(x).toBeGreaterThan(0)
     expect(y).toBe(0)
     expect(lum(onRoad)).toBeGreaterThan(lum(offRoad))

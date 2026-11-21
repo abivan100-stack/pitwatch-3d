@@ -271,7 +271,7 @@ describe('finding flights', () => {
     const [x, , z] = toScene(current.grid, centroidOf(zone.polygon), zone.approvedFloorElevation)
     pit = { x, y: z }
     floorRL = zone.approvedFloorElevation
-  }, 60_000)
+  }, 120_000)
 
   const cellOf = (p: { x: number; y: number }) => {
     const rc = cellAt(current.grid, p)!
@@ -284,11 +284,11 @@ describe('finding flights', () => {
     )
     // Measured: every centroid lies in its own finding, and its anchor is under 2 m from it.
     expect(anchors).toEqual({
-      'R1-1': { x: 1404, y: 1032 },
-      'R2-1': { x: 880, y: 1020 },
-      'R1-2': { x: 1372, y: 1028 },
-      'R3-1': { x: 1520, y: 480 },
-      'R1-3': { x: 956, y: 1504 },
+      'R1-1': { x: 1756, y: 1288 },
+      'R2-1': { x: 1100, y: 1276 },
+      'R1-2': { x: 1716, y: 1288 },
+      'R3-1': { x: 1900, y: 600 },
+      'R1-3': { x: 1200, y: 1880 },
     })
     for (const f of findings) {
       const a = anchors[f.id]

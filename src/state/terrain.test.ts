@@ -27,7 +27,7 @@ describe('terrain store', () => {
       'R1-1',
       'R2-1',
     ])
-  }, 30_000)
+  }, 120_000)
 
   it('reports provider failures instead of throwing', async () => {
     const broken: TerrainProvider = {
@@ -46,7 +46,7 @@ describe('terrain store', () => {
 
     await useTerrain.getState().load(new SyntheticTerrainProvider())
     expect(useTerrain.getState().surveys.current).toBe(before)
-  }, 30_000)
+  }, 120_000)
 
   it('retries a failed load on the provider that is already in play', async () => {
     const real = new SyntheticTerrainProvider()
@@ -70,7 +70,7 @@ describe('terrain store', () => {
     expect(s.status).toBe('ready')
     expect(s.error).toBeUndefined()
     expect(s.findings.filter((f) => f.status === 'violation')).toHaveLength(2)
-  }, 30_000)
+  }, 120_000)
 
   it('retry does nothing when there is nothing to retry', async () => {
     await useTerrain.getState().retry()

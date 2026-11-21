@@ -111,23 +111,23 @@ describe('synthetic terrain provider', async () => {
     expect(again.elevations).toEqual(current.elevations)
     const other = await new SyntheticTerrainProvider(1).getSurvey('current')
     expect(other.elevations).not.toEqual(current.elevations)
-  }, 60_000)
+  }, 120_000)
 
   it('rejects unknown surveys', async () => {
     await expect(provider.getSurvey('nope')).rejects.toThrow('Unknown survey')
   })
 
   it('cuts a stepped pit with a flat floor just above the approved level', () => {
-    const floor = sampleBilinear(GRID, current.elevations, { x: 1000, y: 1030 })!
+    const floor = sampleBilinear(GRID, current.elevations, { x: 1250, y: 1288 })!
     expect(floor).toBeCloseTo(CURRENT_PIT.floorRL, 0)
     expect(floor).toBeGreaterThan(PIT_ZONE.approvedFloorElevation)
   })
 
   it('leaves far-away ground unchanged apart from survey noise', () => {
     for (const [x, y] of [
-      [200, 1900],
-      [1900, 1900],
-      [1800, 150],
+      [250, 2375],
+      [2375, 2375],
+      [2250, 188],
     ]) {
       expect(Math.abs(dh(x, y))).toBeLessThan(0.4)
     }
@@ -135,13 +135,13 @@ describe('synthetic terrain provider', async () => {
 
   it('plants each scenario change where the rules will look for it', () => {
     // 1. Legitimate expansion inside the lease: ground lowered west of the old rim.
-    const west = { x: 460, y: 1020 }
+    const west = { x: 575, y: 1275 }
     expect(insidePit(west, preparePit(CURRENT_PIT))).toBeGreaterThan(0)
     expect(insidePit(west, preparePit(BASELINE_PIT))).toBeLessThan(0)
     expect(dh(west.x, west.y)).toBeLessThan(-5)
 
     // 2. Encroachment: deep cut outside the east lease edge.
-    const out = { x: 1420, y: 1030 }
+    const out = { x: 1775, y: 1288 }
     expect(pointInPolygon(out, LEASE)).toBe(false)
     expect(dh(out.x, out.y)).toBeLessThan(-10)
 
@@ -153,7 +153,7 @@ describe('synthetic terrain provider', async () => {
     expect(sumpZ).toBeLessThan(PIT_ZONE.approvedFloorElevation - 3)
 
     // 4. Shallow scrape inside the lease, within the safety buffer.
-    const scrape = { x: 960, y: 1504 }
+    const scrape = { x: 1200, y: 1882 }
     expect(pointInPolygon(scrape, LEASE)).toBe(true)
     expect(distanceToBoundary(scrape, LEASE)).toBeLessThan(SAFETY_BUFFER_M)
     expect(dh(scrape.x, scrape.y)).toBeCloseTo(-CHANGES.bufferScrape.depth, 0)
